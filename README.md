@@ -26,35 +26,79 @@ internal/platform/         配置、日志、数据库、缓存、鉴权、Web �
 internal/app/auth          登录、刷新 token、当前用户信息
 internal/app/user          用户 CRUD 与用户详情缓存
 internal/gen/jet           Jet 生成代码目录
-scripts/                   Atlas、Jet、模块生成与 bootstrap 脚本
 test/                      integration / e2e 测试
 ```
 
-## 快速开始
+## 项目初始化
 
-1. 启动本地依赖
+1. 安装命令行工具
 
-```bash
-make up
-```
+Atlas 用于维护数据库迁移，Jet 用于从数据库 schema 生成类型安全的 SQL 构造代码。安装后需要确保 `atlas` 和 `jet` 都在 `PATH` 中。
 
-2. 执行数据库迁移
+macOS / Linux 可使用官方脚本安装 Atlas：
 
 ```bash
-make migrate-apply ENV=local
+curl -sSf https://atlasgo.sh | sh
 ```
 
-3. 重新生成 Jet 代码
+使用 Homebrew 时可这样安装 Atlas：
 
 ```bash
-make jet
+brew install ariga/tap/atlas
 ```
 
-4. 启动服务
+Windows 环境建议下载 Atlas Windows AMD64 二进制，保存为 `atlas.exe` 并将所在目录加入 `PATH`：
+
+```powershell
+# 下载地址：https://atlasbinaries.com/atlas/atlas-windows-amd64-latest.exe
+# 示例安装目录：C:\atlas\atlas.exe
+$atlasPath = "C:\atlas"
+$currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+[Environment]::SetEnvironmentVariable("Path", "$currentPath;$atlasPath", "User")
+```
+
+Jet CLI 通过 Go 工具链安装：
 
 ```bash
-make dev
+go install github.com/go-jet/jet/v2/cmd/jet@latest
 ```
+
+如果 `jet` 无法直接执行，请确认 `$env:GOBIN` 或 `$env:GOPATH\bin` 已加入 `PATH`。
+
+安装完成后验证：
+
+```bash
+atlas version
+jet -help
+```
+
+2. 启动本地依赖
+
+```bash
+docker compose up -d postgres redis
+```
+
+3. 执行数据库迁移
+
+```bash
+atlas -c file://db/atlas.hcl migrate apply --env local
+```
+
+4. 重新生成 Jet 代码
+
+```bash
+jet -dsn="postgresql://postgres:postgres@127.0.0.1:5432/initra?sslmode=disable" -schema=public -path=./internal/gen/jet
+```
+
+5. 初始化默认账号
+
+```bash
+psql "postgresql://postgres:postgres@127.0.0.1:5432/initra?sslmode=disable" -f db/seeds/001_seed_admin.sql
+```
+
+6. 启动服务
+
+在 IDEA 中运行 `cmd/server`，并设置环境变量 `APP_ENV=local`。
 
 ## 默认账号
 
@@ -74,41 +118,52 @@ make dev
 
 ## 常用命令
 
+本项目不再维护 Makefile 和脚本目录，常用入口直接使用原生命令。Go 运行、测试、格式化、构建等命令交由 IDEA Run Configuration 或内置工具链管理，README 不再重复列出。
+
+### 本地依赖
+
 ```bash
-make test
-make fmt
-make vet
-make lint
-make new-module NAME=order
-make migrate-new NAME=create_order_table
-make docker-build
+docker compose up -d postgres redis
+docker compose ps
+docker compose logs -f postgres redis
+docker compose down
 ```
 
-Windows / PowerShell 环境可直接使用同名脚本，避免依赖 `sh`：
+### Docker 镜像
 
-```powershell
-.\scripts\bootstrap.ps1
-.\scripts\atlas.ps1 migrate apply --env local
-.\scripts\jet.ps1
-.\scripts\new_module.ps1 -Name order
-.\scripts\new_migration.ps1 -Name create_order_table
-$env:APP_ENV = "local"; go run ./cmd/server
+```bash
+docker build -t initra:latest .
 ```
 
-## Jet 与 Atlas
+### 数据库迁移
 
-- `scripts/jet.sh` 默认从本地 PostgreSQL 读取 `public` schema，并输出到 `internal/gen/jet`
-- `scripts/jet.ps1` 提供等价的 Windows / PowerShell 入口
-- `scripts/atlas.sh` 固定读取 `db/atlas.hcl`
-- `scripts/atlas.ps1` 提供等价的 Windows / PowerShell 入口
+```bash
+atlas -c file://db/atlas.hcl migrate diff <name> --env local
+atlas -c file://db/atlas.hcl migrate apply --env local
+atlas -c file://db/atlas.hcl migrate status --env local
+```
+
+### Jet 代码生成
+
+```bash
+jet -dsn="postgresql://postgres:postgres@127.0.0.1:5432/initra?sslmode=disable" -schema=public -path=./internal/gen/jet
+```
+
+### Seed 数据
+
+```bash
+psql "postgresql://postgres:postgres@127.0.0.1:5432/initra?sslmode=disable" -f db/seeds/001_seed_admin.sql
+```
+
+## Atlas 与数据库
+
 - `db/schema/` 是 Atlas 的 desired database schema 目录，每个表单独一个 SQL 文件
 - 迁移目录固定为 `db/migrations`
-- `make migrate-diff NAME=xxx` 会基于 `db/schema/` 和迁移目录生成新的 versioned migration
-- 系统表结构以 `paperlingo-server` 中的 `V1.0.0__init_sys.sql` 为基准参考，并按脚手架需要做了适配
+- `atlas -c file://db/atlas.hcl migrate diff <name> --env local` 会基于 `db/schema/` 和迁移目录生成新的 versioned migration
 
 ## 当前实现范围
 
 - 平台层：配置、日志、数据库、缓存、JWT、Casbin、Gin/Huma、统一错误响应、health/ready/version
 - 业务层：auth 登录/刷新/me，user CRUD/列表/详情
-- 工程化：Makefile、Dockerfile、docker-compose、Atlas/Jet 脚本、PowerShell 脚本、模块生成脚本
+- 工程化：Dockerfile、docker-compose、Atlas 配置、Jet 代码生成说明、README 命令清单
 - 测试：service 单元测试、repository 测试、HTTP e2e 测试、架构边界测试
