@@ -1,0 +1,284 @@
+package e2e_test
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+	authmodule "github.com/teamsillybees/initra/internal/app/auth"
+	authapi "github.com/teamsillybees/initra/internal/app/auth/api"
+	authdomain "github.com/teamsillybees/initra/internal/app/auth/domain"
+	usermodule "github.com/teamsillybees/initra/internal/app/user"
+	userapi "github.com/teamsillybees/initra/internal/app/user/api"
+	userdomain "github.com/teamsillybees/initra/internal/app/user/domain"
+	platformauth "github.com/teamsillybees/initra/internal/platform/auth"
+	"github.com/teamsillybees/initra/internal/platform/observability"
+	"github.com/teamsillybees/initra/internal/platform/web"
+	"github.com/teamsillybees/initra/internal/shared/utils"
+	"go.uber.org/zap"
+)
+
+// memoryUserRepository 为端到端测试提供无需数据库的 user 仓储实现。
+type memoryUserRepository struct {
+	items map[int64]*userdomain.User
+}
+
+// Create 保存用户副本，避免后续修改影响测试仓储状态。
+func (m *memoryUserRepository) Create(_ context.Context, user *userdomain.User) error {
+	cloned := *user
+	m.items[user.ID] = &cloned
+	return nil
+}
+
+// FindByID 按 ID 返回用户副本。
+func (m *memoryUserRepository) FindByID(_ context.Context, id int64) (*userdomain.User, error) {
+	user, ok := m.items[id]
+	if !ok {
+		return nil, nil
+	}
+	cloned := *user
+	return &cloned, nil
+}
+
+// FindByUsername 遍历内存数据并返回匹配用户名的用户副本。
+func (m *memoryUserRepository) FindByUsername(_ context.Context, username string) (*userdomain.User, error) {
+	for _, user := range m.items {
+		if user.Username == username {
+			cloned := *user
+			return &cloned, nil
+		}
+	}
+	return nil, nil
+}
+
+// List 返回全部用户副本和总数。
+func (m *memoryUserRepository) List(_ context.Context, _ userdomain.ListUsersInput) ([]*userdomain.User, int64, error) {
+	items := make([]*userdomain.User, 0, len(m.items))
+	for _, user := range m.items {
+		cloned := *user
+		items = append(items, &cloned)
+	}
+	return items, int64(len(items)), nil
+}
+
+// Update 覆盖保存用户副本。
+func (m *memoryUserRepository) Update(_ context.Context, user *userdomain.User) error {
+	cloned := *user
+	m.items[user.ID] = &cloned
+	return nil
+}
+
+// Delete 从内存仓储中删除用户。
+func (m *memoryUserRepository) Delete(_ context.Context, id int64, _ int64) error {
+	delete(m.items, id)
+	return nil
+}
+
+// memoryUserCache 在端到端测试中始终模拟缓存未命中。
+type memoryUserCache struct{}
+
+// Get 始终返回未命中。
+func (memoryUserCache) Get(context.Context, int64) (*userdomain.User, bool, error) {
+	return nil, false, nil
+}
+
+// Set 忽略缓存写入。
+func (memoryUserCache) Set(context.Context, *userdomain.User) error {
+	return nil
+}
+
+// Delete 忽略缓存删除。
+func (memoryUserCache) Delete(context.Context, int64) error {
+	return nil
+}
+
+// staticIDGenerator 为端到端测试提供可预测的递增 ID。
+type staticIDGenerator struct {
+	next int64
+}
+
+// NextID 递增并返回下一个测试 ID。
+func (s *staticIDGenerator) NextID() int64 {
+	s.next++
+	return s.next
+}
+
+// memoryIdentityRepository 为端到端测试提供无需数据库的 auth 身份仓储实现。
+type memoryIdentityRepository struct {
+	byID       map[int64]*authdomain.Identity
+	byUsername map[string]*authdomain.Identity
+}
+
+// FindByUsername 按用户名返回身份副本。
+func (m *memoryIdentityRepository) FindByUsername(_ context.Context, username string) (*authdomain.Identity, error) {
+	identity, ok := m.byUsername[username]
+	if !ok {
+		return nil, nil
+	}
+	cloned := *identity
+	return &cloned, nil
+}
+
+// FindByID 按用户 ID 返回身份副本。
+func (m *memoryIdentityRepository) FindByID(_ context.Context, id int64) (*authdomain.Identity, error) {
+	identity, ok := m.byID[id]
+	if !ok {
+		return nil, nil
+	}
+	cloned := *identity
+	return &cloned, nil
+}
+
+// TestServer_LoginMeAndUserDetail 覆盖登录、当前用户、用户详情和健康检查的完整 HTTP 流程。
+func TestServer_LoginMeAndUserDetail(t *testing.T) {
+	logger := zap.NewNop()
+	passwords := utils.NewBcryptPasswordManager(4)
+	passwordHash, err := passwords.Hash("secret-123")
+	require.NoError(t, err)
+
+	modelPath, policyPath := writeCasbinFiles(t)
+	jwtManager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
+		Issuer:          "initra",
+		Secret:          "e2e-test-secret",
+		AccessTokenTTL:  time.Hour,
+		RefreshTokenTTL: 24 * time.Hour,
+	})
+	require.NoError(t, err)
+
+	enforcer, err := platformauth.NewEnforcer(modelPath, policyPath)
+	require.NoError(t, err)
+
+	app, err := web.NewApp(web.Options{
+		Title:   "initra",
+		Version: "test",
+		Env:     "test",
+	}, logger, jwtManager, enforcer)
+	require.NoError(t, err)
+
+	observability.NewModule(observability.BuildInfo{
+		Version:   "test",
+		Commit:    "abc123",
+		BuildTime: "2026-04-21T00:00:00Z",
+	}).Register(app.API, app.Registry)
+
+	userRepo := &memoryUserRepository{
+		items: map[int64]*userdomain.User{
+			1001: {
+				ID:           1001,
+				Username:     "alice",
+				PasswordHash: passwordHash,
+				Nickname:     "Alice",
+				Phone:        "13800000000",
+				Email:        "alice@example.com",
+				RoleCodes:    []string{"admin"},
+				IsEnable:     true,
+			},
+		},
+	}
+
+	userService := userdomain.NewService(userRepo, memoryUserCache{}, &staticIDGenerator{next: 2000}, passwords, time.Now)
+	usermodule.NewModule(userapi.NewHandler(userService)).Register(app.API, app.Registry)
+
+	identityRepo := &memoryIdentityRepository{
+		byID: map[int64]*authdomain.Identity{
+			1001: {
+				UserID:       1001,
+				Username:     "alice",
+				Nickname:     "Alice",
+				PasswordHash: passwordHash,
+				RoleCodes:    []string{"admin"},
+				IsEnable:     true,
+			},
+		},
+		byUsername: map[string]*authdomain.Identity{
+			"alice": {
+				UserID:       1001,
+				Username:     "alice",
+				Nickname:     "Alice",
+				PasswordHash: passwordHash,
+				RoleCodes:    []string{"admin"},
+				IsEnable:     true,
+			},
+		},
+	}
+
+	authService := authdomain.NewService(identityRepo, passwords, jwtManager)
+	authmodule.NewModule(authapi.NewHandler(authService)).Register(app.API, app.Registry)
+
+	loginResp := struct {
+		Code string `json:"code"`
+		Data struct {
+			AccessToken string `json:"access_token"`
+		} `json:"data"`
+	}{}
+
+	loginReq := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(`{"username":"alice","password":"secret-123"}`))
+	loginReq.Header.Set("Content-Type", "application/json")
+	loginRec := httptest.NewRecorder()
+	app.Engine.ServeHTTP(loginRec, loginReq)
+	require.Equal(t, http.StatusOK, loginRec.Code)
+	require.NoError(t, json.Unmarshal(loginRec.Body.Bytes(), &loginResp))
+	require.Equal(t, "OK", loginResp.Code)
+	require.NotEmpty(t, loginResp.Data.AccessToken)
+
+	meReq := httptest.NewRequest(http.MethodGet, "/api/v1/auth/me", nil)
+	meReq.Header.Set("Authorization", "Bearer "+loginResp.Data.AccessToken)
+	meRec := httptest.NewRecorder()
+	app.Engine.ServeHTTP(meRec, meReq)
+	require.Equal(t, http.StatusOK, meRec.Code)
+
+	userReq := httptest.NewRequest(http.MethodGet, "/api/v1/users/1001", nil)
+	userReq.Header.Set("Authorization", "Bearer "+loginResp.Data.AccessToken)
+	userRec := httptest.NewRecorder()
+	app.Engine.ServeHTTP(userRec, userReq)
+	require.Equal(t, http.StatusOK, userRec.Code)
+
+	healthReq := httptest.NewRequest(http.MethodGet, "/health", nil)
+	healthRec := httptest.NewRecorder()
+	app.Engine.ServeHTTP(healthRec, healthReq)
+	require.Equal(t, http.StatusOK, healthRec.Code)
+}
+
+// writeCasbinFiles 为端到端测试写入临时 Casbin 模型和策略文件。
+func writeCasbinFiles(t *testing.T) (string, string) {
+	t.Helper()
+
+	dir := t.TempDir()
+	modelPath := filepath.Join(dir, "rbac_model.conf")
+	policyPath := filepath.Join(dir, "rbac_policy.csv")
+
+	model := `
+[request_definition]
+r = sub, obj, act
+
+[policy_definition]
+p = sub, obj, act
+
+[role_definition]
+g = _, _
+
+[policy_effect]
+e = some(where (p.eft == allow))
+
+[matchers]
+m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
+`
+
+	policy := `
+p, admin, auth, read
+p, admin, user, read
+g, admin, admin
+`
+
+	require.NoError(t, os.WriteFile(modelPath, []byte(strings.TrimSpace(model)), 0o600))
+	require.NoError(t, os.WriteFile(policyPath, []byte(strings.TrimSpace(policy)), 0o600))
+
+	return modelPath, policyPath
+}

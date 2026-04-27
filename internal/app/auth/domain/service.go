@@ -1,0 +1,139 @@
+package domain
+
+import (
+	"context"
+	"errors"
+	"strings"
+
+	platformauth "github.com/teamsillybees/initra/internal/platform/auth"
+	apperrors "github.com/teamsillybees/initra/internal/platform/errors"
+)
+
+// Repository 定义 auth 模块读取身份信息所需的最小能力。
+type Repository interface {
+	FindByUsername(ctx context.Context, username string) (*Identity, error)
+	FindByID(ctx context.Context, id int64) (*Identity, error)
+}
+
+// PasswordVerifier 抽象密码校验行为，便于在测试中替换为轻量实现。
+type PasswordVerifier interface {
+	Hash(password string) (string, error)
+	Compare(hash string, password string) error
+}
+
+// TokenManager 定义 auth 模块依赖的令牌能力。
+type TokenManager interface {
+	IssueTokenPair(ctx context.Context, principal platformauth.Principal) (platformauth.TokenPair, error)
+	ConsumeRefreshToken(ctx context.Context, token string) (*platformauth.Claims, error)
+}
+
+// Service 是 auth 模块的应用服务，负责登录、刷新与当前用户信息查询。
+type Service struct {
+	repo      Repository
+	passwords PasswordVerifier
+	tokens    TokenManager
+}
+
+// NewService 构造 auth 模块应用服务。
+func NewService(repo Repository, passwords PasswordVerifier, tokens TokenManager) *Service {
+	return &Service{
+		repo:      repo,
+		passwords: passwords,
+		tokens:    tokens,
+	}
+}
+
+// Login 校验账号密码并签发一对 JWT。
+func (s *Service) Login(ctx context.Context, input LoginInput) (*LoginResult, error) {
+	if strings.TrimSpace(input.Username) == "" || strings.TrimSpace(input.Password) == "" {
+		return nil, apperrors.New(apperrors.CodeBadRequest, "username and password are required")
+	}
+
+	identity, err := s.repo.FindByUsername(ctx, strings.TrimSpace(input.Username))
+	if err != nil {
+		return nil, err
+	}
+	if identity == nil || !identity.IsEnable {
+		return nil, apperrors.New(apperrors.CodeLoginFailed, "login failed")
+	}
+	if err := s.passwords.Compare(identity.PasswordHash, input.Password); err != nil {
+		return nil, apperrors.New(apperrors.CodeLoginFailed, "login failed")
+	}
+
+	tokenPair, err := s.tokens.IssueTokenPair(ctx, platformauth.Principal{
+		UserID: identity.UserID,
+		Roles:  append([]string(nil), identity.RoleCodes...),
+	})
+	if err != nil {
+		return nil, apperrors.Wrap(err, apperrors.CodeInternalError, "issue token failed")
+	}
+
+	return &LoginResult{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		User: AuthenticatedUser{
+			UserID:       identity.UserID,
+			Username:     identity.Username,
+			Nickname:     identity.Nickname,
+			RoleCodes:    append([]string(nil), identity.RoleCodes...),
+			IsSuperAdmin: identity.IsSuperAdmin,
+			IsEnable:     identity.IsEnable,
+		},
+	}, nil
+}
+
+// Refresh 校验刷新令牌并重新签发访问令牌。
+func (s *Service) Refresh(ctx context.Context, refreshToken string) (*RefreshResult, error) {
+	if strings.TrimSpace(refreshToken) == "" {
+		return nil, apperrors.New(apperrors.CodeBadRequest, "refresh token is required")
+	}
+
+	claims, err := s.tokens.ConsumeRefreshToken(ctx, refreshToken)
+	if err != nil {
+		if errors.Is(err, platformauth.ErrTokenStoreFailure) {
+			return nil, apperrors.Wrap(err, apperrors.CodeInternalError, "consume refresh token failed")
+		}
+		return nil, apperrors.New(apperrors.CodeUnauthorized, "refresh token is invalid")
+	}
+
+	identity, err := s.repo.FindByID(ctx, claims.UserID)
+	if err != nil {
+		return nil, err
+	}
+	if identity == nil || !identity.IsEnable {
+		return nil, apperrors.New(apperrors.CodeUnauthorized, "refresh token is invalid")
+	}
+
+	tokenPair, err := s.tokens.IssueTokenPair(ctx, platformauth.Principal{
+		UserID: identity.UserID,
+		Roles:  append([]string(nil), identity.RoleCodes...),
+	})
+	if err != nil {
+		return nil, apperrors.Wrap(err, apperrors.CodeInternalError, "issue token failed")
+	}
+
+	return &RefreshResult{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+	}, nil
+}
+
+// Me 查询当前登录用户信息。
+func (s *Service) Me(ctx context.Context, userID int64) (*AuthenticatedUser, error) {
+	identity, err := s.repo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if identity == nil {
+		return nil, apperrors.New(apperrors.CodeUserNotFound, "user not found", apperrors.WithDetail("user_id", userID))
+	}
+
+	return &AuthenticatedUser{
+		UserID:       identity.UserID,
+		Username:     identity.Username,
+		Nickname:     identity.Nickname,
+		RoleCodes:    append([]string(nil), identity.RoleCodes...),
+		IsSuperAdmin: identity.IsSuperAdmin,
+		IsEnable:     identity.IsEnable,
+	}, nil
+}
