@@ -19,6 +19,20 @@
 4. Gin 中间件依次完成 recovery、trace/request id 注入、请求日志、CORS、JWT 认证、Casbin 授权。
 5. 业务 handler 只负责 DTO 与上下文接入，具体业务编排落在 domain service，持久化访问通过 infra repository 完成。
 
+## 新增业务功能扩展点
+
+新增业务功能时优先新增一个垂直切片模块，而不是把代码散落到平台层：
+
+- `internal/app/<module>/domain`：定义领域实体、service、仓储接口、缓存接口和业务错误。
+- `internal/app/<module>/api`：定义 Huma input/output、HTTP handler 和 DTO 转换。
+- `internal/app/<module>/infra`：实现 domain 所需接口，例如 Jet repository、Redis cache、第三方客户端适配。
+- `internal/app/<module>/wire.go`：把模块内部依赖注册进 do 容器；跨模块同类型依赖必须使用命名服务。
+- `internal/app/<module>/module.go`：注册 Huma operation，并同步登记 `RouteSecurity`，保证接口文档和授权策略一致。
+- `internal/boot/app.go`：新增模块的 `Provide` 和 `Register` 都必须在组合根接入，否则依赖不会初始化、路由也不会暴露。
+- `db/schema`、`db/migrations`、`internal/gen/jet`：有表结构变更时按 schema -> migration -> Jet 生成代码的顺序推进。
+- `configs/rbac_policy.csv`：新增受保护资源时维护 Casbin policy；公开接口只在路由注册处显式设置 `Public: true`。
+- `test` 与模块内测试：业务规则放 service 单测，SQL 行为放 integration，完整 HTTP/鉴权链路放 e2e。
+
 ## 约束
 
 - service 不接收 `gin.Context`。

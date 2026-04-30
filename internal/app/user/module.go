@@ -20,6 +20,8 @@ func NewModule(handler *api.Handler) *Module {
 }
 
 // Register 将 user 模块的 Huma operation 和安全策略注册到应用。
+// 新增接口时必须成对维护 huma.Register 与 registry.Register；
+// /api 路由默认 fail-closed，只有登录这类公开接口才应显式设置 Public=true。
 func (m *Module) Register(api huma.API, registry *web.RouteRegistry) {
 	huma.Register(api, huma.Operation{
 		OperationID: "get-user",

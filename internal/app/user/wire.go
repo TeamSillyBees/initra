@@ -22,6 +22,8 @@ const (
 )
 
 // Provide 使用 do 注册 user 模块依赖。
+// 新增业务模块时通常复制这个组织方式：先注册 infra，再注册 domain service，
+// 最后注册 HTTP handler 和 Module，保证模块边界清晰且可测试。
 func Provide(injector *do.Injector) {
 	do.ProvideNamed(injector, userRepositoryServiceName, func(i *do.Injector) (*infra.Repository, error) {
 		db := do.MustInvoke[*sql.DB](i)

@@ -112,6 +112,8 @@ func Bootstrap(ctx context.Context, options Options) (*Application, error) {
 		}, logger, jwtManager, enforcer)
 	})
 
+	// 新增业务模块时，先在 internal/app/<module>/wire.go 暴露 Provide，
+	// 再在这里把模块依赖注册进同一个 do 容器。
 	usermodule.Provide(injector)
 	authmodule.Provide(injector)
 
@@ -121,6 +123,8 @@ func Bootstrap(ctx context.Context, options Options) (*Application, error) {
 	webApp := do.MustInvoke[*web.App](injector)
 
 	observability.NewModule(options.BuildInfo).Register(webApp.API, webApp.Registry)
+	// 新增业务模块完成依赖注册后，需要在这里解析 Module 并调用 Register。
+	// Register 内部应同时注册 Huma operation 与 RouteSecurity，避免 /api 路由因缺少安全元信息被拒绝。
 	do.MustInvoke[*usermodule.Module](injector).Register(webApp.API, webApp.Registry)
 	do.MustInvoke[*authmodule.Module](injector).Register(webApp.API, webApp.Registry)
 

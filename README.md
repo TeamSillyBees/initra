@@ -29,6 +29,18 @@ internal/gen/jet           Jet 生成代码目录
 test/                      integration / e2e 测试
 ```
 
+## 新增业务功能修改点
+
+引入新的业务功能时，优先按垂直切片新增 `internal/app/<module>`，并参考 `internal/app/user` 的组织方式控制改动范围：
+
+- 业务代码：在 `internal/app/<module>/domain` 放实体、接口、业务规则和 service，在 `api` 放 Huma 入参/出参和 handler，在 `infra` 放数据库、缓存、外部系统适配。
+- 依赖注入：在 `internal/app/<module>/wire.go` 注册 repository、cache、service、handler 和 `Module`；同类型依赖使用模块前缀命名，避免 do 容器冲突。
+- 路由与权限：在 `internal/app/<module>/module.go` 同时注册 `huma.Operation` 和 `web.RouteRegistry` 安全元信息；`/api/` 路由默认 fail-closed，公开接口必须显式设置 `Public: true`。
+- 应用装配：在 `internal/boot/app.go` import 新模块，调用 `<module>.Provide(injector)`，再解析 `<module>.Module` 并调用 `Register`。
+- 数据库：新增表先改 `db/schema/<序号>_<table>.sql`，再通过 Atlas 生成 migration，并重新生成 `internal/gen/jet`；不要手工编辑生成代码。
+- 权限策略：需要新 resource/action 时，同步维护 `configs/rbac_policy.csv`、模块内 policy 常量和路由注册里的 `Resource/Action`。
+- 文档与测试：同步更新 `docs/api.md` 或 OpenAPI 描述，补 service 单元测试、repository 集成测试；涉及认证、授权或路由时补 e2e 测试。
+
 ## 项目初始化
 
 1. 安装命令行工具

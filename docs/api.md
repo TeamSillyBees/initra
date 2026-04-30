@@ -26,6 +26,10 @@
 - `PUT /api/v1/users/{id}`
 - `DELETE /api/v1/users/{id}`
 
+## 新增业务接口说明
+
+新增业务接口时，先在对应模块的 `module.go` 里维护 Huma operation，这会自动进入 OpenAPI；再同步更新本文档中的人工索引。所有 `/api/` 接口还必须登记 `RouteSecurity`，否则鉴权中间件会按 fail-closed 处理并拒绝访问。
+
 ## 默认管理员
 
 - 用户名：`admin`
