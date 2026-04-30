@@ -12,7 +12,7 @@ import (
 // fakeTokenStore 记录 JWTManager 对 TokenStore 的调用，便于断言 Redis TTL 和黑名单行为。
 type fakeTokenStore struct {
 	storedRefreshTokenID string
-	storedRefreshUserID  int64
+	storedRefreshRecord  RefreshTokenRecord
 	storedRefreshTTL     time.Duration
 	revokedRefreshIDs    []string
 	blacklistedTokenID   string
@@ -22,19 +22,19 @@ type fakeTokenStore struct {
 }
 
 // StoreRefreshToken 保存 refresh token 写入参数。
-func (f *fakeTokenStore) StoreRefreshToken(_ context.Context, tokenID string, userID int64, ttl time.Duration) error {
+func (f *fakeTokenStore) StoreRefreshToken(_ context.Context, tokenID string, record RefreshTokenRecord, ttl time.Duration) error {
 	f.storedRefreshTokenID = tokenID
-	f.storedRefreshUserID = userID
+	f.storedRefreshRecord = record
 	f.storedRefreshTTL = ttl
 	return nil
 }
 
 // ValidateRefreshToken 模拟 Redis 中 refresh token 的存在性和归属校验。
-func (f *fakeTokenStore) ValidateRefreshToken(_ context.Context, tokenID string, userID int64) (bool, error) {
+func (f *fakeTokenStore) ValidateRefreshToken(_ context.Context, tokenID string) (RefreshTokenRecord, bool, error) {
 	if !f.refreshValid {
-		return false, nil
+		return RefreshTokenRecord{}, false, nil
 	}
-	return f.storedRefreshTokenID == tokenID && f.storedRefreshUserID == userID, nil
+	return f.storedRefreshRecord, f.storedRefreshTokenID == tokenID, nil
 }
 
 // RevokeRefreshToken 记录被撤销的 refresh token ID。
@@ -47,22 +47,24 @@ func (f *fakeTokenStore) RevokeRefreshToken(_ context.Context, tokenID string) e
 }
 
 // ConsumeRefreshToken 模拟 refresh token 轮转时的一次性消费语义。
-func (f *fakeTokenStore) ConsumeRefreshToken(_ context.Context, tokenID string, userID int64) (bool, error) {
+func (f *fakeTokenStore) ConsumeRefreshToken(_ context.Context, tokenID string) (RefreshTokenRecord, bool, error) {
 	if !f.refreshValid {
-		return false, nil
+		return RefreshTokenRecord{}, false, nil
 	}
-	if f.storedRefreshTokenID != tokenID || f.storedRefreshUserID != userID {
-		return false, nil
+	if f.storedRefreshTokenID != tokenID {
+		return RefreshTokenRecord{}, false, nil
 	}
+	record := f.storedRefreshRecord
 	f.revokedRefreshIDs = append(f.revokedRefreshIDs, tokenID)
 	f.storedRefreshTokenID = ""
-	return true, nil
+	return record, true, nil
 }
 
 // BlacklistAccessToken 记录 access token 黑名单写入参数。
 func (f *fakeTokenStore) BlacklistAccessToken(_ context.Context, tokenID string, ttl time.Duration) error {
 	f.blacklistedTokenID = tokenID
 	f.blacklistedTTL = ttl
+	f.accessBlacklisted = true
 	return nil
 }
 
@@ -98,14 +100,13 @@ func TestJWTManagerIssuesAndParsesTokens(t *testing.T) {
 	require.Equal(t, TokenTypeAccess, accessClaims.TokenType)
 	require.NotEmpty(t, accessClaims.ID)
 
-	refreshClaims, err := manager.ParseRefreshToken(context.Background(), pair.RefreshToken)
-	require.NoError(t, err)
-	require.Equal(t, int64(1001), refreshClaims.UserID)
-	require.Equal(t, TokenTypeRefresh, refreshClaims.TokenType)
-	require.NotEmpty(t, refreshClaims.ID)
-	require.NotEqual(t, accessClaims.ID, refreshClaims.ID)
-	require.Equal(t, refreshClaims.ID, store.storedRefreshTokenID)
-	require.Equal(t, int64(1001), store.storedRefreshUserID)
+	_, _, err = new(jwt.Parser).ParseUnverified(pair.RefreshToken, &Claims{})
+	require.Error(t, err)
+	require.NotContains(t, pair.RefreshToken, ".")
+	require.NotEqual(t, pair.RefreshToken, store.storedRefreshTokenID)
+	require.Equal(t, int64(1001), store.storedRefreshRecord.UserID)
+	require.Equal(t, accessClaims.ID, store.storedRefreshRecord.AccessTokenID)
+	require.Equal(t, pair.AccessExpiresAt.Unix(), store.storedRefreshRecord.AccessExpiresAt.Unix())
 	require.Positive(t, store.storedRefreshTTL)
 	require.Empty(t, store.blacklistedTokenID)
 }
@@ -192,8 +193,39 @@ func TestJWTManagerRejectsRefreshTokenMissingFromStore(t *testing.T) {
 	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: 1001})
 	require.NoError(t, err)
 
-	_, err = manager.ParseRefreshToken(context.Background(), pair.RefreshToken)
+	_, err = manager.ValidateRefreshToken(context.Background(), pair.RefreshToken)
 	require.Error(t, err)
+}
+
+// TestJWTManagerConsumeRefreshTokenRevokesPairedAccessToken 验证 refresh 与 access 一对一绑定，轮转时吊销旧 access jti。
+func TestJWTManagerConsumeRefreshTokenRevokesPairedAccessToken(t *testing.T) {
+	now := time.Now().Add(-30 * time.Minute)
+	store := &fakeTokenStore{refreshValid: true}
+	manager, err := NewJWTManager(JWTConfig{
+		Issuer:          "initra",
+		Secret:          "unit-test-secret",
+		AccessTokenTTL:  time.Hour,
+		RefreshTokenTTL: 24 * time.Hour,
+		Store:           store,
+		Now: func() time.Time {
+			return now
+		},
+	})
+	require.NoError(t, err)
+
+	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: 1001})
+	require.NoError(t, err)
+	accessClaims, err := manager.parse(pair.AccessToken, TokenTypeAccess)
+	require.NoError(t, err)
+
+	record, err := manager.ConsumeRefreshToken(context.Background(), pair.RefreshToken)
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), record.UserID)
+	require.Equal(t, accessClaims.ID, store.blacklistedTokenID)
+	require.Greater(t, store.blacklistedTTL, 50*time.Minute)
+
+	_, err = manager.ParseAccessToken(context.Background(), pair.AccessToken)
+	require.ErrorIs(t, err, ErrTokenRevoked)
 }
 
 // TestJWTManagerBlacklistAccessTokenStoresRemainingTTL 验证黑名单 TTL 使用 access token 剩余有效期。

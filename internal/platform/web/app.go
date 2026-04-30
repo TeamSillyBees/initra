@@ -77,6 +77,7 @@ func NewApp(options Options, logger *zap.Logger, jwtManager *platformauth.JWTMan
 	humaConfig.OpenAPIPath = "/openapi"
 	humaConfig.DocsPath = "/docs"
 	humaConfig.SchemasPath = "/schemas"
+	humaConfig.CreateHooks = nil
 
 	api := humagin.New(engine, humaConfig)
 	return &App{

@@ -52,7 +52,7 @@ func (fakePasswordVerifier) Compare(hash string, password string) error {
 // fakeTokenStore 模拟 JWT 状态存储，记录 refresh token 的生命周期调用。
 type fakeTokenStore struct {
 	storedRefreshTokenID string
-	storedRefreshUserID  int64
+	storedRefreshRecord  platformauth.RefreshTokenRecord
 	storedRefreshTTL     time.Duration
 	revokedRefreshIDs    []string
 	blacklistedTokenID   string
@@ -62,32 +62,33 @@ type fakeTokenStore struct {
 }
 
 // StoreRefreshToken 保存 refresh token 的测试状态。
-func (f *fakeTokenStore) StoreRefreshToken(_ context.Context, tokenID string, userID int64, ttl time.Duration) error {
+func (f *fakeTokenStore) StoreRefreshToken(_ context.Context, tokenID string, record platformauth.RefreshTokenRecord, ttl time.Duration) error {
 	f.storedRefreshTokenID = tokenID
-	f.storedRefreshUserID = userID
+	f.storedRefreshRecord = record
 	f.storedRefreshTTL = ttl
 	return nil
 }
 
 // ValidateRefreshToken 验证 refresh token 是否仍在测试状态中。
-func (f *fakeTokenStore) ValidateRefreshToken(_ context.Context, tokenID string, userID int64) (bool, error) {
+func (f *fakeTokenStore) ValidateRefreshToken(_ context.Context, tokenID string) (platformauth.RefreshTokenRecord, bool, error) {
 	if !f.refreshValid {
-		return false, nil
+		return platformauth.RefreshTokenRecord{}, false, nil
 	}
-	return f.storedRefreshTokenID == tokenID && f.storedRefreshUserID == userID, nil
+	return f.storedRefreshRecord, f.storedRefreshTokenID == tokenID, nil
 }
 
 // ConsumeRefreshToken 模拟 refresh token 的一次性消费。
-func (f *fakeTokenStore) ConsumeRefreshToken(_ context.Context, tokenID string, userID int64) (bool, error) {
+func (f *fakeTokenStore) ConsumeRefreshToken(_ context.Context, tokenID string) (platformauth.RefreshTokenRecord, bool, error) {
 	if !f.refreshValid {
-		return false, nil
+		return platformauth.RefreshTokenRecord{}, false, nil
 	}
-	if f.storedRefreshTokenID != tokenID || f.storedRefreshUserID != userID {
-		return false, nil
+	if f.storedRefreshTokenID != tokenID {
+		return platformauth.RefreshTokenRecord{}, false, nil
 	}
+	record := f.storedRefreshRecord
 	f.revokedRefreshIDs = append(f.revokedRefreshIDs, tokenID)
 	f.storedRefreshTokenID = ""
-	return true, nil
+	return record, true, nil
 }
 
 // RevokeRefreshToken 记录 refresh token 被撤销。
@@ -103,6 +104,7 @@ func (f *fakeTokenStore) RevokeRefreshToken(_ context.Context, tokenID string) e
 func (f *fakeTokenStore) BlacklistAccessToken(_ context.Context, tokenID string, ttl time.Duration) error {
 	f.blacklistedTokenID = tokenID
 	f.blacklistedTTL = ttl
+	f.accessBlacklisted = true
 	return nil
 }
 
@@ -203,9 +205,9 @@ func TestServiceRefreshIssuesNewAccessToken(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), claims.UserID)
 
-	_, err = tokenManager.ParseRefreshToken(context.Background(), pair.RefreshToken)
+	_, err = tokenManager.ValidateRefreshToken(context.Background(), pair.RefreshToken)
 	require.Error(t, err)
 
-	_, err = tokenManager.ParseRefreshToken(context.Background(), result.RefreshToken)
+	_, err = tokenManager.ValidateRefreshToken(context.Background(), result.RefreshToken)
 	require.NoError(t, err)
 }

@@ -19,7 +19,14 @@ const (
 	headerAuthorization = "Authorization"
 	headerRequestID     = "X-Request-ID"
 	headerTraceID       = "X-Trace-ID"
+	routeSecurityKey    = "initra.route_security"
 )
+
+// routeSecurityResult 缓存单次请求的路由安全元信息，避免认证和授权中间件重复查表。
+type routeSecurityResult struct {
+	security RouteSecurity
+	found    bool
+}
 
 // RequestContextMiddleware 为每个请求补齐 request_id 与 trace_id。
 // 该中间件必须排在日志、CORS、认证与授权之前，确保即使请求被提前拒绝，也能留下完整链路信息。
@@ -40,17 +47,16 @@ func RequestContextMiddleware() gin.HandlerFunc {
 // JWTMiddleware 在进入业务处理前完成 JWT 身份解析。
 func JWTMiddleware(manager *JWTManager, lookup RouteSecurityLookup, logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		routePath := c.FullPath()
-		if routePath == "" {
-			routePath = c.Request.URL.Path
-		}
-
 		if c.Request.Method == http.MethodOptions || shouldSkipAuth(c.Request.URL.Path) {
 			c.Next()
 			return
 		}
 
-		security, ok := lookup.Lookup(c.Request.Method, routePath)
+		security, ok := resolveRouteSecurity(c, lookup)
+		if !ok && isAPIRoute(c.Request.URL.Path) {
+			writeError(c, apperrors.New(apperrors.CodeForbidden, "route security metadata is missing"))
+			return
+		}
 		if ok && security.Public {
 			c.Next()
 			return
@@ -93,18 +99,14 @@ func JWTMiddleware(manager *JWTManager, lookup RouteSecurityLookup, logger *zap.
 // AuthorizationMiddleware 在身份校验后，基于 Casbin 策略继续完成授权判断。
 func AuthorizationMiddleware(enforcer *casbin.Enforcer, lookup RouteSecurityLookup, _ *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		routePath := c.FullPath()
-		if routePath == "" {
-			routePath = c.Request.URL.Path
-		}
 		if c.Request.Method == http.MethodOptions || shouldSkipAuth(c.Request.URL.Path) {
 			c.Next()
 			return
 		}
 
-		security, ok := lookup.Lookup(c.Request.Method, routePath)
+		security, ok := resolveRouteSecurity(c, lookup)
 		if !ok {
-			if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+			if isAPIRoute(c.Request.URL.Path) {
 				writeError(c, apperrors.New(apperrors.CodeForbidden, "route security metadata is missing"))
 				return
 			}
@@ -198,6 +200,26 @@ func CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
+// resolveRouteSecurity 获取路由安全元信息，并在同一请求内复用查询结果。
+func resolveRouteSecurity(c *gin.Context, lookup RouteSecurityLookup) (RouteSecurity, bool) {
+	if cached, exists := c.Get(routeSecurityKey); exists {
+		if result, ok := cached.(routeSecurityResult); ok {
+			return result.security, result.found
+		}
+	}
+	if lookup == nil {
+		return RouteSecurity{}, false
+	}
+
+	routePath := c.FullPath()
+	if routePath == "" {
+		routePath = c.Request.URL.Path
+	}
+	security, ok := lookup.Lookup(c.Request.Method, routePath)
+	c.Set(routeSecurityKey, routeSecurityResult{security: security, found: ok})
+	return security, ok
+}
+
 // shouldSkipAuth 判断无需认证的系统级公开路径。
 // 这些路径必须保持较小集合，业务公开接口应通过 RouteSecurity.Public 显式声明。
 func shouldSkipAuth(path string) bool {
@@ -207,6 +229,11 @@ func shouldSkipAuth(path string) bool {
 		strings.HasPrefix(path, "/docs") ||
 		strings.HasPrefix(path, "/openapi") ||
 		strings.HasPrefix(path, "/schemas")
+}
+
+// isAPIRoute 判断请求是否属于业务 API 命名空间，供 fail-closed 策略统一使用。
+func isAPIRoute(path string) bool {
+	return strings.HasPrefix(path, "/api/")
 }
 
 // bearerToken 从 Authorization 头中提取 Bearer token，并拒绝空 token 或错误认证方案。

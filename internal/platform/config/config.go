@@ -155,7 +155,7 @@ func (c Config) Validate() error {
 // normalizeOptions 为配置加载入口补齐默认环境、目录和环境变量前缀。
 func normalizeOptions(opts LoaderOptions) LoaderOptions {
 	if opts.Env == "" {
-		opts.Env = "local"
+		opts.Env = "dev"
 	}
 	if opts.ConfigDir == "" {
 		opts.ConfigDir = filepath.Join(".", "configs")

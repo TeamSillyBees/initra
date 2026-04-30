@@ -2,8 +2,9 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -11,11 +12,11 @@ import (
 
 // TokenStore 定义 JWT 生命周期管理所需的最小状态存储能力。
 // access token 默认保持无状态，仅在被主动吊销时写入黑名单。
-// refresh token 则通过 Redis 维护其可用状态，以支持轮转和失效控制。
+// refresh token 是 opaque token，Redis 只保存其指纹与 access token jti 的绑定记录。
 type TokenStore interface {
-	StoreRefreshToken(ctx context.Context, tokenID string, userID int64, ttl time.Duration) error
-	ValidateRefreshToken(ctx context.Context, tokenID string, userID int64) (bool, error)
-	ConsumeRefreshToken(ctx context.Context, tokenID string, userID int64) (bool, error)
+	StoreRefreshToken(ctx context.Context, tokenID string, record RefreshTokenRecord, ttl time.Duration) error
+	ValidateRefreshToken(ctx context.Context, tokenID string) (RefreshTokenRecord, bool, error)
+	ConsumeRefreshToken(ctx context.Context, tokenID string) (RefreshTokenRecord, bool, error)
 	BlacklistAccessToken(ctx context.Context, tokenID string, ttl time.Duration) error
 	IsAccessTokenBlacklisted(ctx context.Context, tokenID string) (bool, error)
 }
@@ -34,52 +35,66 @@ func NewRedisTokenStore(appName string, client redis.Cmdable) *RedisTokenStore {
 	}
 }
 
-// StoreRefreshToken 记录 refresh token 的 jti 和所属用户，并设置与 token 等长的 TTL。
-func (s *RedisTokenStore) StoreRefreshToken(ctx context.Context, tokenID string, userID int64, ttl time.Duration) error {
+// StoreRefreshToken 记录 refresh token 指纹与 access token jti 的绑定，并设置与 token 等长的 TTL。
+func (s *RedisTokenStore) StoreRefreshToken(ctx context.Context, tokenID string, record RefreshTokenRecord, ttl time.Duration) error {
 	if s == nil || s.client == nil {
 		return nil
 	}
 	if ttl <= 0 {
 		return fmt.Errorf("refresh token ttl must be positive")
 	}
-	return s.client.Set(ctx, s.refreshTokenKey(tokenID), strconv.FormatInt(userID, 10), ttl).Err()
+	payload, err := json.Marshal(record)
+	if err != nil {
+		return err
+	}
+	return s.client.Set(ctx, s.refreshTokenKey(tokenID), payload, ttl).Err()
 }
 
 // ValidateRefreshToken 校验 refresh token 是否仍在 Redis 中处于有效状态。
-func (s *RedisTokenStore) ValidateRefreshToken(ctx context.Context, tokenID string, userID int64) (bool, error) {
+func (s *RedisTokenStore) ValidateRefreshToken(ctx context.Context, tokenID string) (RefreshTokenRecord, bool, error) {
 	if s == nil || s.client == nil {
-		return true, nil
+		return RefreshTokenRecord{}, false, nil
 	}
 
 	value, err := s.client.Get(ctx, s.refreshTokenKey(tokenID)).Result()
-	if err == redis.Nil {
-		return false, nil
+	if errors.Is(err, redis.Nil) {
+		return RefreshTokenRecord{}, false, nil
 	}
 	if err != nil {
-		return false, err
+		return RefreshTokenRecord{}, false, err
 	}
-	return value == strconv.FormatInt(userID, 10), nil
+	record, err := decodeRefreshTokenRecord(value)
+	if err != nil {
+		return RefreshTokenRecord{}, false, err
+	}
+	return record, true, nil
 }
 
-// ConsumeRefreshToken 以原子方式校验并消费 refresh token，避免旧 token 被重复使用。
-func (s *RedisTokenStore) ConsumeRefreshToken(ctx context.Context, tokenID string, userID int64) (bool, error) {
+// ConsumeRefreshToken 以原子方式读取并删除 refresh token，避免旧 token 被重复使用。
+func (s *RedisTokenStore) ConsumeRefreshToken(ctx context.Context, tokenID string) (RefreshTokenRecord, bool, error) {
 	if s == nil || s.client == nil {
-		return true, nil
+		return RefreshTokenRecord{}, false, nil
 	}
 
-	result, err := consumeRefreshTokenScript.Run(
+	value, err := consumeRefreshTokenScript.Run(
 		ctx,
 		s.client,
 		[]string{s.refreshTokenKey(tokenID)},
-		strconv.FormatInt(userID, 10),
-	).Int()
-	if err == redis.Nil {
-		return false, nil
+	).Text()
+	if errors.Is(err, redis.Nil) {
+		return RefreshTokenRecord{}, false, nil
 	}
 	if err != nil {
-		return false, err
+		return RefreshTokenRecord{}, false, err
 	}
-	return result == 1, nil
+	if value == "" {
+		return RefreshTokenRecord{}, false, nil
+	}
+	record, err := decodeRefreshTokenRecord(value)
+	if err != nil {
+		return RefreshTokenRecord{}, false, err
+	}
+	return record, true, nil
 }
 
 // BlacklistAccessToken 把 access token 的 jti 写入黑名单，并附带剩余有效期作为 TTL。
@@ -113,15 +128,21 @@ func (s *RedisTokenStore) accessBlacklistKey(tokenID string) string {
 	return fmt.Sprintf("%s:auth:blacklist:%s", s.keyPrefix, tokenID)
 }
 
-// consumeRefreshTokenScript 通过 Lua 保证“校验 refresh token 归属”和“删除旧 token”原子完成。
+// decodeRefreshTokenRecord 解析 Redis 中保存的 refresh token 绑定记录。
+func decodeRefreshTokenRecord(value string) (RefreshTokenRecord, error) {
+	var record RefreshTokenRecord
+	if err := json.Unmarshal([]byte(value), &record); err != nil {
+		return RefreshTokenRecord{}, err
+	}
+	return record, nil
+}
+
+// consumeRefreshTokenScript 通过 Lua 保证“读取 refresh token 绑定记录”和“删除旧 token”原子完成。
 var consumeRefreshTokenScript = redis.NewScript(`
 local value = redis.call("GET", KEYS[1])
 if not value then
-    return 0
-end
-if value ~= ARGV[1] then
-    return -1
+    return ""
 end
 redis.call("DEL", KEYS[1])
-return 1
+return value
 `)

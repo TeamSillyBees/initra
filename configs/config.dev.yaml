@@ -13,7 +13,7 @@ logger:
 
 database:
   driver: postgres
-  dsn: postgres://postgres:postgres@127.0.0.1:5432/initra_dev?sslmode=disable
+  dsn: postgres://paperlingo:MKD8eqa9nax!rxg.utq@192.168.100.3:5432/initra_dev?sslmode=disable
   max_open_conns: 30
   max_idle_conns: 10
 

@@ -71,15 +71,6 @@ import (
 - `db/schema` 是 desired database schema 目录，不是 migration 目录。
 - 每张表结构单独一个 SQL 文件。
 - 需要生成迁移时使用 Atlas diff，不要把 desired schema 当作直接迁移文件执行。
-- 系统表以历史 `V1.0.0__init_sys.sql` 为设计参考，但以当前 `db/schema` 为准。
-
-常用命令：
-
-```powershell
-.\scripts\atlas.ps1 migrate diff <name> --env local
-.\scripts\atlas.ps1 migrate apply --env local
-.\scripts\jet.ps1
-```
 
 ## JWT 与鉴权约定
 

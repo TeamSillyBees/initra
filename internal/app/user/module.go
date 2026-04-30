@@ -29,7 +29,7 @@ func (m *Module) Register(api huma.API, registry *web.RouteRegistry) {
 		Path:        "/api/v1/users/{id}",
 		Summary:     "查询用户详情",
 		Description: "根据用户 ID 返回单个用户详情。",
-		Tags:        []string{"user"},
+		Tags:        []string{"用户管理"},
 	}, m.handler.Get)
 	registry.Register(http.MethodGet, "/api/v1/users/{id}", platformauth.RouteSecurity{Resource: "user", Action: "read"})
 
@@ -39,7 +39,7 @@ func (m *Module) Register(api huma.API, registry *web.RouteRegistry) {
 		Path:        "/api/v1/users",
 		Summary:     "分页查询用户列表",
 		Description: "按分页参数返回用户列表。",
-		Tags:        []string{"user"},
+		Tags:        []string{"用户管理"},
 	}, m.handler.List)
 	registry.Register(http.MethodGet, "/api/v1/users", platformauth.RouteSecurity{Resource: "user", Action: "read"})
 
@@ -49,7 +49,7 @@ func (m *Module) Register(api huma.API, registry *web.RouteRegistry) {
 		Path:        "/api/v1/users",
 		Summary:     "创建用户",
 		Description: "创建一个新的系统用户。",
-		Tags:        []string{"user"},
+		Tags:        []string{"用户管理"},
 	}, m.handler.Create)
 	registry.Register(http.MethodPost, "/api/v1/users", platformauth.RouteSecurity{Resource: "user", Action: "write"})
 
@@ -59,7 +59,7 @@ func (m *Module) Register(api huma.API, registry *web.RouteRegistry) {
 		Path:        "/api/v1/users/{id}",
 		Summary:     "更新用户",
 		Description: "更新用户显示名、邮箱、角色与状态。",
-		Tags:        []string{"user"},
+		Tags:        []string{"用户管理"},
 	}, m.handler.Update)
 	registry.Register(http.MethodPut, "/api/v1/users/{id}", platformauth.RouteSecurity{Resource: "user", Action: "write"})
 
@@ -69,7 +69,7 @@ func (m *Module) Register(api huma.API, registry *web.RouteRegistry) {
 		Path:        "/api/v1/users/{id}",
 		Summary:     "删除用户",
 		Description: "软删除一个用户。",
-		Tags:        []string{"user"},
+		Tags:        []string{"用户管理"},
 	}, m.handler.Delete)
 	registry.Register(http.MethodDelete, "/api/v1/users/{id}", platformauth.RouteSecurity{Resource: "user", Action: "delete"})
 }

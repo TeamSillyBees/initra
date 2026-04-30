@@ -28,6 +28,18 @@ func (missingRouteSecurityLookup) Lookup(method string, path string) (RouteSecur
 	return RouteSecurity{}, false
 }
 
+// countingRouteSecurityLookup 统计路由安全元信息查询次数，用于验证认证授权链路不会重复查表。
+type countingRouteSecurityLookup struct {
+	security RouteSecurity
+	count    int
+}
+
+// Lookup 返回预置安全元信息并累加查询次数。
+func (s *countingRouteSecurityLookup) Lookup(method string, path string) (RouteSecurity, bool) {
+	s.count++
+	return s.security, true
+}
+
 // TestJWTMiddlewareRejectsBlacklistedToken 验证 JWT 中间件拒绝已被黑名单吊销的 token。
 func TestJWTMiddlewareRejectsBlacklistedToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -90,4 +102,25 @@ func TestAuthorizationMiddlewareRejectsUnregisteredAPIRoute(t *testing.T) {
 	engine.ServeHTTP(rec, req)
 
 	require.Equal(t, http.StatusForbidden, rec.Code)
+}
+
+// TestAuthMiddlewareReusesRouteSecurityLookup 验证 JWT 与授权中间件在同一请求中复用路由安全元信息。
+func TestAuthMiddlewareReusesRouteSecurityLookup(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	lookup := &countingRouteSecurityLookup{security: RouteSecurity{Public: true}}
+	engine := gin.New()
+	engine.Use(JWTMiddleware(nil, lookup, nil))
+	engine.Use(AuthorizationMiddleware(nil, lookup, nil))
+	engine.GET("/api/v1/public", func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/public", nil)
+	rec := httptest.NewRecorder()
+
+	engine.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusNoContent, rec.Code)
+	require.Equal(t, 1, lookup.count)
 }

@@ -52,7 +52,7 @@ func (m *Module) Register(api huma.API, registry *web.RouteRegistry) {
 		Path:        "/health",
 		Summary:     "健康检查",
 		Description: "返回服务是否存活。",
-		Tags:        []string{"observability"},
+		Tags:        []string{"系统观测"},
 	}, func(ctx context.Context, _ *struct{}) (*healthOutput, error) {
 		return &healthOutput{
 			Body: sharedtypes.OK(sharedtypes.TraceIDFromContext(ctx), healthData{Status: "ok"}),
@@ -66,7 +66,7 @@ func (m *Module) Register(api huma.API, registry *web.RouteRegistry) {
 		Path:        "/ready",
 		Summary:     "就绪检查",
 		Description: "返回服务是否完成初始化并具备对外提供服务的能力。",
-		Tags:        []string{"observability"},
+		Tags:        []string{"系统观测"},
 	}, func(ctx context.Context, _ *struct{}) (*healthOutput, error) {
 		return &healthOutput{
 			Body: sharedtypes.OK(sharedtypes.TraceIDFromContext(ctx), healthData{Status: "ready"}),
@@ -80,7 +80,7 @@ func (m *Module) Register(api huma.API, registry *web.RouteRegistry) {
 		Path:        "/version",
 		Summary:     "版本信息",
 		Description: "返回构建版本、提交号和构建时间。",
-		Tags:        []string{"observability"},
+		Tags:        []string{"系统观测"},
 	}, func(ctx context.Context, _ *struct{}) (*versionOutput, error) {
 		return &versionOutput{
 			Body: sharedtypes.OK(sharedtypes.TraceIDFromContext(ctx), m.info),

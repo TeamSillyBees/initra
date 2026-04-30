@@ -27,7 +27,7 @@ func (m *Module) Register(api huma.API, registry *web.RouteRegistry) {
 		Path:        "/api/v1/auth/login",
 		Summary:     "用户登录",
 		Description: "根据账号密码签发访问令牌和刷新令牌。",
-		Tags:        []string{"auth"},
+		Tags:        []string{"认证管理"},
 	}, m.handler.Login)
 	registry.Register(http.MethodPost, "/api/v1/auth/login", platformauth.RouteSecurity{Public: true})
 
@@ -37,7 +37,7 @@ func (m *Module) Register(api huma.API, registry *web.RouteRegistry) {
 		Path:        "/api/v1/auth/refresh",
 		Summary:     "刷新令牌",
 		Description: "使用 refresh token 换取新的访问令牌。",
-		Tags:        []string{"auth"},
+		Tags:        []string{"认证管理"},
 	}, m.handler.Refresh)
 	registry.Register(http.MethodPost, "/api/v1/auth/refresh", platformauth.RouteSecurity{Public: true})
 
@@ -47,7 +47,7 @@ func (m *Module) Register(api huma.API, registry *web.RouteRegistry) {
 		Path:        "/api/v1/auth/me",
 		Summary:     "获取当前登录用户",
 		Description: "读取当前访问令牌对应的用户信息。",
-		Tags:        []string{"auth"},
+		Tags:        []string{"认证管理"},
 	}, m.handler.Me)
 	registry.Register(http.MethodGet, "/api/v1/auth/me", platformauth.RouteSecurity{Resource: "auth", Action: "read"})
 }

@@ -45,7 +45,7 @@ func (h *Handler) Login(ctx context.Context, input *LoginInput) (*loginOutput, e
 	}, nil
 }
 
-// Refresh 刷新一对 JWT。
+// Refresh 使用 opaque refresh token 轮转新的 token pair。
 func (h *Handler) Refresh(ctx context.Context, input *RefreshInput) (*refreshOutput, error) {
 	result, err := h.service.Refresh(ctx, input.Body.RefreshToken)
 	if err != nil {

@@ -2,22 +2,25 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
-// Token 类型常量用于区分访问令牌和刷新令牌，避免 refresh token 被误用于访问接口。
-const (
-	// TokenTypeAccess 表示短期访问令牌。
-	TokenTypeAccess = "access"
-	// TokenTypeRefresh 表示长期刷新令牌。
-	TokenTypeRefresh = "refresh"
-)
+// TokenTypeAccess 表示短期访问令牌。
+const TokenTypeAccess = "access"
+
+// opaqueRefreshTokenBytes 是 refresh token 的随机字节长度，编码后不携带任何用户信息。
+const opaqueRefreshTokenBytes = 32
 
 // JWTConfig 描述 JWT 服务的最小配置输入。
 type JWTConfig struct {
@@ -53,7 +56,14 @@ type TokenPair struct {
 	RefreshExpiresAt time.Time `json:"refresh_expires_at"`
 }
 
-// JWTManager 负责签发与解析 JWT。
+// RefreshTokenRecord 是服务端保存的 refresh token 状态，客户端只持有 opaque token。
+type RefreshTokenRecord struct {
+	UserID          int64     `json:"user_id"`
+	AccessTokenID   string    `json:"access_token_id"`
+	AccessExpiresAt time.Time `json:"access_expires_at"`
+}
+
+// JWTManager 负责签发 access JWT，并管理 opaque refresh token 的生命周期。
 type JWTManager struct {
 	issuer          string
 	secret          []byte
@@ -101,29 +111,30 @@ func NewJWTManager(cfg JWTConfig) (*JWTManager, error) {
 	}
 }
 
-// IssueTokenPair 为指定身份生成一对可直接返回给客户端的 JWT。
+// IssueTokenPair 为指定身份生成 access JWT 与 opaque refresh token。
 func (m *JWTManager) IssueTokenPair(ctx context.Context, principal Principal) (TokenPair, error) {
 	now := m.now()
 
 	accessExpiresAt := now.Add(m.accessTokenTTL)
 	refreshExpiresAt := now.Add(m.refreshTokenTTL)
 
-	accessToken, err := m.issue(principal, TokenTypeAccess, accessExpiresAt, now)
+	accessTokenID := uuid.NewString()
+	accessToken, err := m.issueWithID(principal, TokenTypeAccess, accessTokenID, accessExpiresAt, now)
 	if err != nil {
 		return TokenPair{}, err
 	}
 
-	refreshToken, err := m.issue(principal, TokenTypeRefresh, refreshExpiresAt, now)
-	if err != nil {
-		return TokenPair{}, err
-	}
-
-	refreshClaims, err := m.parse(refreshToken, TokenTypeRefresh)
+	refreshToken, err := newOpaqueRefreshToken()
 	if err != nil {
 		return TokenPair{}, err
 	}
 	if m.store != nil {
-		if err := m.store.StoreRefreshToken(ctx, refreshClaims.ID, refreshClaims.UserID, refreshExpiresAt.Sub(now)); err != nil {
+		record := RefreshTokenRecord{
+			UserID:          principal.UserID,
+			AccessTokenID:   accessTokenID,
+			AccessExpiresAt: accessExpiresAt,
+		}
+		if err := m.store.StoreRefreshToken(ctx, refreshTokenFingerprint(refreshToken), record, refreshExpiresAt.Sub(now)); err != nil {
 			return TokenPair{}, fmt.Errorf("%w: store refresh token: %v", ErrTokenStoreFailure, err)
 		}
 	}
@@ -156,44 +167,45 @@ func (m *JWTManager) ParseAccessToken(ctx context.Context, token string) (*Claim
 	return claims, nil
 }
 
-// ParseRefreshToken 解析并验证刷新令牌。
-func (m *JWTManager) ParseRefreshToken(ctx context.Context, token string) (*Claims, error) {
-	claims, err := m.parse(token, TokenTypeRefresh)
-	if err != nil {
-		return nil, err
-	}
+// ValidateRefreshToken 校验 opaque refresh token 是否仍在状态存储中有效。
+func (m *JWTManager) ValidateRefreshToken(ctx context.Context, token string) (*RefreshTokenRecord, error) {
 	if m.store == nil {
-		return claims, nil
+		return nil, fmt.Errorf("%w: refresh token store is not configured", ErrTokenStoreFailure)
 	}
 
-	valid, err := m.store.ValidateRefreshToken(ctx, claims.ID, claims.UserID)
+	record, valid, err := m.store.ValidateRefreshToken(ctx, refreshTokenFingerprint(token))
 	if err != nil {
 		return nil, fmt.Errorf("%w: validate refresh token: %v", ErrTokenStoreFailure, err)
 	}
 	if !valid {
 		return nil, ErrTokenRevoked
 	}
-	return claims, nil
-}
-
-// ConsumeRefreshToken 原子校验并消费 refresh token，用于 refresh token 轮转场景。
-func (m *JWTManager) ConsumeRefreshToken(ctx context.Context, token string) (*Claims, error) {
-	claims, err := m.parse(token, TokenTypeRefresh)
-	if err != nil {
+	if err := validateRefreshTokenRecord(record); err != nil {
 		return nil, err
 	}
+	return &record, nil
+}
+
+// ConsumeRefreshToken 原子校验并消费 opaque refresh token，用于 refresh token 轮转场景。
+func (m *JWTManager) ConsumeRefreshToken(ctx context.Context, token string) (*RefreshTokenRecord, error) {
 	if m.store == nil {
-		return claims, nil
+		return nil, fmt.Errorf("%w: refresh token store is not configured", ErrTokenStoreFailure)
 	}
 
-	valid, err := m.store.ConsumeRefreshToken(ctx, claims.ID, claims.UserID)
+	record, valid, err := m.store.ConsumeRefreshToken(ctx, refreshTokenFingerprint(token))
 	if err != nil {
 		return nil, fmt.Errorf("%w: consume refresh token: %v", ErrTokenStoreFailure, err)
 	}
 	if !valid {
 		return nil, ErrTokenRevoked
 	}
-	return claims, nil
+	if err := validateRefreshTokenRecord(record); err != nil {
+		return nil, err
+	}
+	if err := m.blacklistAccessTokenID(ctx, record.AccessTokenID, record.AccessExpiresAt); err != nil {
+		return nil, err
+	}
+	return &record, nil
 }
 
 // BlacklistAccessToken 把 access token 加入 Redis 黑名单，TTL 等于该 token 剩余寿命。
@@ -210,11 +222,26 @@ func (m *JWTManager) BlacklistAccessToken(ctx context.Context, token string) err
 		return fmt.Errorf("%w: access token expires_at is missing", ErrTokenInvalid)
 	}
 
-	ttl := claims.ExpiresAt.Time.Sub(m.now())
+	if err := m.blacklistAccessTokenID(ctx, claims.ID, claims.ExpiresAt.Time); err != nil {
+		return err
+	}
+	return nil
+}
+
+// blacklistAccessTokenID 使用 access token 剩余有效期写入 jti denylist。
+func (m *JWTManager) blacklistAccessTokenID(ctx context.Context, tokenID string, expiresAt time.Time) error {
+	if tokenID == "" {
+		return fmt.Errorf("%w: access token id is missing", ErrTokenInvalid)
+	}
+	if m.store == nil {
+		return fmt.Errorf("%w: access token blacklist store is not configured", ErrTokenStoreFailure)
+	}
+
+	ttl := expiresAt.Sub(m.now())
 	if ttl <= 0 {
 		return nil
 	}
-	if err := m.store.BlacklistAccessToken(ctx, claims.ID, ttl); err != nil {
+	if err := m.store.BlacklistAccessToken(ctx, tokenID, ttl); err != nil {
 		return fmt.Errorf("%w: blacklist access token: %v", ErrTokenStoreFailure, err)
 	}
 	return nil
@@ -223,6 +250,11 @@ func (m *JWTManager) BlacklistAccessToken(ctx context.Context, token string) err
 // issue 根据统一 Claims 结构签发指定类型 token。
 // 调用方必须传入同一个 now 值，确保 iat、nbf 和 exp 基于一致时钟计算。
 func (m *JWTManager) issue(principal Principal, tokenType string, expiresAt, now time.Time) (string, error) {
+	return m.issueWithID(principal, tokenType, uuid.NewString(), expiresAt, now)
+}
+
+// issueWithID 根据统一 Claims 结构签发指定类型 token，并使用调用方提供的 jti。
+func (m *JWTManager) issueWithID(principal Principal, tokenType string, tokenID string, expiresAt, now time.Time) (string, error) {
 	claims := Claims{
 		UserID:    principal.UserID,
 		Roles:     append([]string(nil), principal.Roles...),
@@ -231,7 +263,7 @@ func (m *JWTManager) issue(principal Principal, tokenType string, expiresAt, now
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    m.issuer,
 			Subject:   strconv.FormatInt(principal.UserID, 10),
-			ID:        uuid.NewString(),
+			ID:        tokenID,
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
@@ -240,6 +272,35 @@ func (m *JWTManager) issue(principal Principal, tokenType string, expiresAt, now
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(m.secret)
+}
+
+// newOpaqueRefreshToken 生成不携带声明的随机 refresh token。
+func newOpaqueRefreshToken() (string, error) {
+	randomBytes := make([]byte, opaqueRefreshTokenBytes)
+	if _, err := rand.Read(randomBytes); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(randomBytes), nil
+}
+
+// refreshTokenFingerprint 返回 refresh token 的稳定指纹，避免把明文 token 放进 Redis key。
+func refreshTokenFingerprint(token string) string {
+	sum := sha256.Sum256([]byte(strings.TrimSpace(token)))
+	return hex.EncodeToString(sum[:])
+}
+
+// validateRefreshTokenRecord 防止损坏的 Redis 记录绕过 refresh/access 一对一绑定。
+func validateRefreshTokenRecord(record RefreshTokenRecord) error {
+	if record.UserID <= 0 {
+		return fmt.Errorf("%w: refresh token user id is missing", ErrTokenInvalid)
+	}
+	if record.AccessTokenID == "" {
+		return fmt.Errorf("%w: refresh token access token id is missing", ErrTokenInvalid)
+	}
+	if record.AccessExpiresAt.IsZero() {
+		return fmt.Errorf("%w: refresh token access expiration is missing", ErrTokenInvalid)
+	}
+	return nil
 }
 
 // parse 校验签名、签发方、算法、过期时间和 token 类型，并返回业务 Claims。

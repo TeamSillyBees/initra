@@ -24,7 +24,7 @@ type PasswordVerifier interface {
 // TokenManager 定义 auth 模块依赖的令牌能力。
 type TokenManager interface {
 	IssueTokenPair(ctx context.Context, principal platformauth.Principal) (platformauth.TokenPair, error)
-	ConsumeRefreshToken(ctx context.Context, token string) (*platformauth.Claims, error)
+	ConsumeRefreshToken(ctx context.Context, token string) (*platformauth.RefreshTokenRecord, error)
 }
 
 // Service 是 auth 模块的应用服务，负责登录、刷新与当前用户信息查询。
@@ -43,7 +43,7 @@ func NewService(repo Repository, passwords PasswordVerifier, tokens TokenManager
 	}
 }
 
-// Login 校验账号密码并签发一对 JWT。
+// Login 校验账号密码并签发 access JWT 与 opaque refresh token。
 func (s *Service) Login(ctx context.Context, input LoginInput) (*LoginResult, error) {
 	if strings.TrimSpace(input.Username) == "" || strings.TrimSpace(input.Password) == "" {
 		return nil, apperrors.New(apperrors.CodeBadRequest, "username and password are required")
@@ -82,13 +82,13 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (*LoginResult, er
 	}, nil
 }
 
-// Refresh 校验刷新令牌并重新签发访问令牌。
+// Refresh 校验 opaque refresh token 并轮转新的 token pair。
 func (s *Service) Refresh(ctx context.Context, refreshToken string) (*RefreshResult, error) {
 	if strings.TrimSpace(refreshToken) == "" {
 		return nil, apperrors.New(apperrors.CodeBadRequest, "refresh token is required")
 	}
 
-	claims, err := s.tokens.ConsumeRefreshToken(ctx, refreshToken)
+	record, err := s.tokens.ConsumeRefreshToken(ctx, refreshToken)
 	if err != nil {
 		if errors.Is(err, platformauth.ErrTokenStoreFailure) {
 			return nil, apperrors.Wrap(err, apperrors.CodeInternalError, "consume refresh token failed")
@@ -96,7 +96,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (*RefreshRes
 		return nil, apperrors.New(apperrors.CodeUnauthorized, "refresh token is invalid")
 	}
 
-	identity, err := s.repo.FindByID(ctx, claims.UserID)
+	identity, err := s.repo.FindByID(ctx, record.UserID)
 	if err != nil {
 		return nil, err
 	}

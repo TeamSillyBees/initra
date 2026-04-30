@@ -130,8 +130,6 @@ psql "postgresql://postgres:postgres@127.0.0.1:5432/initra?sslmode=disable" -f d
 
 ## 常用命令
 
-本项目不再维护 Makefile 和脚本目录，常用入口直接使用原生命令。Go 运行、测试、格式化、构建等命令交由 IDEA Run Configuration 或内置工具链管理，README 不再重复列出。
-
 ### 本地依赖
 
 ```bash
