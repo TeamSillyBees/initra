@@ -1,4 +1,6 @@
-# API 说明
+# 示例 API 说明
+
+以下接口属于 `examples/basic` 与 CLI 默认模板，不属于根框架公共 API。
 
 ## 文档入口
 

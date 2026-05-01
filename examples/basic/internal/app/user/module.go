@@ -1,0 +1,75 @@
+package user
+
+import (
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/teamsillybees/initra/examples/basic/internal/app/user/api"
+	platformauth "github.com/teamsillybees/initra/pkg/auth"
+	"github.com/teamsillybees/initra/pkg/web"
+)
+
+// Module 负责 user 模块路由注册。
+type Module struct {
+	handler *api.Handler
+}
+
+// NewModule 创建 user 模块实例。
+func NewModule(handler *api.Handler) *Module {
+	return &Module{handler: handler}
+}
+
+// Register 将 user 模块的 Huma operation 和安全策略注册到应用。
+// 新增接口时必须成对维护 huma.Register 与 registry.Register；
+// /api 路由默认 fail-closed，只有登录这类公开接口才应显式设置 Public=true。
+func (m *Module) Register(api huma.API, registry *web.RouteRegistry) {
+	huma.Register(api, huma.Operation{
+		OperationID: "get-user",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/users/{id}",
+		Summary:     "查询用户详情",
+		Description: "根据用户 ID 返回单个用户详情。",
+		Tags:        []string{"用户管理"},
+	}, m.handler.Get)
+	registry.Register(http.MethodGet, "/api/v1/users/{id}", platformauth.RouteSecurity{Resource: "user", Action: "read"})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "list-users",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/users",
+		Summary:     "分页查询用户列表",
+		Description: "按分页参数返回用户列表。",
+		Tags:        []string{"用户管理"},
+	}, m.handler.List)
+	registry.Register(http.MethodGet, "/api/v1/users", platformauth.RouteSecurity{Resource: "user", Action: "read"})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "create-user",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/users",
+		Summary:     "创建用户",
+		Description: "创建一个新的系统用户。",
+		Tags:        []string{"用户管理"},
+	}, m.handler.Create)
+	registry.Register(http.MethodPost, "/api/v1/users", platformauth.RouteSecurity{Resource: "user", Action: "write"})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "update-user",
+		Method:      http.MethodPut,
+		Path:        "/api/v1/users/{id}",
+		Summary:     "更新用户",
+		Description: "更新用户显示名、邮箱、角色与状态。",
+		Tags:        []string{"用户管理"},
+	}, m.handler.Update)
+	registry.Register(http.MethodPut, "/api/v1/users/{id}", platformauth.RouteSecurity{Resource: "user", Action: "write"})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "delete-user",
+		Method:      http.MethodDelete,
+		Path:        "/api/v1/users/{id}",
+		Summary:     "删除用户",
+		Description: "软删除一个用户。",
+		Tags:        []string{"用户管理"},
+	}, m.handler.Delete)
+	registry.Register(http.MethodDelete, "/api/v1/users/{id}", platformauth.RouteSecurity{Resource: "user", Action: "delete"})
+}

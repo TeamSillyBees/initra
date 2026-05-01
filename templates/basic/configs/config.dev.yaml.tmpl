@@ -1,0 +1,40 @@
+app:
+  name: {{ .AppName }}
+  env: dev
+  port: 8080
+
+http:
+  read_timeout: 5s
+  write_timeout: 10s
+
+logger:
+  level: info
+  format: json
+
+database:
+  driver: postgres
+  dsn: postgres://paperlingo:MKD8eqa9nax!rxg.utq@192.168.100.3:5432/initra_dev?sslmode=disable
+  max_open_conns: 30
+  max_idle_conns: 10
+
+redis:
+  addr: 127.0.0.1:6379
+  password: ""
+  db: 1
+
+jwt:
+  issuer: initra
+  secret: change-me-dev
+  access_token_ttl: 15m
+  refresh_token_ttl: 168h
+
+casbin:
+  model_path: ./configs/rbac_model.conf
+  policy_path: ./configs/rbac_policy.csv
+
+cache:
+  local_ttl: 1m
+  remote_ttl: 10m
+
+idgen:
+  node: 1

@@ -1,43 +1,60 @@
 # 架构说明
 
-`initra` 采用“平台层 + 业务模块”的垂直切片架构。
+`initra` 已拆分为“公共框架库 + CLI 模板 + 示例项目”。
 
-## 目录边界
+## 边界
 
-- `cmd/server`：程序入口，只负责启动流程与信号处理。
-- `internal/boot`：应用组合根，负责加载配置、初始化依赖注入容器、注册业务模块并构建 HTTP Server。
-- `internal/platform`：配置、日志、数据库、缓存、鉴权、Web 装配、可观测能力等基础设施，不反向依赖业务模块。
-- `internal/app/auth`：登录、刷新 token、当前用户信息。
-- `internal/app/user`：用户 CRUD 与用户详情缓存。
-- `internal/gen/jet`：Jet 生成代码目录，当前仓库内置最小占位代码，正式开发请使用 `make jet` 重新生成。
+- 根模块 `github.com/teamsillybees/initra` 发布稳定 `pkg/*` API。
+- 根仓库 `internal/*` 只服务框架仓库自身，业务项目不得 import。
+- `examples/basic` 是独立业务项目示例，包含认证和用户管理。
+- `templates/basic` 是 CLI 默认模板，内容由 `examples/basic` 同步生成。
 
-## 核心链路
+## 公共 package 分层
 
-1. `internal/boot.Bootstrap` 加载配置并初始化 do 容器。
-2. 平台层创建 logger、DB、Redis、cache manager、JWT、Casbin、Gin/Huma。
-3. `observability`、`auth`、`user` 模块向 Huma 注册 operation，同时向路由注册表登记安全策略。
-4. Gin 中间件依次完成 recovery、trace/request id 注入、请求日志、CORS、JWT 认证、Casbin 授权。
-5. 业务 handler 只负责 DTO 与上下文接入，具体业务编排落在 domain service，持久化访问通过 infra repository 完成。
+- 基础层：`pkg/errors`、`pkg/requestctx`、`pkg/response` 不依赖 Web 装配层。
+- 基础设施层：`pkg/config`、`pkg/logging`、`pkg/database`、`pkg/cache`、`pkg/idgen`、`pkg/password` 按需引入。
+- Web 与安全层：`pkg/auth`、`pkg/web`、`pkg/observability` 只在业务项目需要 HTTP/JWT/Casbin 时引入。
 
-## 新增业务功能扩展点
+框架不提供公共 `boot` 全家桶。业务项目在自己的 `internal/boot` 里显式创建配置、日志、数据库、Redis、JWT、Casbin、Web App，并注册业务模块。
 
-新增业务功能时优先新增一个垂直切片模块，而不是把代码散落到平台层：
+## 示例项目结构
 
-- `internal/app/<module>/domain`：定义领域实体、service、仓储接口、缓存接口和业务错误。
-- `internal/app/<module>/api`：定义 Huma input/output、HTTP handler 和 DTO 转换。
-- `internal/app/<module>/infra`：实现 domain 所需接口，例如 Jet repository、Redis cache、第三方客户端适配。
-- `internal/app/<module>/wire.go`：把模块内部依赖注册进 do 容器；跨模块同类型依赖必须使用命名服务。
-- `internal/app/<module>/module.go`：注册 Huma operation，并同步登记 `RouteSecurity`，保证接口文档和授权策略一致。
-- `internal/boot/app.go`：新增模块的 `Provide` 和 `Register` 都必须在组合根接入，否则依赖不会初始化、路由也不会暴露。
-- `db/schema`、`db/migrations`、`internal/gen/jet`：有表结构变更时按 schema -> migration -> Jet 生成代码的顺序推进。
-- `configs/rbac_policy.csv`：新增受保护资源时维护 Casbin policy；公开接口只在路由注册处显式设置 `Public: true`。
-- `test` 与模块内测试：业务规则放 service 单测，SQL 行为放 integration，完整 HTTP/鉴权链路放 e2e。
+```text
+examples/basic/cmd/server          示例服务入口
+examples/basic/internal/boot       示例组合根
+examples/basic/internal/app/auth   登录、refresh、me
+examples/basic/internal/app/user   用户 CRUD 与缓存
+examples/basic/internal/gen/jet    示例数据库生成代码
+examples/basic/configs             示例配置与 Casbin 策略
+examples/basic/db                  Atlas schema、migration、seed
+examples/basic/test                架构、集成、e2e 测试
+```
 
-## 约束
+示例业务代码仍采用垂直切片，不强制 controller/service/repository 横向分层。
 
-- service 不接收 `gin.Context`。
-- handler 不写业务逻辑。
-- Repository 只使用 Jet 生成 SQL。
-- 错误统一通过 `internal/platform/errors` 归一化。
-- 成功/失败响应都统一带 `trace_id`。
-- `internal/platform` 不允许导入 `internal/app/*`，该规则由 `internal/architecture` 测试固定。
+## 生成器
+
+`cmd/initra` 使用 `templates/basic` 生成业务项目。生成后的项目：
+
+- 只复制业务项目源码、配置、数据库文件、脚本和测试。
+- 不复制根仓库 `pkg/` 源码。
+- 在 `go.mod` 中 require `github.com/teamsillybees/initra`。
+- 本地开发时可写入 `replace` 指向框架仓库。
+
+## 标准验证
+
+根模块：
+
+```powershell
+go test ./pkg/... ./cmd/initra/... ./internal/... -count=1
+go vet ./pkg/... ./cmd/initra/... ./internal/...
+go build -o $env:TEMP\initra.exe ./cmd/initra
+```
+
+示例项目：
+
+```powershell
+go test ./examples/basic/... -count=1
+go vet ./examples/basic/...
+go build -o $env:TEMP\initra-basic-server.exe ./examples/basic/cmd/server
+```
