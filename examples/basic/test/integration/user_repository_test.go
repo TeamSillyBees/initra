@@ -8,7 +8,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
-	userinfra "github.com/teamsillybees/initra/examples/basic/internal/app/user/infra"
+	user "github.com/teamsillybees/initra/examples/basic/internal/app/user"
 )
 
 // staticRoleRelationIDGenerator 为用户角色关系提供稳定 ID，方便 SQL 断言。
@@ -25,7 +25,7 @@ func TestUserRepositoryFindByID(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	repo := userinfra.NewRepository(db, staticRoleRelationIDGenerator{})
+	repo := user.NewRepository(db, staticRoleRelationIDGenerator{})
 	now := time.Date(2026, 4, 21, 10, 0, 0, 0, time.UTC)
 
 	rows := sqlmock.NewRows([]string{

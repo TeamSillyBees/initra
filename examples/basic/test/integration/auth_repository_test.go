@@ -7,7 +7,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
-	authinfra "github.com/teamsillybees/initra/examples/basic/internal/app/auth/infra"
+	auth "github.com/teamsillybees/initra/examples/basic/internal/app/auth"
 )
 
 // TestAuthRepositoryFindByUsername 验证 auth 仓储能按用户名读取身份并补齐角色编码。
@@ -16,7 +16,7 @@ func TestAuthRepositoryFindByUsername(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	repo := authinfra.NewRepository(db)
+	repo := auth.NewRepository(db)
 
 	rows := sqlmock.NewRows([]string{
 		"id",

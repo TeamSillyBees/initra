@@ -5,15 +5,11 @@ import (
 	"time"
 
 	"github.com/samber/do"
-	"{{ .ModulePath }}/internal/app/user/api"
-	"{{ .ModulePath }}/internal/app/user/domain"
-	"{{ .ModulePath }}/internal/app/user/infra"
 	platformcache "github.com/teamsillybees/initra/pkg/cache"
 	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/password"
 )
 
-// do 服务名常量用于区分 user 模块内部的仓储、缓存、服务和 Handler。
 const (
 	userRepositoryServiceName = "user.repository"
 	userCacheServiceName      = "user.cache"
@@ -22,31 +18,29 @@ const (
 )
 
 // Provide 使用 do 注册 user 模块依赖。
-// 新增业务模块时通常复制这个组织方式：先注册 infra，再注册 domain service，
-// 最后注册 HTTP handler 和 Module，保证模块边界清晰且可测试。
 func Provide(injector *do.Injector) {
-	do.ProvideNamed(injector, userRepositoryServiceName, func(i *do.Injector) (*infra.Repository, error) {
+	do.ProvideNamed(injector, userRepositoryServiceName, func(i *do.Injector) (*Repository, error) {
 		db := do.MustInvoke[*sql.DB](i)
 		generator := do.MustInvoke[*idgen.Generator](i)
-		return infra.NewRepository(db, generator), nil
+		return NewRepository(db, generator), nil
 	})
-	do.ProvideNamed(injector, userCacheServiceName, func(i *do.Injector) (*infra.UserCache, error) {
+	do.ProvideNamed(injector, userCacheServiceName, func(i *do.Injector) (*UserCache, error) {
 		manager := do.MustInvoke[*platformcache.Manager](i)
-		return infra.NewUserCache(manager), nil
+		return NewUserCache(manager), nil
 	})
-	do.ProvideNamed(injector, userServiceServiceName, func(i *do.Injector) (*domain.Service, error) {
-		repo := do.MustInvokeNamed[*infra.Repository](i, userRepositoryServiceName)
-		cache := do.MustInvokeNamed[*infra.UserCache](i, userCacheServiceName)
+	do.ProvideNamed(injector, userServiceServiceName, func(i *do.Injector) (*Service, error) {
+		repo := do.MustInvokeNamed[*Repository](i, userRepositoryServiceName)
+		cache := do.MustInvokeNamed[*UserCache](i, userCacheServiceName)
 		generator := do.MustInvoke[*idgen.Generator](i)
 		passwords := do.MustInvoke[*password.BcryptPasswordManager](i)
-		return domain.NewService(repo, cache, generator, passwords, time.Now), nil
+		return NewService(repo, cache, generator, passwords, time.Now), nil
 	})
-	do.ProvideNamed(injector, userHandlerServiceName, func(i *do.Injector) (*api.Handler, error) {
-		service := do.MustInvokeNamed[*domain.Service](i, userServiceServiceName)
-		return api.NewHandler(service), nil
+	do.ProvideNamed(injector, userHandlerServiceName, func(i *do.Injector) (*Handler, error) {
+		service := do.MustInvokeNamed[*Service](i, userServiceServiceName)
+		return NewHandler(service), nil
 	})
 	do.Provide(injector, func(i *do.Injector) (*Module, error) {
-		handler := do.MustInvokeNamed[*api.Handler](i, userHandlerServiceName)
+		handler := do.MustInvokeNamed[*Handler](i, userHandlerServiceName)
 		return NewModule(handler), nil
 	})
 }
