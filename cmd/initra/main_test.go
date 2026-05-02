@@ -27,6 +27,9 @@ func TestNewGeneratesProjectWithFrameworkRequireAndNoPkgCopy(t *testing.T) {
 	require.Contains(t, goMod, "github.com/teamsillybees/initra v1.2.3")
 	require.NoDirExists(t, filepath.Join(target, "pkg"))
 	require.Contains(t, readFile(t, filepath.Join(target, "cmd", "server", "main.go")), "example.com/demo/internal/boot")
+	require.FileExists(t, filepath.Join(target, "internal", "boot", "app.go"))
+	require.FileExists(t, filepath.Join(target, "internal", "boot", "providers.go"))
+	require.FileExists(t, filepath.Join(target, "internal", "boot", "lifecycle.go"))
 	require.Contains(t, stdout.String(), "created")
 }
 

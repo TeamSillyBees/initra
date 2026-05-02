@@ -12,33 +12,29 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	authmodule "{{ .ModulePath }}/internal/app/auth"
-	authapi "{{ .ModulePath }}/internal/app/auth/api"
-	authdomain "{{ .ModulePath }}/internal/app/auth/domain"
-	usermodule "{{ .ModulePath }}/internal/app/user"
-	userapi "{{ .ModulePath }}/internal/app/user/api"
-	userdomain "{{ .ModulePath }}/internal/app/user/domain"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/observability"
 	"github.com/teamsillybees/initra/pkg/password"
 	"github.com/teamsillybees/initra/pkg/web"
 	"go.uber.org/zap"
+	authmodule "{{ .ModulePath }}/internal/app/auth"
+	usermodule "{{ .ModulePath }}/internal/app/user"
 )
 
 // memoryUserRepository 为端到端测试提供无需数据库的 user 仓储实现。
 type memoryUserRepository struct {
-	items map[int64]*userdomain.User
+	items map[int64]*usermodule.User
 }
 
 // Create 保存用户副本，避免后续修改影响测试仓储状态。
-func (m *memoryUserRepository) Create(_ context.Context, user *userdomain.User) error {
+func (m *memoryUserRepository) Create(_ context.Context, user *usermodule.User) error {
 	cloned := *user
 	m.items[user.ID] = &cloned
 	return nil
 }
 
 // FindByID 按 ID 返回用户副本。
-func (m *memoryUserRepository) FindByID(_ context.Context, id int64) (*userdomain.User, error) {
+func (m *memoryUserRepository) FindByID(_ context.Context, id int64) (*usermodule.User, error) {
 	user, ok := m.items[id]
 	if !ok {
 		return nil, nil
@@ -48,7 +44,7 @@ func (m *memoryUserRepository) FindByID(_ context.Context, id int64) (*userdomai
 }
 
 // FindByUsername 遍历内存数据并返回匹配用户名的用户副本。
-func (m *memoryUserRepository) FindByUsername(_ context.Context, username string) (*userdomain.User, error) {
+func (m *memoryUserRepository) FindByUsername(_ context.Context, username string) (*usermodule.User, error) {
 	for _, user := range m.items {
 		if user.Username == username {
 			cloned := *user
@@ -59,8 +55,8 @@ func (m *memoryUserRepository) FindByUsername(_ context.Context, username string
 }
 
 // List 返回全部用户副本和总数。
-func (m *memoryUserRepository) List(_ context.Context, _ userdomain.ListUsersInput) ([]*userdomain.User, int64, error) {
-	items := make([]*userdomain.User, 0, len(m.items))
+func (m *memoryUserRepository) List(_ context.Context, _ usermodule.ListUsersParams) ([]*usermodule.User, int64, error) {
+	items := make([]*usermodule.User, 0, len(m.items))
 	for _, user := range m.items {
 		cloned := *user
 		items = append(items, &cloned)
@@ -69,7 +65,7 @@ func (m *memoryUserRepository) List(_ context.Context, _ userdomain.ListUsersInp
 }
 
 // Update 覆盖保存用户副本。
-func (m *memoryUserRepository) Update(_ context.Context, user *userdomain.User) error {
+func (m *memoryUserRepository) Update(_ context.Context, user *usermodule.User) error {
 	cloned := *user
 	m.items[user.ID] = &cloned
 	return nil
@@ -85,12 +81,12 @@ func (m *memoryUserRepository) Delete(_ context.Context, id int64, _ int64) erro
 type memoryUserCache struct{}
 
 // Get 始终返回未命中。
-func (memoryUserCache) Get(context.Context, int64) (*userdomain.User, bool, error) {
+func (memoryUserCache) Get(context.Context, int64) (*usermodule.User, bool, error) {
 	return nil, false, nil
 }
 
 // Set 忽略缓存写入。
-func (memoryUserCache) Set(context.Context, *userdomain.User) error {
+func (memoryUserCache) Set(context.Context, *usermodule.User) error {
 	return nil
 }
 
@@ -112,12 +108,12 @@ func (s *staticIDGenerator) NextID() int64 {
 
 // memoryIdentityRepository 为端到端测试提供无需数据库的 auth 身份仓储实现。
 type memoryIdentityRepository struct {
-	byID       map[int64]*authdomain.Identity
-	byUsername map[string]*authdomain.Identity
+	byID       map[int64]*authmodule.Identity
+	byUsername map[string]*authmodule.Identity
 }
 
 // FindByUsername 按用户名返回身份副本。
-func (m *memoryIdentityRepository) FindByUsername(_ context.Context, username string) (*authdomain.Identity, error) {
+func (m *memoryIdentityRepository) FindByUsername(_ context.Context, username string) (*authmodule.Identity, error) {
 	identity, ok := m.byUsername[username]
 	if !ok {
 		return nil, nil
@@ -127,7 +123,7 @@ func (m *memoryIdentityRepository) FindByUsername(_ context.Context, username st
 }
 
 // FindByID 按用户 ID 返回身份副本。
-func (m *memoryIdentityRepository) FindByID(_ context.Context, id int64) (*authdomain.Identity, error) {
+func (m *memoryIdentityRepository) FindByID(_ context.Context, id int64) (*authmodule.Identity, error) {
 	identity, ok := m.byID[id]
 	if !ok {
 		return nil, nil
@@ -169,7 +165,7 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	}).Register(app.API, app.Registry)
 
 	userRepo := &memoryUserRepository{
-		items: map[int64]*userdomain.User{
+		items: map[int64]*usermodule.User{
 			1001: {
 				ID:           1001,
 				Username:     "alice",
@@ -183,11 +179,11 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 		},
 	}
 
-	userService := userdomain.NewService(userRepo, memoryUserCache{}, &staticIDGenerator{next: 2000}, passwords, time.Now)
-	usermodule.NewModule(userapi.NewHandler(userService)).Register(app.API, app.Registry)
+	userService := usermodule.NewService(userRepo, memoryUserCache{}, &staticIDGenerator{next: 2000}, passwords, time.Now)
+	usermodule.NewModule(usermodule.NewHandler(userService)).Register(app.API, app.Registry)
 
 	identityRepo := &memoryIdentityRepository{
-		byID: map[int64]*authdomain.Identity{
+		byID: map[int64]*authmodule.Identity{
 			1001: {
 				UserID:       1001,
 				Username:     "alice",
@@ -197,7 +193,7 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 				IsEnable:     true,
 			},
 		},
-		byUsername: map[string]*authdomain.Identity{
+		byUsername: map[string]*authmodule.Identity{
 			"alice": {
 				UserID:       1001,
 				Username:     "alice",
@@ -209,8 +205,8 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 		},
 	}
 
-	authService := authdomain.NewService(identityRepo, passwords, jwtManager)
-	authmodule.NewModule(authapi.NewHandler(authService)).Register(app.API, app.Registry)
+	authService := authmodule.NewService(identityRepo, passwords, jwtManager)
+	authmodule.NewModule(authmodule.NewHandler(authService)).Register(app.API, app.Registry)
 
 	loginResp := struct {
 		Code string `json:"code"`

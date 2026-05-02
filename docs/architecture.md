@@ -15,13 +15,18 @@
 - 基础设施层：`pkg/config`、`pkg/logging`、`pkg/database`、`pkg/cache`、`pkg/idgen`、`pkg/password` 按需引入。
 - Web 与安全层：`pkg/auth`、`pkg/web`、`pkg/observability` 只在业务项目需要 HTTP/JWT/Casbin 时引入。
 
-框架不提供公共 `boot` 全家桶。业务项目在自己的 `internal/boot` 里显式创建配置、日志、数据库、Redis、JWT、Casbin、Web App，并注册业务模块。
+框架不提供公共 `boot` 全家桶。业务项目在自己的 `internal/boot` 里显式创建配置、日志、数据库、Redis、JWT、Casbin、Web App，并注册业务模块。默认示例的组合根拆分为：
+
+- `config.go`：业务项目配置结构与加载入口。
+- `app.go`：`Options`、`Application` 与 `Bootstrap` 组装流程。
+- `providers.go`：基础设施 provider、业务模块 provider 与路由注册。
+- `lifecycle.go`：HTTP 服务运行与优雅关闭。
 
 ## 示例项目结构
 
 ```text
 examples/basic/cmd/server          示例服务入口
-examples/basic/internal/boot       示例组合根
+examples/basic/internal/boot       示例组合根（app.go、providers.go、lifecycle.go、config.go）
 examples/basic/internal/app/auth   登录、refresh、me
 examples/basic/internal/app/user   用户 CRUD 与缓存
 examples/basic/internal/gen/jet    示例数据库生成代码
