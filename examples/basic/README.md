@@ -1,6 +1,8 @@
 # initra basic example
 
-这是 `initra` CLI 默认生成模板的示例项目，包含认证、用户管理、缓存、JWT、Casbin、Atlas 和 go-jet。
+本文档面向第一部分：标准项目模板。
+
+`examples/basic` 是 `initra` CLI 默认生成模板的可运行示例项目，包含认证、用户管理、缓存、JWT、Casbin、Atlas 和 go-jet。它用于验证和展示标准项目模板；运行时通用能力来自第二部分可复用 Go package，项目生成入口来自第三部分工程化 CLI。
 
 ## 运行
 

@@ -1,0 +1,109 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## 项目定位
+
+initra 是面向企业内部 Go Web API 的快速开发脚手架。所有项目介绍和架构说明必须明确归属到以下三个部分，避免把模板、运行时 package 和 CLI 生成器混为一谈：
+
+- **标准项目模板**：`templates/basic` 和 `examples/basic`，提供可生成、可运行的 API 服务基础工程模板。
+- **可复用的 Go package**：根模块 `github.com/teamsillybees/initra` 的 `pkg/*`，沉淀 Web、配置、错误、日志、认证、数据访问、Redis、缓存、对象存储、HTTP Client、任务调度等通用能力。
+- **工程化 CLI**：`cmd/initra`，承载生成项目、业务模块、CRUD 样例、迁移文件、配置样例、接口骨架、测试骨架和代码生成命令。
+
+跨部分边界：
+
+- `examples/basic` 是独立 Go module 的可运行示例项目（auth + user 模块），属于标准项目模板。
+- `templates/basic` 是 CLI 项目模板，内容与 `examples/basic` 保持同步，属于标准项目模板。
+- `cmd/initra` 只负责生成和维护工程骨架，属于工程化 CLI。
+- `internal/` 只服务脚手架仓库自身，标准项目模板、生成项目和外部业务项目都不得 import。
+
+主要技术栈：
+
+- HTTP：Gin + Huma
+- SQL：go-jet/jet
+- Migration：Atlas
+- ID：snowflake
+- Cache：jetcache-go + Redis
+- DI：samber/do
+- Log：zap
+- Error：samber/oops + 统一错误码
+- Auth：JWT + Casbin
+- Config：Viper
+
+## 常用命令
+
+```powershell
+# 根模块测试
+go test ./pkg/... ./cmd/initra/... ./internal/... -count=1
+go vet ./pkg/... ./cmd/initra/... ./internal/...
+
+# 示例项目测试
+go test ./examples/basic/... -count=1
+go vet ./examples/basic/...
+
+# 构建 CLI
+go build -o $env:TEMP\initra.exe ./cmd/initra
+
+# 生成示例项目
+go run ./cmd/initra new $target --module example.com/demo-api --replace (Resolve-Path .).Path
+```
+
+仓库使用 `go.work` 联调根模块和 `examples/basic`，在根目录执行 Go 命令即可覆盖两个模块。
+
+## Go 代码规范
+
+- 遵循 Go 标准项目风格：小接口、显式错误处理、依赖通过构造函数注入。
+- 导出类型、函数、常量必须有中文注释；内部 helper 若包含业务规则或边界也应注释。
+- 注释完善，清晰表达意图，禁止使用英文注释或无意义的注释，注释符合 Golang 注释规范。
+- 手动编辑文件时运行 `gofmt`。
+
+## 架构约束
+
+### 模块组织
+
+本节面向标准项目模板和由模板生成的业务项目。
+
+业务代码按业务模块组织为**单一 flat package**，不强制 controller/service/repository 横向分层。每个模块拆分为以下文件：
+
+```
+internal/app/<module>/
+  <module>.module.go     路由注册 + Module 结构体
+  <module>.api.go        Handler + 请求/响应 DTO + Huma output 类型
+  <module>.model.go      领域实体 + 输入/输出参数类型
+  <module>.service.go    业务逻辑 + 私有接口定义
+  <module>.repository.go 数据库实现
+  <module>_test.go       单元测试
+  wire.go                samber/do 依赖注入
+```
+
+### 依赖规则
+
+- 面向标准项目模板：模块之间禁止循环依赖，auth 和 user 各自独立，不互相 import。
+- 面向标准项目模板：跨模块调用优先依赖接口，不依赖具体实现；接口定义在调用方模块内部，保持小接口、少方法。
+- 面向可复用 Go package：共享能力放入 `pkg/*`，禁止业务模块通过互相引用来解决复用问题。
+- 面向标准项目模板：示例项目只能依赖可复用 Go package `pkg/*`，不能 import 根仓库 `internal/`。
+- 面向标准项目模板和可复用 Go package：包名简短、清晰、全小写，一个模块一个 package。
+
+### 错误处理
+
+- 面向可复用 Go package：统一错误码由 `pkg/errors` 定义（`CodeBadRequest`、`CodeUnauthorized`、`CodeInternalError` 等）。
+- 面向标准项目模板：业务专属错误码在 `internal/app/bizerrors/` 中定义，使用 `apperrors.New` 工厂函数创建。
+- 面向标准项目模板：禁止在业务模块内部创建 sentinel error（`errors.New`），统一走 bizerrors。
+
+### 路由与安全
+
+- 面向标准项目模板：所有 `/api/` 接口必须通过 `registry.Register` 登记 `RouteSecurity`，否则鉴权中间件按 **fail-closed** 拒绝请求。
+- 面向标准项目模板：公开接口（如 login）设置 `Public: true`。
+- 面向标准项目模板：`RouteSecurity` 的 Resource/Action 需与 Casbin policy 文件中定义的一致。
+
+### 配置
+
+- 面向标准项目模板：业务项目在 `internal/boot/config.go` 中定义自己的配置结构，使用 `pkg/config` 泛型加载。
+- 面向可复用 Go package：`pkg/config` 只提供泛型加载能力，不绑定具体业务配置结构。
+- 面向工程化 CLI 和标准项目模板：模板文件中的模块路径使用 `{{ .ModulePath }}`，禁止硬编码 `github.com/teamsillybees/initra/examples/basic`。
+
+### 测试
+
+- 面向标准项目模板：每个模块必须包含单元测试文件，使用 fake 实现（内存仓储、假缓存、假 ID 生成器）测试 service 编排逻辑。
+- 面向标准项目模板：集成测试使用 `go-sqlmock` 验证 SQL 生成正确性。
+- 面向标准项目模板和仓库边界：架构测试确保示例项目不 import 根仓库 `internal/`。
