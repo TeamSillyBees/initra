@@ -5,7 +5,6 @@ import (
 
 	"github.com/samber/do"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
-	"github.com/teamsillybees/initra/pkg/password"
 )
 
 const (
@@ -22,7 +21,7 @@ func Provide(injector *do.Injector) {
 	})
 	do.ProvideNamed(injector, authServiceServiceName, func(i *do.Injector) (*Service, error) {
 		repo := do.MustInvokeNamed[*Repository](i, authRepositoryServiceName)
-		passwords := do.MustInvoke[*password.BcryptPasswordManager](i)
+		passwords := do.MustInvoke[*platformauth.BcryptPasswordManager](i)
 		jwtManager := do.MustInvoke[*platformauth.JWTManager](i)
 		return NewService(repo, passwords, jwtManager), nil
 	})

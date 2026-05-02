@@ -1,4 +1,4 @@
-package web
+package server
 
 import (
 	"encoding/json"
@@ -49,7 +49,7 @@ func TestNewAppLogsUnauthorizedRequests(t *testing.T) {
 	logger := zap.New(core)
 	manager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
 		Issuer:          "initra",
-		Secret:          "web-test-secret",
+		Secret:          "server-test-secret",
 		AccessTokenTTL:  time.Minute,
 		RefreshTokenTTL: time.Hour,
 	})
@@ -81,7 +81,7 @@ func TestNewAppAcceptsValidJWTForProtectedAPIRoute(t *testing.T) {
 
 	manager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
 		Issuer:          "initra",
-		Secret:          "web-test-secret",
+		Secret:          "server-test-secret",
 		AccessTokenTTL:  time.Minute,
 		RefreshTokenTTL: time.Hour,
 	})

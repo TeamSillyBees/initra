@@ -38,7 +38,7 @@ func TestLowLevelPackagesDoNotImportWeb(t *testing.T) {
 	for _, pattern := range []string{"./pkg/errors", "./pkg/requestctx"} {
 		for _, pkg := range goList(t, pattern) {
 			for _, imported := range pkg.Imports {
-				require.NotEqualf(t, "github.com/teamsillybees/initra/pkg/web", imported, "%s imports pkg/web", pkg.ImportPath)
+				require.NotEqualf(t, "github.com/teamsillybees/initra/pkg/server", imported, "%s imports pkg/server", pkg.ImportPath)
 			}
 		}
 	}

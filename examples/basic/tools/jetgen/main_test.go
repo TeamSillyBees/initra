@@ -81,7 +81,7 @@ func TestRunRejectsNonPostgresDriver(t *testing.T) {
 	})
 
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "database.driver")
+	require.Contains(t, err.Error(), "db.driver")
 }
 
 // TestGenerateJetKeepsConfiguredDestAsGeneratedRoot 验证 dest 目录就是生成根目录，不再追加数据库名和 schema 名。
@@ -132,7 +132,7 @@ func writeConfigFile(t *testing.T, configDir, env, driver, dsn string) {
 app:
   name: initra
   env: ` + env + `
-database:
+db:
   driver: ` + driver + `
   dsn: ` + dsn + `
 casbin:

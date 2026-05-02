@@ -8,7 +8,7 @@ import (
 
 	. "github.com/go-jet/jet/v2/postgres"
 	. "github.com/teamsillybees/initra/examples/basic/internal/gen/jet/table"
-	platformdb "github.com/teamsillybees/initra/pkg/database"
+	platformdb "github.com/teamsillybees/initra/pkg/db"
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
 )
 

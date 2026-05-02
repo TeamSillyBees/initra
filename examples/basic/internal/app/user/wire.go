@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/samber/do"
+	"github.com/teamsillybees/initra/pkg/auth"
 	platformcache "github.com/teamsillybees/initra/pkg/cache"
 	"github.com/teamsillybees/initra/pkg/idgen"
-	"github.com/teamsillybees/initra/pkg/password"
 )
 
 const (
@@ -32,7 +32,7 @@ func Provide(injector *do.Injector) {
 		repo := do.MustInvokeNamed[*Repository](i, userRepositoryServiceName)
 		cache := do.MustInvokeNamed[*UserCache](i, userCacheServiceName)
 		generator := do.MustInvoke[*idgen.Generator](i)
-		passwords := do.MustInvoke[*password.BcryptPasswordManager](i)
+		passwords := do.MustInvoke[*auth.BcryptPasswordManager](i)
 		return NewService(repo, cache, generator, passwords, time.Now), nil
 	})
 	do.ProvideNamed(injector, userHandlerServiceName, func(i *do.Injector) (*Handler, error) {

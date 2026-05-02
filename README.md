@@ -33,10 +33,10 @@ scripts/            根仓库测试、检查、构建入口
 ## 可复用 Go package
 
 - `pkg/config`：泛型配置加载，不绑定业务项目配置结构。
-- `pkg/logging`、`pkg/database`、`pkg/cache`、`pkg/idgen`、`pkg/password`：基础设施薄封装。
+- `pkg/logging`、`pkg/db`、`pkg/cache`、`pkg/idgen`：基础设施封装。
 - `pkg/errors`、`pkg/response`、`pkg/requestctx`：统一错误、响应、trace/request id。
 - `pkg/auth`：JWT、refresh token、Redis token store、Casbin、路由安全元信息。
-- `pkg/web`：Gin + Huma 应用与认证授权中间件装配。
+- `pkg/server`：Gin + Huma 应用与认证授权中间件装配。
 - `pkg/observability`：health、ready、version 接口模块。
 
 业务项目应只 import 实际需要的 `pkg/*`，组合根由业务项目自己的 `internal/boot` 显式组装。

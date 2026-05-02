@@ -5,21 +5,21 @@ import (
 	"time"
 
 	platformconfig "github.com/teamsillybees/initra/pkg/config"
-	"github.com/teamsillybees/initra/pkg/database"
+	"github.com/teamsillybees/initra/pkg/db"
 	"github.com/teamsillybees/initra/pkg/logging"
 )
 
 // Config 是示例项目的应用配置聚合根。
 type Config struct {
-	App      AppConfig       `mapstructure:"app"`
-	HTTP     HTTPConfig      `mapstructure:"http"`
-	Logger   logging.Config  `mapstructure:"logger"`
-	Database database.Config `mapstructure:"database"`
-	Redis    RedisConfig     `mapstructure:"redis"`
-	JWT      JWTConfig       `mapstructure:"jwt"`
-	Casbin   CasbinConfig    `mapstructure:"casbin"`
-	Cache    CacheConfig     `mapstructure:"cache"`
-	IDGen    IDGenConfig     `mapstructure:"idgen"`
+	App      AppConfig      `mapstructure:"app"`
+	HTTP     HTTPConfig     `mapstructure:"http"`
+	Logger   logging.Config `mapstructure:"logger"`
+	Database db.Config      `mapstructure:"db"`
+	Redis    RedisConfig    `mapstructure:"redis"`
+	JWT      JWTConfig      `mapstructure:"jwt"`
+	Casbin   CasbinConfig   `mapstructure:"casbin"`
+	Cache    CacheConfig    `mapstructure:"cache"`
+	IDGen    IDGenConfig    `mapstructure:"idgen"`
 }
 
 // AppConfig 描述应用基础元信息。
@@ -86,7 +86,7 @@ func (c *Config) Validate() error {
 	case c.App.Port <= 0:
 		return fmt.Errorf("app.port 必须大于 0")
 	case c.Database.DSN == "":
-		return fmt.Errorf("database.dsn 不能为空")
+		return fmt.Errorf("db.dsn 不能为空")
 	case c.JWT.Issuer == "":
 		return fmt.Errorf("jwt.issuer 不能为空")
 	case c.JWT.Secret == "":
@@ -111,26 +111,26 @@ func (c *Config) Validate() error {
 // configDefaults 统一声明示例项目配置默认值。
 func configDefaults() map[string]any {
 	return map[string]any{
-		"app.port":                8080,
-		"http.read_timeout":       "5s",
-		"http.write_timeout":      "10s",
-		"logger.level":            "info",
-		"logger.format":           "json",
-		"database.driver":         "postgres",
-		"database.dsn":            "",
-		"database.max_open_conns": 20,
-		"database.max_idle_conns": 10,
-		"redis.addr":              "127.0.0.1:6379",
-		"redis.password":          "",
-		"redis.db":                0,
-		"jwt.issuer":              "",
-		"jwt.secret":              "",
-		"jwt.access_token_ttl":    "15m",
-		"jwt.refresh_token_ttl":   "168h",
-		"casbin.model_path":       "",
-		"casbin.policy_path":      "",
-		"cache.local_ttl":         "1m",
-		"cache.remote_ttl":        "10m",
-		"idgen.node":              1,
+		"app.port":              8080,
+		"http.read_timeout":     "5s",
+		"http.write_timeout":    "10s",
+		"logger.level":          "info",
+		"logger.format":         "json",
+		"db.driver":             "postgres",
+		"db.dsn":                "",
+		"db.max_open_conns":     20,
+		"db.max_idle_conns":     10,
+		"redis.addr":            "127.0.0.1:6379",
+		"redis.password":        "",
+		"redis.db":              0,
+		"jwt.issuer":            "",
+		"jwt.secret":            "",
+		"jwt.access_token_ttl":  "15m",
+		"jwt.refresh_token_ttl": "168h",
+		"casbin.model_path":     "",
+		"casbin.policy_path":    "",
+		"cache.local_ttl":       "1m",
+		"cache.remote_ttl":      "10m",
+		"idgen.node":            1,
 	}
 }

@@ -11,12 +11,11 @@ import (
 	usermodule "github.com/teamsillybees/initra/examples/basic/internal/app/user"
 	"github.com/teamsillybees/initra/pkg/auth"
 	platformcache "github.com/teamsillybees/initra/pkg/cache"
-	"github.com/teamsillybees/initra/pkg/database"
+	"github.com/teamsillybees/initra/pkg/db"
 	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/logging"
 	"github.com/teamsillybees/initra/pkg/observability"
-	"github.com/teamsillybees/initra/pkg/password"
-	"github.com/teamsillybees/initra/pkg/web"
+	"github.com/teamsillybees/initra/pkg/server"
 	"go.uber.org/zap"
 )
 
@@ -25,7 +24,7 @@ func registerProviders(ctx context.Context, injector *do.Injector, cfg *Config, 
 		return logging.NewLogger(cfg.Logger)
 	})
 	do.Provide(injector, func(i *do.Injector) (*sql.DB, error) {
-		return database.Open(ctx, cfg.Database)
+		return db.Open(ctx, cfg.Database)
 	})
 	do.Provide(injector, func(i *do.Injector) (*redis.Client, error) {
 		client := redis.NewClient(&redis.Options{
@@ -50,8 +49,8 @@ func registerProviders(ctx context.Context, injector *do.Injector, cfg *Config, 
 	do.Provide(injector, func(i *do.Injector) (*idgen.Generator, error) {
 		return idgen.NewGenerator(cfg.IDGen.Node)
 	})
-	do.Provide(injector, func(i *do.Injector) (*password.BcryptPasswordManager, error) {
-		return password.NewBcryptPasswordManager(0), nil
+	do.Provide(injector, func(i *do.Injector) (*auth.BcryptPasswordManager, error) {
+		return auth.NewBcryptPasswordManager(0), nil
 	})
 	do.Provide(injector, func(i *do.Injector) (*auth.JWTManager, error) {
 		client := do.MustInvoke[*redis.Client](i)
@@ -66,11 +65,11 @@ func registerProviders(ctx context.Context, injector *do.Injector, cfg *Config, 
 	do.Provide(injector, func(i *do.Injector) (*casbin.Enforcer, error) {
 		return auth.NewEnforcer(cfg.Casbin.ModelPath, cfg.Casbin.PolicyPath)
 	})
-	do.Provide(injector, func(i *do.Injector) (*web.App, error) {
+	do.Provide(injector, func(i *do.Injector) (*server.App, error) {
 		logger := do.MustInvoke[*zap.Logger](i)
 		jwtManager := do.MustInvoke[*auth.JWTManager](i)
 		enforcer := do.MustInvoke[*casbin.Enforcer](i)
-		return web.NewApp(web.Options{
+		return server.NewApp(server.Options{
 			Title:   cfg.App.Name,
 			Version: buildInfo.Version,
 			Env:     cfg.App.Env,
@@ -85,7 +84,7 @@ func registerModules(injector *do.Injector) {
 	authmodule.Provide(injector)
 }
 
-func registerRoutes(injector *do.Injector, webApp *web.App, buildInfo observability.BuildInfo) {
+func registerRoutes(injector *do.Injector, webApp *server.App, buildInfo observability.BuildInfo) {
 	observability.NewModule(buildInfo).Register(webApp.API, webApp.Registry)
 
 	// 新增业务模块完成依赖注册后，需要在这里解析 Module 并调用 Register。

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/observability"
-	"github.com/teamsillybees/initra/pkg/web"
+	"github.com/teamsillybees/initra/pkg/server"
 	"go.uber.org/zap"
 )
 
@@ -27,7 +27,7 @@ func TestModuleRegistersHealthReadyAndVersionEndpoints(t *testing.T) {
 	enforcer, err := casbin.NewEnforcer()
 	require.NoError(t, err)
 
-	app, err := web.NewApp(web.Options{
+	app, err := server.NewApp(server.Options{
 		Title:   "initra",
 		Version: "test",
 		Env:     "test",

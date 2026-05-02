@@ -5,7 +5,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
-	"github.com/teamsillybees/initra/pkg/web"
+	"github.com/teamsillybees/initra/pkg/server"
 )
 
 // Module 负责 user 模块路由注册。
@@ -19,7 +19,7 @@ func NewModule(handler *Handler) *Module {
 }
 
 // Register 将 user 模块的 Huma operation 和安全策略注册到应用。
-func (m *Module) Register(api huma.API, registry *web.RouteRegistry) {
+func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 	huma.Register(api, huma.Operation{
 		OperationID: "get-user",
 		Method:      http.MethodGet,

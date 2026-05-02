@@ -16,8 +16,7 @@ import (
 	usermodule "github.com/teamsillybees/initra/examples/basic/internal/app/user"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/observability"
-	"github.com/teamsillybees/initra/pkg/password"
-	"github.com/teamsillybees/initra/pkg/web"
+	"github.com/teamsillybees/initra/pkg/server"
 	"go.uber.org/zap"
 )
 
@@ -135,7 +134,7 @@ func (m *memoryIdentityRepository) FindByID(_ context.Context, id int64) (*authm
 // TestServer_LoginMeAndUserDetail 覆盖登录、当前用户、用户详情和健康检查的完整 HTTP 流程。
 func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	logger := zap.NewNop()
-	passwords := password.NewBcryptPasswordManager(4)
+	passwords := platformauth.NewBcryptPasswordManager(4)
 	passwordHash, err := passwords.Hash("secret-123")
 	require.NoError(t, err)
 
@@ -151,7 +150,7 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	enforcer, err := platformauth.NewEnforcer(modelPath, policyPath)
 	require.NoError(t, err)
 
-	app, err := web.NewApp(web.Options{
+	app, err := server.NewApp(server.Options{
 		Title:   "initra",
 		Version: "test",
 		Env:     "test",

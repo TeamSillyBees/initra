@@ -1,4 +1,4 @@
-package database
+package db
 
 import (
 	"context"
@@ -24,7 +24,7 @@ func Open(ctx context.Context, cfg Config) (*sql.DB, error) {
 		driver = "postgres"
 	}
 	if !strings.EqualFold(driver, "postgres") && !strings.EqualFold(driver, "pgx") {
-		return nil, fmt.Errorf("database.driver 仅支持 postgres，当前为 %q", cfg.Driver)
+		return nil, fmt.Errorf("db.driver 仅支持 postgres，当前为 %q", cfg.Driver)
 	}
 	db, err := sql.Open("pgx", cfg.DSN)
 	if err != nil {

@@ -8,7 +8,7 @@ import (
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/requestctx"
 	"github.com/teamsillybees/initra/pkg/response"
-	"github.com/teamsillybees/initra/pkg/web"
+	"github.com/teamsillybees/initra/pkg/server"
 )
 
 // BuildInfo 描述版本、构建时间和提交号等可观测信息。
@@ -29,7 +29,7 @@ func NewModule(info BuildInfo) *Module {
 }
 
 // Register 将健康检查和版本信息接口注册到 Huma。
-func (m *Module) Register(api huma.API, registry *web.RouteRegistry) {
+func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 	// healthData 是健康检查响应的最小载荷，避免公开内部依赖状态。
 	type healthData struct {
 		Status string `json:"status"`

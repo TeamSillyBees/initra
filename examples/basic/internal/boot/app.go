@@ -10,7 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/samber/do"
 	"github.com/teamsillybees/initra/pkg/observability"
-	"github.com/teamsillybees/initra/pkg/web"
+	"github.com/teamsillybees/initra/pkg/server"
 	"go.uber.org/zap"
 )
 
@@ -26,7 +26,7 @@ type Application struct {
 	Container *do.Injector
 	Config    *Config
 	Logger    *zap.Logger
-	Web       *web.App
+	Web       *server.App
 	Server    *http.Server
 	DB        *sql.DB
 	Redis     *redis.Client
@@ -48,7 +48,7 @@ func Bootstrap(ctx context.Context, options Options) (*Application, error) {
 	logger := do.MustInvoke[*zap.Logger](injector)
 	db := do.MustInvoke[*sql.DB](injector)
 	redisClient := do.MustInvoke[*redis.Client](injector)
-	webApp := do.MustInvoke[*web.App](injector)
+	webApp := do.MustInvoke[*server.App](injector)
 
 	registerRoutes(injector, webApp, options.BuildInfo)
 
