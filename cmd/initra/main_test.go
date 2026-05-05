@@ -35,10 +35,13 @@ func TestNewGeneratesAPIProjectWithFrameworkRequireAndNoPkgCopy(t *testing.T) {
 	for _, moduleName := range []string{"auth", "user"} {
 		moduleDir := filepath.Join(target, "internal", "module", moduleName)
 		require.DirExists(t, moduleDir)
-		for _, suffix := range []string{"handler", "service", "repo", "model", "routes"} {
+		for _, suffix := range []string{"handler", "service", "repo", "model", "dto", "routes"} {
 			require.FileExists(t, filepath.Join(moduleDir, moduleName+"."+suffix+".go"))
 		}
 		require.FileExists(t, filepath.Join(moduleDir, "providers.go"))
+		handlerContent := readFile(t, filepath.Join(moduleDir, moduleName+".handler.go"))
+		require.NotContains(t, handlerContent, "Input struct")
+		require.NotContains(t, handlerContent, "Response struct")
 	}
 	require.FileExists(t, filepath.Join(target, "db", "schema", "01_sys_user.sql"))
 	require.FileExists(t, filepath.Join(target, "db", "seeds", "001_seed_admin.sql"))
@@ -131,11 +134,17 @@ func TestModuleAddGeneratesVerticalSliceModule(t *testing.T) {
 
 	require.NoError(t, err)
 	moduleDir := filepath.Join(target, "internal", "module", "order")
-	for _, suffix := range []string{"handler", "service", "repo", "model", "routes"} {
+	for _, suffix := range []string{"handler", "service", "repo", "model", "dto", "routes"} {
 		require.FileExists(t, filepath.Join(moduleDir, "order."+suffix+".go"))
 	}
 	require.FileExists(t, filepath.Join(moduleDir, "providers.go"))
 	require.FileExists(t, filepath.Join(moduleDir, "order_test.go"))
+	handlerContent := readFile(t, filepath.Join(moduleDir, "order.handler.go"))
+	require.NotContains(t, handlerContent, "type GetOrderInput")
+	require.NotContains(t, handlerContent, "type OrderResponse")
+	dtoContent := readFile(t, filepath.Join(moduleDir, "order.dto.go"))
+	require.Contains(t, dtoContent, "type GetOrderInput")
+	require.Contains(t, dtoContent, "type OrderResponse")
 	require.Contains(t, stdout.String(), "created module order")
 }
 

@@ -52,7 +52,7 @@ func Bootstrap(ctx context.Context, options Options) (*Application, error) {
 
 	registerRoutes(injector, webApp, options.BuildInfo)
 
-	server := &http.Server{
+	s := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.App.Port),
 		Handler:           webApp.Engine,
 		ReadTimeout:       cfg.HTTP.ReadTimeout,
@@ -65,7 +65,7 @@ func Bootstrap(ctx context.Context, options Options) (*Application, error) {
 		Config:    cfg,
 		Logger:    logger,
 		Web:       webApp,
-		Server:    server,
+		Server:    s,
 		DB:        db,
 		Redis:     redisClient,
 	}, nil

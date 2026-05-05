@@ -163,6 +163,7 @@ func runModule(args []string, stdout io.Writer) error {
 		name + ".model.go":   moduleModelTemplate(name),
 		name + ".service.go": moduleServiceTemplate(name),
 		name + ".repo.go":    moduleRepoTemplate(name),
+		name + ".dto.go":     moduleDTOTemplate(name),
 		name + ".handler.go": moduleHandlerTemplate(name),
 		name + ".routes.go":  moduleRoutesTemplate(name),
 		"providers.go":       moduleProvidersTemplate(name),
@@ -482,7 +483,7 @@ func moduleModelTemplate(name string) string {
 
 // %s 是 %s 模块的领域占位模型。
 type %s struct {
-	ID int64 `+"`json:\"id\"`"+`
+	ID int64
 }
 `, name, typeName, name, typeName)
 }
@@ -534,20 +535,6 @@ import (
 	"github.com/teamsillybees/initra/pkg/response"
 )
 
-// Get%sInput 描述 %s 详情查询路径参数。
-type Get%sInput struct {
-	ID int64 `+"`path:\"id\" doc:\"ID\"`"+`
-}
-
-// %sResponse 描述 %s 对外响应。
-type %sResponse struct {
-	ID int64 `+"`json:\"id\"`"+`
-}
-
-type get%sOutput struct {
-	Body response.SuccessResponse[%sResponse]
-}
-
 // Handler 封装 %s 模块 HTTP 适配逻辑。
 type Handler struct {
 	service *Service
@@ -568,7 +555,29 @@ func (h *Handler) Get(ctx context.Context, input *Get%sInput) (*get%sOutput, err
 		Body: response.OK(requestctx.TraceIDFromContext(ctx), %sResponse{ID: item.ID}),
 	}, nil
 }
-`, name, typeName, name, typeName, typeName, name, typeName, typeName, typeName, name, name, name, typeName, typeName, typeName, typeName)
+`, name, name, name, name, typeName, typeName, typeName, typeName)
+}
+
+func moduleDTOTemplate(name string) string {
+	typeName := exportedName(name)
+	return fmt.Sprintf(`package %s
+
+import "github.com/teamsillybees/initra/pkg/response"
+
+// Get%sInput 描述 %s 详情查询路径参数。
+type Get%sInput struct {
+	ID int64 `+"`path:\"id\" doc:\"ID\"`"+`
+}
+
+// %sResponse 描述 %s 对外响应。
+type %sResponse struct {
+	ID int64 `+"`json:\"id\"`"+`
+}
+
+type get%sOutput struct {
+	Body response.SuccessResponse[%sResponse]
+}
+`, name, typeName, name, typeName, typeName, name, typeName, typeName, typeName)
 }
 
 func moduleRoutesTemplate(name string) string {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -45,10 +46,11 @@ func TestExampleUsesAPIFoundationLayout(t *testing.T) {
 	for _, moduleName := range []string{"auth", "user"} {
 		moduleDir := filepath.Join(root, "internal", "module", moduleName)
 		require.DirExists(t, moduleDir)
-		for _, suffix := range []string{"handler", "service", "repo", "model", "routes"} {
+		for _, suffix := range []string{"handler", "service", "repo", "model", "dto", "routes"} {
 			require.FileExists(t, filepath.Join(moduleDir, moduleName+"."+suffix+".go"))
 		}
 		require.FileExists(t, filepath.Join(moduleDir, "providers.go"))
+		requireNoTransportTypes(t, filepath.Join(moduleDir, moduleName+".handler.go"))
 	}
 	require.FileExists(t, filepath.Join(root, "db", "schema", "01_sys_user.sql"))
 	require.FileExists(t, filepath.Join(root, "db", "seeds", "001_seed_admin.sql"))
@@ -56,6 +58,17 @@ func TestExampleUsesAPIFoundationLayout(t *testing.T) {
 	require.FileExists(t, filepath.Join(root, "tools", "jetgen", "main.go"))
 	_, err := os.Stat(filepath.Join(root, "internal", "app"))
 	require.True(t, errors.Is(err, os.ErrNotExist), "示例项目不应继续保留 internal/app 业务目录")
+}
+
+// requireNoTransportTypes 确认 handler 文件只承载 HTTP 适配逻辑，不再混放 DTO 类型。
+func requireNoTransportTypes(t *testing.T, path string) {
+	t.Helper()
+
+	content, err := os.ReadFile(path)
+	require.NoError(t, err)
+
+	transportType := regexp.MustCompile(`(?m)^type\s+\w+(Input|Request|Response|Output)\s+`)
+	require.Falsef(t, transportType.Match(content), "%s should keep transport DTOs in *.dto.go", path)
 }
 
 // goList 调用 go list 并解析指定包模式的依赖元信息。

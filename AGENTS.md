@@ -67,16 +67,20 @@ go run ./cmd/initra new $target --type api --module example.com/demo-api --repla
 
 ```text
 internal/module/<module>/
-  <module>.handler.go Handler + 请求/响应 DTO + Huma output 类型
+  <module>.handler.go Handler + HTTP 适配方法 + DTO/领域模型转换
+  <module>.dto.go     HTTP 请求/响应 DTO + Huma input/output 类型
   <module>.service.go 业务逻辑 + 私有接口定义
   <module>.repo.go    数据库实现
-  <module>.model.go   领域实体 + 输入/输出参数类型
+  <module>.model.go   领域实体 + service/repo 参数与结果类型
   <module>.routes.go  路由注册 + Module 结构体
   providers.go        samber/do 依赖注入
   cache.go            可选，缓存适配器
   <module>_test.go    单元测试
 ```
 
+- `*.model.go` 只放模块内部稳定模型，不放 `json`、`path`、`query` 等传输层 tag。
+- `*.dto.go` 只放 HTTP 边界类型，包括请求体、路径/查询输入、响应体和 Huma output wrapper。
+- `*.handler.go` 可引用 DTO 类型，但不再定义 DTO；它只负责参数转换、调用 service 和包装响应。
 - 模块之间禁止循环依赖。
 - 跨模块调用优先依赖调用方内部定义的小接口，避免依赖具体实现。
 - 业务模块应保持独立，不互相 import 具体实现。
