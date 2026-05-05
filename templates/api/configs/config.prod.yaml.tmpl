@@ -1,0 +1,22 @@
+app:
+  name: {{ .AppName }}
+  env: prod
+  port: 8080
+
+http:
+  read_timeout: 5s
+  write_timeout: 10s
+
+logger:
+  level: info
+  format: json
+
+jwt:
+  issuer: initra
+  secret: ${INITRA_JWT_SECRET}
+  access_token_ttl: 15m
+  refresh_token_ttl: 168h
+
+casbin:
+  model_path: ./configs/rbac_model.conf
+  policy_path: ./configs/rbac_policy.csv

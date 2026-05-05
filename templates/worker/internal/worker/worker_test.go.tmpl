@@ -1,0 +1,13 @@
+package worker
+
+import (
+	"context"
+	"testing"
+)
+
+// TestRunPlaceholder 验证 worker 占位入口可调用。
+func TestRunPlaceholder(t *testing.T) {
+	if err := Run(context.Background()); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+}

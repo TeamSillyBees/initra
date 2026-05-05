@@ -1,0 +1,9 @@
+module {{ .ModulePath }}
+
+go 1.26.0
+
+require {{ .FrameworkModule }} {{ .FrameworkVersion }}
+
+{{- if .LocalReplacePath }}
+replace {{ .FrameworkModule }} => {{ .LocalReplacePath }}
+{{- end }}

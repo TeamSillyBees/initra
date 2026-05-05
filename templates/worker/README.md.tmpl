@@ -1,0 +1,13 @@
+# {{ .AppName }} worker
+
+这是 `initra new <app> --type worker` 生成的后台任务项目骨架。
+
+当前 worker 模板只提供可编译的占位入口，后续可按需接入消息队列消费、定时任务、批处理任务和配置能力。
+
+## 常用命令
+
+```powershell
+go test ./... -count=1
+go vet ./...
+go run ./cmd/worker
+```

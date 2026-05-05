@@ -13,16 +13,17 @@
 
 ## 项目定位
 
-`initra` 是面向企业内部 Go Web API 的快速开发脚手架。理解和描述本仓库时必须区分三类内容：
+`initra` 是面向企业内部 Go 服务的快速开发脚手架。理解和描述本仓库时必须区分三类内容：
 
-- **标准项目模板**：`templates/basic` 和 `examples/basic`，提供可生成、可运行的 API 服务基础工程模板。
+- **标准项目模板**：`templates/api` 提供 RESTful API 服务骨架，`templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。
 - **可复用 Go package**：根模块 `github.com/teamsillybees/initra` 的 `pkg/*`，沉淀 Web、配置、错误、日志、认证、数据库、Redis、缓存、对象存储、HTTP Client、任务调度等通用能力。
 - **工程化 CLI**：`cmd/initra`，负责生成项目、业务模块、CRUD 样例、迁移文件、配置样例、接口骨架、测试骨架和代码生成命令。
 
 重要边界：
 
-- `examples/basic` 是独立 Go module 的可运行示例项目，属于标准项目模板。
-- `templates/basic` 是 CLI 项目模板，内容应与 `examples/basic` 保持同步。
+- `examples/api` 是独立 Go module 的可运行 API 示例项目，属于标准项目模板。
+- `templates/api` 是 CLI API 项目模板，内容应与 `examples/api` 保持同步。
+- `templates/worker` 是 CLI worker 项目模板，目前只提供可编译占位骨架。
 - `cmd/initra` 只负责生成和维护工程骨架，不承载运行时业务能力。
 - `internal/` 只服务脚手架仓库自身；标准项目模板、生成项目和外部业务项目不得 import 根仓库 `internal/`。
 
@@ -36,18 +37,18 @@ go test ./pkg/... ./cmd/initra/... ./internal/... -count=1
 go vet ./pkg/... ./cmd/initra/... ./internal/...
 
 # 示例项目测试与静态检查
-go test ./examples/basic/... -count=1
-go vet ./examples/basic/...
+go test ./examples/api/... -count=1
+go vet ./examples/api/...
 
 # 构建 CLI
 go build -o $env:TEMP\initra.exe ./cmd/initra
 
 # 生成示例项目进行验证
 $target = Join-Path $env:TEMP "demo-api"
-go run ./cmd/initra new $target --module example.com/demo-api --replace (Resolve-Path .).Path
+go run ./cmd/initra new $target --type api --module example.com/demo-api --replace (Resolve-Path .).Path
 ```
 
-仓库使用 `go.work` 联调根模块和 `examples/basic`。涉及模板生成、包边界或示例项目行为时，应同时验证根模块和 `examples/basic`。
+仓库使用 `go.work` 联调根模块和 `examples/api`。涉及模板生成、包边界或示例项目行为时，应同时验证根模块和 `examples/api`。
 
 ## Go 开发规范
 
@@ -62,35 +63,36 @@ go run ./cmd/initra new $target --module example.com/demo-api --replace (Resolve
 
 ### 标准项目模板
 
-业务代码按业务模块组织为单一 flat package，不强制 controller/service/repository 横向分层。模块文件结构应遵循：
+业务代码按业务模块组织为单一 flat package，不拆 controller/service/repository 子目录。模块主文件按职责命名，必要配套能力可用独立文件承载。模块文件结构应遵循：
 
 ```text
-internal/app/<module>/
-  <module>.module.go     路由注册 + Module 结构体
-  <module>.api.go        Handler + 请求/响应 DTO + Huma output 类型
-  <module>.model.go      领域实体 + 输入/输出参数类型
-  <module>.service.go    业务逻辑 + 私有接口定义
-  <module>.repository.go 数据库实现
-  <module>_test.go       单元测试
-  wire.go                samber/do 依赖注入
+internal/module/<module>/
+  <module>.handler.go Handler + 请求/响应 DTO + Huma output 类型
+  <module>.service.go 业务逻辑 + 私有接口定义
+  <module>.repo.go    数据库实现
+  <module>.model.go   领域实体 + 输入/输出参数类型
+  <module>.routes.go  路由注册 + Module 结构体
+  providers.go        samber/do 依赖注入
+  cache.go            可选，缓存适配器
+  <module>_test.go    单元测试
 ```
 
 - 模块之间禁止循环依赖。
 - 跨模块调用优先依赖调用方内部定义的小接口，避免依赖具体实现。
-- `auth` 和 `user` 等示例模块应保持独立，不互相 import。
+- 业务模块应保持独立，不互相 import 具体实现。
 - 示例项目只能依赖根模块的 `pkg/*`，不能 import 根仓库 `internal/`。
 
 ### 模板同步
 
-- 修改 `examples/basic` 中的模板来源代码时，检查是否需要同步到 `templates/basic/*.tmpl`。
-- 修改 `templates/basic` 时，确认生成项目仍能通过 `go test`、`go vet` 和必要的 CLI 生成验证。
-- 模板文件中的模块路径必须使用 `{{ .ModulePath }}`，禁止硬编码 `github.com/teamsillybees/initra/examples/basic`。
+- 修改 `examples/api` 中的模板来源代码时，检查是否需要同步到 `templates/api/*.tmpl`。
+- 修改 `templates/api` 或 `templates/worker` 时，确认生成项目仍能通过 `go test`、`go vet` 和必要的 CLI 生成验证。
+- 模板文件中的模块路径必须使用 `{{ .ModulePath }}`，禁止硬编码 `github.com/teamsillybees/initra/examples/api`。
 - 发布版 CLI 可写入自身构建版本；开发版生成项目必须使用 `--framework-version` 或 `--replace`，避免不可复现依赖。
 
 ### 错误处理
 
 - 可复用错误码由 `pkg/errors` 定义，如 `CodeBadRequest`、`CodeUnauthorized`、`CodeInternalError`。
-- 标准项目模板中的业务专属错误码放在 `internal/app/bizerrors/`，通过 `apperrors.New` 工厂函数创建。
+- 业务专属错误码可放在 `internal/module/bizerrors/`，通过 `apperrors.New` 工厂函数创建。
 - 业务模块内部不要新增 sentinel error，例如直接 `errors.New`；统一使用业务错误定义。
 - HTTP 响应错误映射应复用现有 mapper 和 response 机制，不要在 handler 中手写不一致的错误响应结构。
 
@@ -112,10 +114,9 @@ internal/app/<module>/
 
 ## Codex 工作流
 
-1. 明确任务影响范围：根模块、`pkg/*`、`cmd/initra`、`examples/basic`、`templates/basic` 或文档。
+1. 明确任务影响范围：根模块、`pkg/*`、`cmd/initra`、`examples/api`、`templates/api`、`templates/worker` 或文档。
 2. 使用 `rg` / `rg --files` 搜索相关代码与测试，避免凭记忆修改。
 3. 修改前确认工作区状态，保护用户已有改动。
 4. 按最小可行范围编辑文件；手动编辑优先使用补丁方式。
 5. 运行与改动风险匹配的 `go test`、`go vet`、构建或生成验证。
 6. 最终回复简要说明改了什么、验证了什么，以及任何未完成或未验证事项。
-

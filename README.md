@@ -1,8 +1,8 @@
 # initra
 
-`initra` 是面向企业内部 Go Web API 的快速开发脚手架，项目介绍统一按三个部分理解：
+`initra` 是面向企业内部 Go 服务的快速开发脚手架，项目介绍统一按三个部分理解：
 
-1. **标准项目模板**：通过 `templates/basic` 和 `examples/basic` 提供可生成、可运行的 API 服务基础工程模板。
+1. **标准项目模板**：通过 `templates/api` 提供 RESTful API 服务骨架，通过 `templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。
 2. **可复用的 Go package**：通过根模块 `pkg/*` 沉淀 Web、配置、错误、日志、认证、数据访问、Redis、缓存、对象存储、HTTP Client、任务调度等通用能力，业务项目通过 `go.mod` 按需引入。
 3. **工程化 CLI**：通过 `cmd/initra` 承载生成项目、业务模块、CRUD 样例、迁移文件、配置样例、接口骨架、测试骨架和代码生成命令。
 
@@ -12,21 +12,18 @@
 cmd/initra          工程化 CLI 入口
 pkg/                可复用 Go package
 internal/           根仓库内部测试与辅助代码
-templates/basic     标准项目模板，供 CLI 生成项目使用
-examples/basic      标准项目模板的可运行示例，包含 auth/user
+templates/api       RESTful API 项目模板
+templates/worker    worker 项目占位模板
+examples/api        API 模板的可运行示例
 docs/               架构与工程规范文档
 scripts/            根仓库测试、检查、构建入口
 ```
 
-## 标准项目模板
+## 项目模板
 
-`templates/basic` 是 CLI 默认生成模板，`examples/basic` 是该模板的可运行来源与验证样例，保留完整 auth/user 功能：
+`api` 模板只生成 Web API 骨架，不强行绑定数据库、Redis、业务模块或 CRUD 样例。默认包含 Gin + Huma、统一响应/错误、JWT/Casbin 中间件装配、配置加载、日志和 health/ready/version 接口。
 
-- 登录、refresh token、当前用户信息
-- 用户 CRUD 与用户详情缓存
-- Gin + Huma OpenAPI
-- JWT + Casbin 授权
-- Atlas schema/migration、go-jet 生成代码、seed 数据
+`worker` 模板面向后台任务、定时任务、消费任务、批处理任务。目前只提供可编译的占位入口，后续 worker 所需框架能力成熟后再扩展。
 
 模板生成的业务项目是独立 Go module，通过 `go.mod` 引入 `github.com/teamsillybees/initra` 的可复用 Go package，不复制根仓库 `pkg/` 源码，也不依赖根仓库 `internal/`。
 
@@ -49,27 +46,38 @@ scripts/            根仓库测试、检查、构建入口
 go build -o $env:TEMP\initra.exe ./cmd/initra
 ```
 
-生成完整示例项目：
+生成项目：
 
 ```powershell
 $framework = (Resolve-Path .).Path
-$target = Join-Path $env:TEMP "demo-api"
-go run ./cmd/initra new $target --module example.com/demo-api --replace $framework
+go run ./cmd/initra new $env:TEMP\demo-api --type api --module example.com/demo-api --replace $framework
+go run ./cmd/initra new $env:TEMP\demo-worker --type worker --module example.com/demo-worker --replace $framework
+```
+
+规划中的核心命令：
+
+```powershell
+initra new <app> --type api
+initra new <app> --type worker
+initra module add <name>
+initra crud add <module> --table <table>
+initra config add <capability>
+initra migrate new <name>
+initra migrate diff <name>
+initra doctor
 ```
 
 发布版 CLI 会用自身构建版本写入生成项目 `go.mod`。开发版 CLI 必须传 `--framework-version` 或 `--replace`，避免生成不可复现的 `initra` 依赖。
 
-工程化 CLI 的职责边界是生成和维护工程骨架，包括项目、业务模块、CRUD 样例、迁移文件、配置样例、接口骨架、测试骨架和代码生成命令；运行时能力应沉淀在 `pkg/*`，业务示例应沉淀在标准项目模板中。
-
 ## 本地开发
 
-仓库使用 `go.work` 联调根模块和 `examples/basic`：
+仓库使用 `go.work` 联调根模块和 `examples/api`：
 
 ```powershell
 go test ./pkg/... ./cmd/initra/... ./internal/... -count=1
-go test ./examples/basic/... -count=1
+go test ./examples/api/... -count=1
 go vet ./pkg/... ./cmd/initra/... ./internal/...
-go vet ./examples/basic/...
+go vet ./examples/api/...
 ```
 
 ## 依赖治理
@@ -77,4 +85,4 @@ go vet ./examples/basic/...
 - 面向标准项目模板：生成项目默认采用 Go Modules，不要求业务项目使用 `go.work`。
 - 面向可复用 Go package：私有发布时业务项目通过 `GOPRIVATE` 配置私有 Git 域名。
 - 面向本地联调：生成项目可用 `replace github.com/teamsillybees/initra => <本地路径>` 指向当前仓库。
-- 面向脚手架仓库自身：根仓库用 `go.work` 组织根模块和 `examples/basic` 开发。
+- 面向脚手架仓库自身：根仓库用 `go.work` 组织根模块和 `examples/api` 开发。

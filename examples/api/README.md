@@ -1,0 +1,27 @@
+# initra api example
+
+本文档面向 API 项目模板。
+
+`examples/api` 是 `initra new <app> --type api` 的可运行示例项目。模板只提供 Web API 骨架、配置加载、结构化日志、JWT/Casbin 中间件装配和健康检查等基础能力；业务模块、CRUD 样例和更多配置能力应通过后续 CLI 命令按需追加。
+
+## 运行
+
+```powershell
+$env:APP_ENV = "local"
+go run ./cmd/server
+```
+
+默认公开接口：
+
+- `GET /health`
+- `GET /ready`
+- `GET /version`
+- `/docs`
+
+## 常用命令
+
+```powershell
+go test ./... -count=1
+go vet ./...
+.\scripts\build.ps1
+```
