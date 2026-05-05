@@ -2,7 +2,7 @@
 
 `initra` 是面向企业内部 Go 服务的快速开发脚手架，项目介绍统一按三个部分理解：
 
-1. **标准项目模板**：通过 `templates/api` 提供 RESTful API 服务骨架，通过 `templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。
+1. **标准项目模板**：通过 `templates/api` 提供包含 auth/user、DB schema、seed 和 go-jet 生成代码的 RESTful API 服务模板，通过 `templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。
 2. **可复用的 Go package**：通过根模块 `pkg/*` 沉淀 Web、配置、错误、日志、认证、数据访问、Redis、缓存、对象存储、HTTP Client、任务调度等通用能力，业务项目通过 `go.mod` 按需引入。
 3. **工程化 CLI**：通过 `cmd/initra` 承载生成项目、业务模块、CRUD 样例、迁移文件、配置样例、接口骨架、测试骨架和代码生成命令。
 
@@ -21,7 +21,7 @@ scripts/            根仓库测试、检查、构建入口
 
 ## 项目模板
 
-`api` 模板只生成 Web API 骨架，不强行绑定数据库、Redis、业务模块或 CRUD 样例。默认包含 Gin + Huma、统一响应/错误、JWT/Casbin 中间件装配、配置加载、日志和 health/ready/version 接口。
+`api` 模板生成可直接运行的 Web API 基础项目，默认包含 Gin + Huma、统一响应/错误、JWT/Casbin 中间件装配、配置加载、日志、health/ready/version 接口，以及 auth/user 基础业务模块、数据库 schema、seed 数据、Atlas 配置和 go-jet 生成代码。业务方仍可通过后续 CLI 命令追加新的模块、CRUD 样例和配置能力。
 
 `worker` 模板面向后台任务、定时任务、消费任务、批处理任务。目前只提供可编译的占位入口，后续 worker 所需框架能力成熟后再扩展。
 

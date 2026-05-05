@@ -32,8 +32,18 @@ func TestNewGeneratesAPIProjectWithFrameworkRequireAndNoPkgCopy(t *testing.T) {
 	require.FileExists(t, filepath.Join(target, "internal", "boot", "providers.go"))
 	require.FileExists(t, filepath.Join(target, "internal", "boot", "lifecycle.go"))
 	require.DirExists(t, filepath.Join(target, "internal", "module"))
-	require.NoDirExists(t, filepath.Join(target, "internal", "module", "auth"))
-	require.NoDirExists(t, filepath.Join(target, "internal", "module", "user"))
+	for _, moduleName := range []string{"auth", "user"} {
+		moduleDir := filepath.Join(target, "internal", "module", moduleName)
+		require.DirExists(t, moduleDir)
+		for _, suffix := range []string{"handler", "service", "repo", "model", "routes"} {
+			require.FileExists(t, filepath.Join(moduleDir, moduleName+"."+suffix+".go"))
+		}
+		require.FileExists(t, filepath.Join(moduleDir, "providers.go"))
+	}
+	require.FileExists(t, filepath.Join(target, "db", "schema", "01_sys_user.sql"))
+	require.FileExists(t, filepath.Join(target, "db", "seeds", "001_seed_admin.sql"))
+	require.FileExists(t, filepath.Join(target, "internal", "gen", "jet", "table", "sys_user.go"))
+	require.FileExists(t, filepath.Join(target, "tools", "jetgen", "main.go"))
 	require.NoDirExists(t, filepath.Join(target, "internal", "app"))
 	require.Contains(t, stdout.String(), "created")
 }

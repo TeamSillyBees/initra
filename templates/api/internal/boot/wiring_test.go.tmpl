@@ -5,13 +5,16 @@ import (
 
 	"github.com/samber/do"
 	"github.com/stretchr/testify/require"
+	authmodule "{{ .ModulePath }}/internal/module/auth"
+	usermodule "{{ .ModulePath }}/internal/module/user"
 )
 
-// TestRegisterModulesIsSafeWithoutBusinessModules 验证 API 骨架模板不强制绑定业务模块。
-func TestRegisterModulesIsSafeWithoutBusinessModules(t *testing.T) {
+// TestModuleProvideDoesNotCollide 验证 auth 和 user 模块使用具名依赖后不会在 DI 容器中冲突。
+func TestModuleProvideDoesNotCollide(t *testing.T) {
 	injector := do.New()
 
 	require.NotPanics(t, func() {
-		registerModules(injector)
+		usermodule.Provide(injector)
+		authmodule.Provide(injector)
 	})
 }

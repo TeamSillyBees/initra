@@ -1,6 +1,8 @@
 package e2e_test
 
 import (
+	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -10,14 +12,133 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	authmodule "github.com/teamsillybees/initra/examples/api/internal/module/auth"
+	usermodule "github.com/teamsillybees/initra/examples/api/internal/module/user"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/observability"
 	"github.com/teamsillybees/initra/pkg/server"
 	"go.uber.org/zap"
 )
 
-// TestServerObservabilityRoutes 覆盖 API 骨架默认提供的公开观测接口。
-func TestServerObservabilityRoutes(t *testing.T) {
+// memoryUserRepository 为端到端测试提供无需数据库的 user 仓储实现。
+type memoryUserRepository struct {
+	items map[int64]*usermodule.User
+}
+
+// Create 保存用户副本，避免后续修改影响测试仓储状态。
+func (m *memoryUserRepository) Create(_ context.Context, user *usermodule.User) error {
+	cloned := *user
+	m.items[user.ID] = &cloned
+	return nil
+}
+
+// FindByID 按 ID 返回用户副本。
+func (m *memoryUserRepository) FindByID(_ context.Context, id int64) (*usermodule.User, error) {
+	user, ok := m.items[id]
+	if !ok {
+		return nil, nil
+	}
+	cloned := *user
+	return &cloned, nil
+}
+
+// FindByUsername 遍历内存数据并返回匹配用户名的用户副本。
+func (m *memoryUserRepository) FindByUsername(_ context.Context, username string) (*usermodule.User, error) {
+	for _, user := range m.items {
+		if user.Username == username {
+			cloned := *user
+			return &cloned, nil
+		}
+	}
+	return nil, nil
+}
+
+// List 返回全部用户副本和总数。
+func (m *memoryUserRepository) List(_ context.Context, _ usermodule.ListUsersParams) ([]*usermodule.User, int64, error) {
+	items := make([]*usermodule.User, 0, len(m.items))
+	for _, user := range m.items {
+		cloned := *user
+		items = append(items, &cloned)
+	}
+	return items, int64(len(items)), nil
+}
+
+// Update 覆盖保存用户副本。
+func (m *memoryUserRepository) Update(_ context.Context, user *usermodule.User) error {
+	cloned := *user
+	m.items[user.ID] = &cloned
+	return nil
+}
+
+// Delete 从内存仓储中删除用户。
+func (m *memoryUserRepository) Delete(_ context.Context, id int64, _ int64) error {
+	delete(m.items, id)
+	return nil
+}
+
+// memoryUserCache 在端到端测试中始终模拟缓存未命中。
+type memoryUserCache struct{}
+
+// Get 始终返回未命中。
+func (memoryUserCache) Get(context.Context, int64) (*usermodule.User, bool, error) {
+	return nil, false, nil
+}
+
+// Set 忽略缓存写入。
+func (memoryUserCache) Set(context.Context, *usermodule.User) error {
+	return nil
+}
+
+// Delete 忽略缓存删除。
+func (memoryUserCache) Delete(context.Context, int64) error {
+	return nil
+}
+
+// staticIDGenerator 为端到端测试提供可预测的递增 ID。
+type staticIDGenerator struct {
+	next int64
+}
+
+// NextID 递增并返回下一个测试 ID。
+func (s *staticIDGenerator) NextID() int64 {
+	s.next++
+	return s.next
+}
+
+// memoryIdentityRepository 为端到端测试提供无需数据库的 auth 身份仓储实现。
+type memoryIdentityRepository struct {
+	byID       map[int64]*authmodule.Identity
+	byUsername map[string]*authmodule.Identity
+}
+
+// FindByUsername 按用户名返回身份副本。
+func (m *memoryIdentityRepository) FindByUsername(_ context.Context, username string) (*authmodule.Identity, error) {
+	identity, ok := m.byUsername[username]
+	if !ok {
+		return nil, nil
+	}
+	cloned := *identity
+	return &cloned, nil
+}
+
+// FindByID 按用户 ID 返回身份副本。
+func (m *memoryIdentityRepository) FindByID(_ context.Context, id int64) (*authmodule.Identity, error) {
+	identity, ok := m.byID[id]
+	if !ok {
+		return nil, nil
+	}
+	cloned := *identity
+	return &cloned, nil
+}
+
+// TestServer_LoginMeAndUserDetail 覆盖登录、当前用户、用户详情和健康检查的完整 HTTP 流程。
+func TestServer_LoginMeAndUserDetail(t *testing.T) {
+	logger := zap.NewNop()
+	passwords := platformauth.NewBcryptPasswordManager(4)
+	passwordHash, err := passwords.Hash("secret-123")
+	require.NoError(t, err)
+
+	modelPath, policyPath := writeCasbinFiles(t)
 	jwtManager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
 		Issuer:          "initra",
 		Secret:          "e2e-test-secret",
@@ -26,7 +147,6 @@ func TestServerObservabilityRoutes(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	modelPath, policyPath := writeCasbinFiles(t)
 	enforcer, err := platformauth.NewEnforcer(modelPath, policyPath)
 	require.NoError(t, err)
 
@@ -34,7 +154,7 @@ func TestServerObservabilityRoutes(t *testing.T) {
 		Title:   "initra",
 		Version: "test",
 		Env:     "test",
-	}, zap.NewNop(), jwtManager, enforcer)
+	}, logger, jwtManager, enforcer)
 	require.NoError(t, err)
 
 	observability.NewModule(observability.BuildInfo{
@@ -43,16 +163,85 @@ func TestServerObservabilityRoutes(t *testing.T) {
 		BuildTime: "2026-04-21T00:00:00Z",
 	}).Register(app.API, app.Registry)
 
-	for _, path := range []string{"/health", "/ready", "/version"} {
-		req := httptest.NewRequest(http.MethodGet, path, nil)
-		rec := httptest.NewRecorder()
-
-		app.Engine.ServeHTTP(rec, req)
-
-		require.Equal(t, http.StatusOK, rec.Code, path)
+	userRepo := &memoryUserRepository{
+		items: map[int64]*usermodule.User{
+			1001: {
+				ID:           1001,
+				Username:     "alice",
+				PasswordHash: passwordHash,
+				Nickname:     "Alice",
+				Phone:        "13800000000",
+				Email:        "alice@example.com",
+				RoleCodes:    []string{"admin"},
+				IsEnable:     true,
+			},
+		},
 	}
+
+	userService := usermodule.NewService(userRepo, memoryUserCache{}, &staticIDGenerator{next: 2000}, passwords, time.Now)
+	usermodule.NewModule(usermodule.NewHandler(userService)).Register(app.API, app.Registry)
+
+	identityRepo := &memoryIdentityRepository{
+		byID: map[int64]*authmodule.Identity{
+			1001: {
+				UserID:       1001,
+				Username:     "alice",
+				Nickname:     "Alice",
+				PasswordHash: passwordHash,
+				RoleCodes:    []string{"admin"},
+				IsEnable:     true,
+			},
+		},
+		byUsername: map[string]*authmodule.Identity{
+			"alice": {
+				UserID:       1001,
+				Username:     "alice",
+				Nickname:     "Alice",
+				PasswordHash: passwordHash,
+				RoleCodes:    []string{"admin"},
+				IsEnable:     true,
+			},
+		},
+	}
+
+	authService := authmodule.NewService(identityRepo, passwords, jwtManager)
+	authmodule.NewModule(authmodule.NewHandler(authService)).Register(app.API, app.Registry)
+
+	loginResp := struct {
+		Code string `json:"code"`
+		Data struct {
+			AccessToken string `json:"access_token"`
+		} `json:"data"`
+	}{}
+
+	loginReq := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(`{"username":"alice","password":"secret-123"}`))
+	loginReq.Header.Set("Content-Type", "application/json")
+	loginRec := httptest.NewRecorder()
+	app.Engine.ServeHTTP(loginRec, loginReq)
+	require.Equal(t, http.StatusOK, loginRec.Code)
+	require.NoError(t, json.Unmarshal(loginRec.Body.Bytes(), &loginResp))
+	require.Equal(t, "OK", loginResp.Code)
+	require.NotEmpty(t, loginResp.Data.AccessToken)
+
+	meReq := httptest.NewRequest(http.MethodGet, "/api/v1/auth/me", nil)
+	meReq.Header.Set("Authorization", "Bearer "+loginResp.Data.AccessToken)
+	meRec := httptest.NewRecorder()
+	app.Engine.ServeHTTP(meRec, meReq)
+	require.Equal(t, http.StatusOK, meRec.Code)
+
+	userReq := httptest.NewRequest(http.MethodGet, "/api/v1/users/1001", nil)
+	userReq.Header.Set("Authorization", "Bearer "+loginResp.Data.AccessToken)
+	userRec := httptest.NewRecorder()
+	app.Engine.ServeHTTP(userRec, userReq)
+	require.Equal(t, http.StatusOK, userRec.Code)
+
+	healthReq := httptest.NewRequest(http.MethodGet, "/health", nil)
+	healthRec := httptest.NewRecorder()
+	app.Engine.ServeHTTP(healthRec, healthReq)
+	require.Equal(t, http.StatusOK, healthRec.Code)
 }
 
+// writeCasbinFiles 为端到端测试写入临时 Casbin 模型和策略文件。
 func writeCasbinFiles(t *testing.T) (string, string) {
 	t.Helper()
 
@@ -77,7 +266,14 @@ e = some(where (p.eft == allow))
 m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
 `
 
+	policy := `
+p, admin, auth, read
+p, admin, user, read
+g, admin, admin
+`
+
 	require.NoError(t, os.WriteFile(modelPath, []byte(strings.TrimSpace(model)), 0o600))
-	require.NoError(t, os.WriteFile(policyPath, []byte(""), 0o600))
+	require.NoError(t, os.WriteFile(policyPath, []byte(strings.TrimSpace(policy)), 0o600))
+
 	return modelPath, policyPath
 }

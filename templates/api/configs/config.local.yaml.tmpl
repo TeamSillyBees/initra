@@ -11,6 +11,17 @@ logger:
   level: debug
   format: json
 
+database:
+  driver: postgres
+  dsn: postgres://postgres:postgres@127.0.0.1:5432/initra?sslmode=disable
+  max_open_conns: 20
+  max_idle_conns: 10
+
+redis:
+  addr: 127.0.0.1:6379
+  password: ""
+  db: 0
+
 jwt:
   issuer: initra
   secret: change-me-local
@@ -20,3 +31,10 @@ jwt:
 casbin:
   model_path: ./configs/rbac_model.conf
   policy_path: ./configs/rbac_policy.csv
+
+cache:
+  local_ttl: 1m
+  remote_ttl: 10m
+
+idgen:
+  node: 1

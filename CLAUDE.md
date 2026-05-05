@@ -6,14 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 initra 是面向企业内部 Go 服务的快速开发脚手架。所有项目介绍和架构说明必须明确归属到以下三个部分，避免把模板、运行时 package 和 CLI 生成器混为一谈：
 
-- **标准项目模板**：`templates/api` 提供 RESTful API 服务骨架，`templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。
+- **标准项目模板**：`templates/api` 提供包含 auth/user、DB schema、seed 和 go-jet 生成代码的 RESTful API 服务模板，`templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。
 - **可复用的 Go package**：根模块 `github.com/teamsillybees/initra` 的 `pkg/*`，沉淀 Web、配置、错误、日志、认证、数据访问、Redis、缓存、对象存储、HTTP Client、任务调度等通用能力。
 - **工程化 CLI**：`cmd/initra`，承载生成项目、业务模块、CRUD 样例、迁移文件、配置样例、接口骨架、测试骨架和代码生成命令。
 
 跨部分边界：
 
 - `examples/api` 是独立 Go module 的可运行 API 示例项目，属于标准项目模板。
-- `templates/api` 是 CLI API 项目模板，内容与 `examples/api` 保持同步，属于标准项目模板。
+- `templates/api` 是 CLI API 项目模板，内容与 `examples/api` 保持同步，并保留 auth/user 基础模块、DB schema、seed 数据和 go-jet 生成代码，属于标准项目模板。
 - `templates/worker` 是 CLI worker 项目模板，目前只提供可编译占位骨架。
 - `cmd/initra` 只负责生成和维护工程骨架，属于工程化 CLI。
 - `internal/` 只服务脚手架仓库自身，标准项目模板、生成项目和外部业务项目都不得 import。

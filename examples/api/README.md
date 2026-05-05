@@ -2,21 +2,22 @@
 
 本文档面向 API 项目模板。
 
-`examples/api` 是 `initra new <app> --type api` 的可运行示例项目。模板只提供 Web API 骨架、配置加载、结构化日志、JWT/Casbin 中间件装配和健康检查等基础能力；业务模块、CRUD 样例和更多配置能力应通过后续 CLI 命令按需追加。
+`examples/api` 是 `initra new <app> --type api` 的可运行示例项目，包含认证、用户管理、缓存、JWT、Casbin、Atlas、数据库 schema、seed 数据和 go-jet 生成代码。它用于验证和展示标准 API 项目模板；运行时通用能力来自根模块 `pkg/*`，项目生成入口来自 `cmd/initra`。
 
 ## 运行
 
 ```powershell
+docker compose up -d postgres redis
+atlas -c file://db/atlas.hcl migrate apply --env local
+psql "postgresql://postgres:postgres@127.0.0.1:5432/initra?sslmode=disable" -f db/seeds/001_seed_admin.sql
 $env:APP_ENV = "local"
 go run ./cmd/server
 ```
 
-默认公开接口：
+默认账号：
 
-- `GET /health`
-- `GET /ready`
-- `GET /version`
-- `/docs`
+- 用户名：`admin`
+- 密码：`admin123`
 
 ## 常用命令
 
@@ -24,4 +25,6 @@ go run ./cmd/server
 go test ./... -count=1
 go vet ./...
 .\scripts\build.ps1
+.\scripts\atlas.ps1 migrate status --env local
+.\scripts\jet.ps1 -Env local
 ```

@@ -37,13 +37,23 @@ func TestExampleDoesNotImportFrameworkInternalPackages(t *testing.T) {
 	}
 }
 
-// TestExampleUsesAPISkeletonLayout 固定 API 骨架模板不预置业务模块。
-func TestExampleUsesAPISkeletonLayout(t *testing.T) {
+// TestExampleUsesAPIFoundationLayout 固定 API 模板包含基础业务和数据文件。
+func TestExampleUsesAPIFoundationLayout(t *testing.T) {
 	root := repoRoot(t)
 
 	require.DirExists(t, filepath.Join(root, "internal", "module"))
-	require.NoDirExists(t, filepath.Join(root, "internal", "module", "auth"))
-	require.NoDirExists(t, filepath.Join(root, "internal", "module", "user"))
+	for _, moduleName := range []string{"auth", "user"} {
+		moduleDir := filepath.Join(root, "internal", "module", moduleName)
+		require.DirExists(t, moduleDir)
+		for _, suffix := range []string{"handler", "service", "repo", "model", "routes"} {
+			require.FileExists(t, filepath.Join(moduleDir, moduleName+"."+suffix+".go"))
+		}
+		require.FileExists(t, filepath.Join(moduleDir, "providers.go"))
+	}
+	require.FileExists(t, filepath.Join(root, "db", "schema", "01_sys_user.sql"))
+	require.FileExists(t, filepath.Join(root, "db", "seeds", "001_seed_admin.sql"))
+	require.FileExists(t, filepath.Join(root, "internal", "gen", "jet", "table", "sys_user.go"))
+	require.FileExists(t, filepath.Join(root, "tools", "jetgen", "main.go"))
 	_, err := os.Stat(filepath.Join(root, "internal", "app"))
 	require.True(t, errors.Is(err, os.ErrNotExist), "示例项目不应继续保留 internal/app 业务目录")
 }

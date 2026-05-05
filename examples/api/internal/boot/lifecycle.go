@@ -34,6 +34,12 @@ func (a *Application) Shutdown(ctx context.Context) error {
 	if err := a.Server.Shutdown(ctx); err != nil && firstErr == nil {
 		firstErr = err
 	}
+	if err := a.DB.Close(); err != nil && firstErr == nil {
+		firstErr = err
+	}
+	if err := a.Redis.Close(); err != nil && firstErr == nil {
+		firstErr = err
+	}
 	if err := a.Logger.Sync(); err != nil && firstErr == nil {
 		firstErr = err
 	}
