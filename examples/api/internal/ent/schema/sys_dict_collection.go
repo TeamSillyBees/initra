@@ -10,7 +10,7 @@ import (
 	schemamixin "github.com/teamsillybees/initra/examples/api/internal/ent/schema/mixin"
 )
 
-// SysDictCollection 描述 sys_dict_collection 系统字典集表。
+// SysDictCollection 系统字典集表，用于定义一类字典的元信息。
 type SysDictCollection struct {
 	ent.Schema
 }
@@ -27,13 +27,20 @@ func (SysDictCollection) Mixin() []ent.Mixin {
 // Fields 返回系统字典集表字段定义。
 func (SysDictCollection) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("code").MaxLen(64).NotEmpty().Unique(),
-		field.String("name").MaxLen(128).NotEmpty(),
-		field.Bool("is_enable").Default(true),
-		field.Text("description").Optional().Nillable(),
-		field.Int("item_length").Optional().Nillable(),
-		field.Bool("is_builtin").Default(false),
-		field.Int("sort_id").Default(0),
+		field.String("code").MaxLen(64).NotEmpty().Unique().
+			Comment("字典集唯一编码，程序通过该编码读取字典项。"),
+		field.String("name").MaxLen(128).NotEmpty().
+			Comment("字典集名称。"),
+		field.Bool("is_enable").Default(true).
+			Comment("字典集是否启用。"),
+		field.Text("description").Optional().Nillable().
+			Comment("字典集说明。"),
+		field.Int("item_length").Optional().Nillable().
+			Comment("字典值推荐长度上限。"),
+		field.Bool("is_builtin").Default(false).
+			Comment("是否为系统内置字典集。"),
+		field.Int("sort_id").Default(0).
+			Comment("排序值。"),
 	}
 }
 

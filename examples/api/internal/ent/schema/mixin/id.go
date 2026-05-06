@@ -16,6 +16,7 @@ func (ID) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("id").
 			Immutable().
-			Positive(),
+			Positive().
+			Comment("雪花算法生成的主键 ID。"),
 	}
 }

@@ -34,7 +34,7 @@ scripts/            根仓库测试、检查、构建入口
 ## 可复用 Go package
 
 - `pkg/config`：泛型配置加载，不绑定业务项目配置结构。
-- `pkg/logging`、`pkg/db`、`pkg/cache`、`pkg/idgen`：基础设施封装。
+- `pkg/logging`、`pkg/cache`、`pkg/idgen`：基础设施封装。
 - `pkg/entx`：Ent 通用 Hook 和上下文工具，不依赖具体项目生成的 `internal/ent`。
 - `pkg/errors`、`pkg/response`、`pkg/requestctx`：统一错误、响应、trace/request id。
 - `pkg/auth`：JWT、refresh token、Redis token store、Casbin、路由安全元信息。

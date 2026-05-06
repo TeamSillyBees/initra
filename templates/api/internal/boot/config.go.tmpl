@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"{{ .ModulePath }}/internal/data"
 	platformconfig "github.com/teamsillybees/initra/pkg/config"
-	"github.com/teamsillybees/initra/pkg/db"
 	"github.com/teamsillybees/initra/pkg/logging"
 )
 
@@ -13,7 +13,7 @@ import (
 type Config struct {
 	App           AppConfig           `mapstructure:"app"`
 	Server        ServerConfig        `mapstructure:"server"`
-	Database      db.Config           `mapstructure:"database"`
+	Database      data.DatabaseConfig `mapstructure:"database"`
 	Redis         RedisConfig         `mapstructure:"redis"`
 	Auth          AuthConfig          `mapstructure:"auth"`
 	Log           logging.Config      `mapstructure:"log"`
@@ -125,8 +125,14 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("server.idle_timeout 必须大于 0")
 	case c.Server.ShutdownTimeout <= 0:
 		return fmt.Errorf("server.shutdown_timeout 必须大于 0")
-	case c.Database.DSN == "":
-		return fmt.Errorf("database.dsn 不能为空")
+	case c.Database.Host == "":
+		return fmt.Errorf("database.host 不能为空")
+	case c.Database.Port <= 0 || c.Database.Port > 65535:
+		return fmt.Errorf("database.port 必须在 1 到 65535 之间")
+	case c.Database.User == "":
+		return fmt.Errorf("database.user 不能为空")
+	case c.Database.DBName == "":
+		return fmt.Errorf("database.dbname 不能为空")
 	case c.Redis.Enabled && c.Redis.Addr == "":
 		return fmt.Errorf("redis.addr 不能为空")
 	case c.Redis.Enabled && c.Redis.PoolSize <= 0:
@@ -164,8 +170,11 @@ func configDefaults() map[string]any {
 		"server.write_timeout":          "30s",
 		"server.idle_timeout":           "60s",
 		"server.shutdown_timeout":       "20s",
-		"database.driver":               "postgres",
-		"database.dsn":                  "",
+		"database.host":                 "",
+		"database.port":                 5432,
+		"database.user":                 "",
+		"database.password":             "",
+		"database.dbname":               "",
 		"database.max_open_conns":       20,
 		"database.max_idle_conns":       10,
 		"database.conn_max_lifetime":    "1h",

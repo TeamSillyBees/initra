@@ -11,7 +11,7 @@ import (
 	schemamixin "github.com/teamsillybees/initra/examples/api/internal/ent/schema/mixin"
 )
 
-// SysRoleMenu 描述 sys_role_menu 角色菜单关系表。
+// SysRoleMenu 系统角色与菜单/按钮资源关系表，用于角色授权。
 type SysRoleMenu struct {
 	ent.Schema
 }
@@ -27,10 +27,14 @@ func (SysRoleMenu) Mixin() []ent.Mixin {
 // Fields 返回角色菜单关系表字段定义。
 func (SysRoleMenu) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int64("role_id").Positive(),
-		field.Int64("menu_id").Positive(),
-		field.Int64("created_by").Optional().Nillable(),
-		field.Time("created_at").Immutable(),
+		field.Int64("role_id").Positive().
+			Comment("系统角色 ID，关联 sys_role.id。"),
+		field.Int64("menu_id").Positive().
+			Comment("系统菜单资源 ID，关联 sys_menu.id。"),
+		field.Int64("created_by").Optional().Nillable().
+			Comment("创建人用户 ID。"),
+		field.Time("created_at").Immutable().
+			Comment("创建时间。"),
 	}
 }
 

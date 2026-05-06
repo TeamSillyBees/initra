@@ -21,7 +21,7 @@ func newMockEntClient(t *testing.T) (*sql.DB, sqlmock.Sqlmock, *appent.Client) {
 	require.NoError(t, err)
 	generator, err := idgen.NewGenerator(1)
 	require.NoError(t, err)
-	return db, mock, data.NewEntClient(db, generator)
+	return db, mock, data.NewEntClientFromDB(db, generator)
 }
 
 func sysUserRows() *sqlmock.Rows {

@@ -12,8 +12,11 @@ server:
   shutdown_timeout: 20s
 
 database:
-  driver: postgres
-  dsn: "postgres://postgres:postgres@127.0.0.1:5432/initra_test?sslmode=disable"
+  host: "127.0.0.1"
+  port: 5432
+  user: "postgres"
+  password: "postgres"
+  dbname: "initra_test"
   max_open_conns: 10
   max_idle_conns: 5
   conn_max_lifetime: 1h

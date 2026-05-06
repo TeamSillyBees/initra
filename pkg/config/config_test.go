@@ -97,7 +97,7 @@ func TestLoadIntoRunsCustomValidator(t *testing.T) {
 func TestSanitizeMasksSensitiveConfig(t *testing.T) {
 	cfg := struct {
 		Database struct {
-			DSN string `mapstructure:"dsn"`
+			Password string `mapstructure:"password"`
 		} `mapstructure:"database"`
 		Redis struct {
 			Password string `mapstructure:"password"`
@@ -110,7 +110,7 @@ func TestSanitizeMasksSensitiveConfig(t *testing.T) {
 		} `mapstructure:"auth"`
 		Headers map[string]string `mapstructure:"headers"`
 	}{}
-	cfg.Database.DSN = "postgres://postgres:db-password@127.0.0.1:5432/initra?sslmode=disable"
+	cfg.Database.Password = "db-password"
 	cfg.Redis.Password = "redis-password"
 	cfg.Auth.JWT.Secret = "jwt-secret"
 	cfg.Auth.JWT.AccessTokenTTL = 15 * time.Minute
@@ -123,7 +123,8 @@ func TestSanitizeMasksSensitiveConfig(t *testing.T) {
 	require.NotContains(t, printable, "redis-password")
 	require.NotContains(t, printable, "jwt-secret")
 	require.NotContains(t, printable, "raw-token")
-	require.Contains(t, fmt.Sprint(sanitized["database"]), "postgres:***@127.0.0.1")
+	database := sanitized["database"].(map[string]any)
+	require.Equal(t, "***", database["password"])
 
 	auth := sanitized["auth"].(map[string]any)
 	jwt := auth["jwt"].(map[string]any)

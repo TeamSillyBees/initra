@@ -15,7 +15,8 @@ type SoftDelete struct {
 // Fields 返回逻辑删除字段定义。
 func (SoftDelete) Fields() []ent.Field {
 	return []ent.Field{
-		field.Time("deleted_at").Optional().Nillable(),
+		field.Time("deleted_at").Optional().Nillable().
+			Comment("逻辑删除时间，NULL 表示未删除。"),
 	}
 }
 

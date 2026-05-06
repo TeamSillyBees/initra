@@ -11,7 +11,7 @@ import (
 	schemamixin "github.com/teamsillybees/initra/examples/api/internal/ent/schema/mixin"
 )
 
-// SysUserRole 描述 sys_user_role 用户角色关系表。
+// SysUserRole 系统用户与角色关系表，用于描述一个用户拥有多个角色。
 type SysUserRole struct {
 	ent.Schema
 }
@@ -27,10 +27,14 @@ func (SysUserRole) Mixin() []ent.Mixin {
 // Fields 返回用户角色关系表字段定义。
 func (SysUserRole) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int64("user_id").Positive(),
-		field.Int64("role_id").Positive(),
-		field.Int64("created_by").Optional().Nillable(),
-		field.Time("created_at").Immutable(),
+		field.Int64("user_id").Positive().
+			Comment("系统用户 ID，关联 sys_user.id。"),
+		field.Int64("role_id").Positive().
+			Comment("系统角色 ID，关联 sys_role.id。"),
+		field.Int64("created_by").Optional().Nillable().
+			Comment("创建人用户 ID。"),
+		field.Time("created_at").Immutable().
+			Comment("创建时间。"),
 	}
 }
 

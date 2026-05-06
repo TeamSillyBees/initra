@@ -11,7 +11,7 @@ import (
 	schemamixin "github.com/teamsillybees/initra/examples/api/internal/ent/schema/mixin"
 )
 
-// SysRole 描述 sys_role 系统角色表。
+// SysRole 系统角色表，用于承载后台角色定义。
 type SysRole struct {
 	ent.Schema
 }
@@ -28,12 +28,18 @@ func (SysRole) Mixin() []ent.Mixin {
 // Fields 返回系统角色表字段定义。
 func (SysRole) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("code").MaxLen(64).NotEmpty().Unique(),
-		field.String("name").MaxLen(128).NotEmpty(),
-		field.Text("remark").Optional().Nillable(),
-		field.Bool("is_builtin").Default(false),
-		field.Bool("is_enable").Default(true),
-		field.Int("sort_id").Default(0),
+		field.String("code").MaxLen(64).NotEmpty().Unique().
+			Comment("角色编码，程序内稳定引用，例如 admin、viewer。"),
+		field.String("name").MaxLen(128).NotEmpty().
+			Comment("角色名称，用于管理界面展示。"),
+		field.Text("remark").Optional().Nillable().
+			Comment("角色备注说明。"),
+		field.Bool("is_builtin").Default(false).
+			Comment("是否为系统内置角色，内置角色通常不允许删除。"),
+		field.Bool("is_enable").Default(true).
+			Comment("角色是否启用，禁用后不参与授权。"),
+		field.Int("sort_id").Default(0).
+			Comment("角色排序值，值越小越靠前。"),
 	}
 }
 

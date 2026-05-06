@@ -9,7 +9,7 @@ import (
 	schemamixin "{{ .ModulePath }}/internal/ent/schema/mixin"
 )
 
-// SysConfig 描述 sys_config 系统配置表。
+// SysConfig 系统配置表，用于集中存放可在后台维护的运行时配置。
 type SysConfig struct {
 	ent.Schema
 }
@@ -26,11 +26,16 @@ func (SysConfig) Mixin() []ent.Mixin {
 // Fields 返回系统配置表字段定义。
 func (SysConfig) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("config_key").MaxLen(128).NotEmpty().Unique(),
-		field.Text("config_value").Default(""),
-		field.Text("config_desc").Optional().Nillable(),
-		field.Bool("is_builtin").Default(false),
-		field.Int("sort_id").Default(0),
+		field.String("config_key").MaxLen(128).NotEmpty().Unique().
+			Comment("配置键，程序通过该键读取配置。"),
+		field.Text("config_value").Default("").
+			Comment("配置值。"),
+		field.Text("config_desc").Optional().Nillable().
+			Comment("配置项描述。"),
+		field.Bool("is_builtin").Default(false).
+			Comment("是否为系统内置配置，内置配置通常不允许删除。"),
+		field.Int("sort_id").Default(0).
+			Comment("排序值。"),
 	}
 }
 
