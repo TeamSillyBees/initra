@@ -3,9 +3,9 @@ package user
 import (
 	"context"
 	"strings"
-	"time"
 
 	"github.com/teamsillybees/initra/examples/api/internal/module/bizerrors"
+	"github.com/teamsillybees/initra/pkg/entx"
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
 	"github.com/teamsillybees/initra/pkg/pagination"
 )
@@ -27,11 +27,6 @@ type userCache interface {
 	Delete(ctx context.Context, id int64) error
 }
 
-// idGenerator 抽象雪花算法 ID 生成器。
-type idGenerator interface {
-	NextID() int64
-}
-
 // passwordManager 定义密码哈希与校验能力。
 type passwordManager interface {
 	Hash(password string) (string, error)
@@ -42,28 +37,19 @@ type passwordManager interface {
 type Service struct {
 	repo      userRepo
 	cache     userCache
-	idgen     idGenerator
 	passwords passwordManager
-	now       func() time.Time
 }
 
 // NewService 构造 user 模块应用服务。
 func NewService(
 	repo userRepo,
 	cache userCache,
-	idgen idGenerator,
 	passwords passwordManager,
-	now func() time.Time,
 ) *Service {
-	if now == nil {
-		now = time.Now
-	}
 	return &Service{
 		repo:      repo,
 		cache:     cache,
-		idgen:     idgen,
 		passwords: passwords,
-		now:       now,
 	}
 }
 
@@ -81,14 +67,12 @@ func (s *Service) Create(ctx context.Context, input CreateUserDTO) (*User, error
 		return nil, apperrors.Wrap(err, apperrors.CodeInternalError, "hash password failed")
 	}
 
-	now := s.now()
 	isEnable := true
 	if input.IsEnable != nil {
 		isEnable = *input.IsEnable
 	}
 
 	user := &User{
-		ID:           s.idgen.NextID(),
 		Username:     strings.TrimSpace(input.Username),
 		PasswordHash: passwordHash,
 		Nickname:     strings.TrimSpace(input.Nickname),
@@ -99,12 +83,9 @@ func (s *Service) Create(ctx context.Context, input CreateUserDTO) (*User, error
 		IsSuperAdmin: input.IsSuperAdmin,
 		IsEnable:     isEnable,
 		SortID:       input.SortID,
-		CreatedAt:    now,
-		UpdatedAt:    now,
-		CreatedBy:    input.OperatorID,
-		UpdatedBy:    input.OperatorID,
 	}
 
+	ctx = entx.WithOperatorID(ctx, input.OperatorID)
 	if err := s.repo.Create(ctx, user); err != nil {
 		return nil, err
 	}
@@ -188,9 +169,8 @@ func (s *Service) Update(ctx context.Context, input UpdateUserDTO) (*User, error
 	if input.SortID != nil {
 		user.SortID = *input.SortID
 	}
-	user.UpdatedAt = s.now()
-	user.UpdatedBy = input.OperatorID
 
+	ctx = entx.WithOperatorID(ctx, input.OperatorID)
 	if err := s.repo.Update(ctx, user); err != nil {
 		return nil, err
 	}

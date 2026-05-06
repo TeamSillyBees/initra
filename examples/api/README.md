@@ -2,7 +2,7 @@
 
 本文档面向 API 项目模板。
 
-`examples/api` 是 `initra new <app> --type api` 的可运行示例项目，包含认证、用户管理、缓存、JWT、Casbin、Atlas、数据库 schema、seed 数据和 go-jet 生成代码。它用于验证和展示标准 API 项目模板；运行时通用能力来自根模块 `pkg/*`，项目生成入口来自 `cmd/initra`。
+`examples/api` 是 `initra new <app> --type api` 的可运行示例项目，包含认证、用户管理、缓存、JWT、Casbin、Ent schema 与生成代码、Atlas、seed 数据和版本化迁移。它用于验证和展示标准 API 项目模板；运行时通用能力来自根模块 `pkg/*`，项目生成入口来自 `cmd/initra`。
 
 ## 运行
 
@@ -37,6 +37,9 @@ go run ./cmd/server
 go test ./... -count=1
 go vet ./...
 .\scripts\build.ps1
+.\scripts\ent.ps1
 .\scripts\atlas.ps1 migrate status --env local
-.\scripts\jet.ps1 -Env local
+.\scripts\atlas.ps1 migrate diff <name> --env local
 ```
+
+`internal/ent/schema` 是数据库结构主源；`db/migrations` 是版本化迁移历史；`db/seeds` 保存种子数据。`db/schema/*.sql` 仅作为历史参考或 DBA 阅读材料，不再作为 Atlas diff 的 schema source。

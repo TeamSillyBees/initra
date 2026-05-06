@@ -1,0 +1,75 @@
+package entx
+
+import (
+	"context"
+	"time"
+
+	"entgo.io/ent"
+)
+
+// IDGenerator 定义雪花 ID 生成器的最小能力。
+type IDGenerator interface {
+	NextID() int64
+}
+
+// OperatorFunc 从 context 中解析当前操作人 ID。
+type OperatorFunc func(ctx context.Context) (int64, bool)
+
+// AuditHookOptions 描述审计自动填充 hook 的运行时依赖。
+type AuditHookOptions struct {
+	IDGen    IDGenerator
+	Now      func() time.Time
+	Operator OperatorFunc
+}
+
+// AuditHook 为 Ent create/update mutation 自动填充 ID 与审计字段。
+func AuditHook(options AuditHookOptions) ent.Hook {
+	now := options.Now
+	if now == nil {
+		now = time.Now
+	}
+	operator := options.Operator
+	if operator == nil {
+		operator = OperatorIDFromContext
+	}
+
+	return func(next ent.Mutator) ent.Mutator {
+		return ent.MutateFunc(func(ctx context.Context, mutation ent.Mutation) (ent.Value, error) {
+			switch {
+			case mutation.Op().Is(ent.OpCreate):
+				if _, exists := mutation.Field(FieldID); !exists && options.IDGen != nil {
+					if err := setFieldIfExists(mutation, FieldID, options.IDGen.NextID()); err != nil {
+						return nil, err
+					}
+				}
+				current := now()
+				if err := setFieldIfExists(mutation, FieldCreatedAt, current); err != nil {
+					return nil, err
+				}
+				if err := setFieldIfExists(mutation, FieldUpdatedAt, current); err != nil {
+					return nil, err
+				}
+				if operatorID, ok := operator(ctx); ok {
+					if err := setFieldIfExists(mutation, FieldCreatedBy, operatorID); err != nil {
+						return nil, err
+					}
+					if err := setFieldIfExists(mutation, FieldUpdatedBy, operatorID); err != nil {
+						return nil, err
+					}
+				}
+			case mutation.Op().Is(ent.OpUpdate | ent.OpUpdateOne):
+				current := now()
+				if err := setFieldIfExists(mutation, FieldUpdatedAt, current); err != nil {
+					return nil, err
+				}
+				if operatorID, ok := operator(ctx); ok {
+					if err := setFieldIfExists(mutation, FieldUpdatedBy, operatorID); err != nil {
+						return nil, err
+					}
+				}
+			}
+
+			return next.Mutate(ctx, mutation)
+		})
+	}
+}

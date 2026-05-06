@@ -46,8 +46,14 @@ func TestNewGeneratesAPIProjectWithFrameworkRequireAndNoPkgCopy(t *testing.T) {
 	}
 	require.FileExists(t, filepath.Join(target, "db", "schema", "01_sys_user.sql"))
 	require.FileExists(t, filepath.Join(target, "db", "seeds", "001_seed_admin.sql"))
-	require.FileExists(t, filepath.Join(target, "internal", "gen", "jet", "table", "sys_user.go"))
-	require.FileExists(t, filepath.Join(target, "tools", "jetgen", "main.go"))
+	require.DirExists(t, filepath.Join(target, "internal", "ent", "schema"))
+	require.FileExists(t, filepath.Join(target, "internal", "ent", "client.go"))
+	require.FileExists(t, filepath.Join(target, "internal", "data", "ent_client.go"))
+	require.FileExists(t, filepath.Join(target, "internal", "data", "tx.go"))
+	require.FileExists(t, filepath.Join(target, "scripts", "ent.ps1"))
+	require.NoDirExists(t, filepath.Join(target, "internal", "gen", "jet"))
+	require.NoDirExists(t, filepath.Join(target, "tools", "jetgen"))
+	require.NoFileExists(t, filepath.Join(target, "scripts", "jet"+".ps1"))
 	require.NoDirExists(t, filepath.Join(target, "internal", "app"))
 	require.Contains(t, stdout.String(), "created")
 }
@@ -199,7 +205,7 @@ func TestDoctorReportsEnvironmentChecks(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, stdout.String(), "Go:")
 	require.Contains(t, stdout.String(), "Atlas:")
-	require.Contains(t, stdout.String(), "go-jet:")
+	require.Contains(t, stdout.String(), "Ent:")
 	require.Contains(t, stdout.String(), "golangci-lint:")
 }
 

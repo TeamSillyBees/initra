@@ -27,7 +27,7 @@ env "local" {
   }
 
   schema {
-    src = "file://db/schema"
+    src = "ent://internal/ent/schema"
   }
 }
 
@@ -40,7 +40,7 @@ env "dev" {
   }
 
   schema {
-    src = "file://db/schema"
+    src = "ent://internal/ent/schema"
   }
 }
 
@@ -53,7 +53,7 @@ env "test" {
   }
 
   schema {
-    src = "file://db/schema"
+    src = "ent://internal/ent/schema"
   }
 }
 
@@ -65,6 +65,6 @@ env "prod" {
   }
 
   schema {
-    src = "file://db/schema"
+    src = "ent://internal/ent/schema"
   }
 }

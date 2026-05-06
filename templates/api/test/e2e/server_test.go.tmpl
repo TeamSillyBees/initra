@@ -94,17 +94,6 @@ func (memoryUserCache) Delete(context.Context, int64) error {
 	return nil
 }
 
-// staticIDGenerator 为端到端测试提供可预测的递增 ID。
-type staticIDGenerator struct {
-	next int64
-}
-
-// NextID 递增并返回下一个测试 ID。
-func (s *staticIDGenerator) NextID() int64 {
-	s.next++
-	return s.next
-}
-
 // memoryIdentityRepository 为端到端测试提供无需数据库的 auth 身份仓储实现。
 type memoryIdentityRepository struct {
 	byID       map[int64]*authmodule.Identity
@@ -178,7 +167,7 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 		},
 	}
 
-	userService := usermodule.NewService(userRepo, memoryUserCache{}, &staticIDGenerator{next: 2000}, passwords, time.Now)
+	userService := usermodule.NewService(userRepo, memoryUserCache{}, passwords)
 	usermodule.NewModule(usermodule.NewHandler(userService)).Register(app.API, app.Registry)
 
 	identityRepo := &memoryIdentityRepository{

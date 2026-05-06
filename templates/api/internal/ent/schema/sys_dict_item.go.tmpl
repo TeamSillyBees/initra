@@ -1,0 +1,68 @@
+package schema
+
+import (
+	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
+	"entgo.io/ent/schema/edge"
+	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
+
+	schemamixin "{{ .ModulePath }}/internal/ent/schema/mixin"
+)
+
+// SysDictItem 描述 sys_dict_item 系统字典项表。
+type SysDictItem struct {
+	ent.Schema
+}
+
+// Mixin 返回系统字典项表通用字段。
+func (SysDictItem) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		schemamixin.ID{},
+		schemamixin.SoftDelete{},
+		schemamixin.Audit{},
+	}
+}
+
+// Fields 返回系统字典项表字段定义。
+func (SysDictItem) Fields() []ent.Field {
+	return []ent.Field{
+		field.Int64("collection_id").Positive(),
+		field.String("collection_code").MaxLen(64).NotEmpty(),
+		field.String("code").MaxLen(64).NotEmpty(),
+		field.String("parent_code").MaxLen(64).Default("0"),
+		field.String("label").MaxLen(128).NotEmpty(),
+		field.Bool("is_default_value").Default(false),
+		field.Bool("is_enable").Default(true),
+		field.Text("description").Optional().Nillable(),
+		field.Int("sort_id").Default(0),
+	}
+}
+
+// Edges 返回系统字典项表关系定义。
+func (SysDictItem) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("collection", SysDictCollection.Type).
+			Ref("items").
+			Field("collection_id").
+			Required().
+			Unique(),
+	}
+}
+
+// Indexes 返回系统字典项表索引定义。
+func (SysDictItem) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("collection_id"),
+		index.Fields("collection_code"),
+		index.Fields("collection_code", "code").Unique(),
+	}
+}
+
+// Annotations 返回系统字典项表数据库元信息。
+func (SysDictItem) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Annotation{Table: "sys_dict_item"},
+	}
+}

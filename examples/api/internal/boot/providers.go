@@ -7,6 +7,8 @@ import (
 	"github.com/casbin/casbin/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/samber/do"
+	"github.com/teamsillybees/initra/examples/api/internal/data"
+	"github.com/teamsillybees/initra/examples/api/internal/ent"
 	authmodule "github.com/teamsillybees/initra/examples/api/internal/module/auth"
 	usermodule "github.com/teamsillybees/initra/examples/api/internal/module/user"
 	"github.com/teamsillybees/initra/pkg/auth"
@@ -55,6 +57,11 @@ func registerProviders(ctx context.Context, injector *do.Injector, cfg *Config, 
 	})
 	do.Provide(injector, func(i *do.Injector) (*idgen.Generator, error) {
 		return idgen.NewGenerator(cfg.IDGen.Node)
+	})
+	do.Provide(injector, func(i *do.Injector) (*ent.Client, error) {
+		sqlDB := do.MustInvoke[*sql.DB](i)
+		generator := do.MustInvoke[*idgen.Generator](i)
+		return data.NewEntClient(sqlDB, generator), nil
 	})
 	do.Provide(injector, func(i *do.Injector) (*auth.BcryptPasswordManager, error) {
 		return auth.NewBcryptPasswordManager(0), nil

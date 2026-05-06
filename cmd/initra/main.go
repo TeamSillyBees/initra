@@ -298,7 +298,7 @@ func runDoctor(args []string, stdout io.Writer) error {
 
 	reportTool(stdout, "Go", "go", "version")
 	reportTool(stdout, "Atlas", "atlas", "version")
-	reportTool(stdout, "go-jet", "jet", "-version")
+	reportTool(stdout, "Ent", "go", "run", "entgo.io/ent/cmd/ent", "--help")
 	reportTool(stdout, "golangci-lint", "golangci-lint", "version")
 	reportFile(stdout, "config.local.yaml", filepath.Join("configs", "config.local.yaml"))
 	reportFile(stdout, "Atlas config", filepath.Join("db", "atlas.hcl"))
