@@ -67,5 +67,7 @@ func (SysUser) Indexes() []ent.Index {
 func (SysUser) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Annotation{Table: "sys_user"},
+		entsql.WithComments(true),
+		schema.Comment("系统后台用户表，用于后台登录、审计和权限归属。"),
 	}
 }

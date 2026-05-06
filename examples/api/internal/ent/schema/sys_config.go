@@ -43,5 +43,7 @@ func (SysConfig) Fields() []ent.Field {
 func (SysConfig) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Annotation{Table: "sys_config"},
+		entsql.WithComments(true),
+		schema.Comment("系统配置表，用于集中存放可在后台维护的运行时配置。"),
 	}
 }

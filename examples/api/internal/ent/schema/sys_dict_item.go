@@ -73,5 +73,7 @@ func (SysDictItem) Indexes() []ent.Index {
 func (SysDictItem) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Annotation{Table: "sys_dict_item"},
+		entsql.WithComments(true),
+		schema.Comment("系统字典项表，用于保存某个字典集下的具体值。"),
 	}
 }

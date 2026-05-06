@@ -14,20 +14,21 @@ import (
 	"{{ .ModulePath }}/internal/ent/sysrolemenu"
 )
 
-// SysRoleMenu is the model entity for the SysRoleMenu schema.
+// 系统角色与菜单/按钮资源关系表，用于角色授权。
 type SysRoleMenu struct {
 	config `json:"-"`
 	// ID of the ent.
+	// 雪花算法生成的主键 ID。
 	ID int64 `json:"id,omitempty"`
-	// DeletedAt holds the value of the "deleted_at" field.
+	// 逻辑删除时间，NULL 表示未删除。
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// RoleID holds the value of the "role_id" field.
+	// 系统角色 ID，关联 sys_role.id。
 	RoleID int64 `json:"role_id,omitempty"`
-	// MenuID holds the value of the "menu_id" field.
+	// 系统菜单资源 ID，关联 sys_menu.id。
 	MenuID int64 `json:"menu_id,omitempty"`
-	// CreatedBy holds the value of the "created_by" field.
+	// 创建人用户 ID。
 	CreatedBy *int64 `json:"created_by,omitempty"`
-	// CreatedAt holds the value of the "created_at" field.
+	// 创建时间。
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SysRoleMenuQuery when eager-loading is set.

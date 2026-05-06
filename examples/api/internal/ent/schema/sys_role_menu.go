@@ -67,5 +67,7 @@ func (SysRoleMenu) Indexes() []ent.Index {
 func (SysRoleMenu) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Annotation{Table: "sys_role_menu"},
+		entsql.WithComments(true),
+		schema.Comment("系统角色与菜单/按钮资源关系表，用于角色授权。"),
 	}
 }

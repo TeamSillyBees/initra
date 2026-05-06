@@ -67,5 +67,7 @@ func (SysUserRole) Indexes() []ent.Index {
 func (SysUserRole) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Annotation{Table: "sys_user_role"},
+		entsql.WithComments(true),
+		schema.Comment("系统用户与角色关系表，用于描述一个用户拥有多个角色。"),
 	}
 }

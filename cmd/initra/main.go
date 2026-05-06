@@ -275,7 +275,7 @@ func runMigrate(args []string, stdout io.Writer) error {
 			return err
 		}
 		path := filepath.Join("scripts", "migrate-diff-"+name+".ps1")
-		content := "param(\n    [string]$Env = \"local\"\n)\n\natlas migrate diff " + name + " --env $Env -c file://db/atlas.hcl\n"
+		content := migrateDiffScript(name)
 		if err := writeNewFile(path, content); err != nil {
 			return err
 		}
@@ -286,6 +286,32 @@ func runMigrate(args []string, stdout io.Writer) error {
 	default:
 		return fmt.Errorf("未知 migrate 子命令 %q", args[0])
 	}
+}
+
+func migrateDiffScript(name string) string {
+	return fmt.Sprintf(`param(
+    [string]$Env = "",
+    [string]$ConfigDir = "configs",
+    [string]$DevURL = ""
+)
+
+$ErrorActionPreference = "Stop"
+$repoRoot = Split-Path -Parent $PSScriptRoot
+Push-Location $repoRoot
+try {
+    $optionalArgs = @()
+    if (![string]::IsNullOrWhiteSpace($Env)) {
+        $optionalArgs += @("-env", $Env)
+    }
+    if (![string]::IsNullOrWhiteSpace($DevURL)) {
+        $optionalArgs += @("-dev-url", $DevURL)
+    }
+    go run ./internal/ent/migratediff/main.go %s -config-dir $ConfigDir @optionalArgs
+}
+finally {
+    Pop-Location
+}
+`, name)
 }
 
 func runDoctor(args []string, stdout io.Writer) error {

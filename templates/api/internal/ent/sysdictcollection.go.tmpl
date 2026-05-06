@@ -12,34 +12,35 @@ import (
 	"{{ .ModulePath }}/internal/ent/sysdictcollection"
 )
 
-// SysDictCollection is the model entity for the SysDictCollection schema.
+// 系统字典集表，用于定义一类字典的元信息。
 type SysDictCollection struct {
 	config `json:"-"`
 	// ID of the ent.
+	// 雪花算法生成的主键 ID。
 	ID int64 `json:"id,omitempty"`
-	// DeletedAt holds the value of the "deleted_at" field.
+	// 逻辑删除时间，NULL 表示未删除。
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// CreatedAt holds the value of the "created_at" field.
+	// 创建时间。
 	CreatedAt time.Time `json:"created_at,omitempty"`
-	// UpdatedAt holds the value of the "updated_at" field.
+	// 最后更新时间。
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// CreatedBy holds the value of the "created_by" field.
+	// 创建人用户 ID。
 	CreatedBy *int64 `json:"created_by,omitempty"`
-	// UpdatedBy holds the value of the "updated_by" field.
+	// 最后更新人用户 ID。
 	UpdatedBy *int64 `json:"updated_by,omitempty"`
-	// Code holds the value of the "code" field.
+	// 字典集唯一编码，程序通过该编码读取字典项。
 	Code string `json:"code,omitempty"`
-	// Name holds the value of the "name" field.
+	// 字典集名称。
 	Name string `json:"name,omitempty"`
-	// IsEnable holds the value of the "is_enable" field.
+	// 字典集是否启用。
 	IsEnable bool `json:"is_enable,omitempty"`
-	// Description holds the value of the "description" field.
+	// 字典集说明。
 	Description *string `json:"description,omitempty"`
-	// ItemLength holds the value of the "item_length" field.
+	// 字典值推荐长度上限。
 	ItemLength *int `json:"item_length,omitempty"`
-	// IsBuiltin holds the value of the "is_builtin" field.
+	// 是否为系统内置字典集。
 	IsBuiltin bool `json:"is_builtin,omitempty"`
-	// SortID holds the value of the "sort_id" field.
+	// 排序值。
 	SortID int `json:"sort_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SysDictCollectionQuery when eager-loading is set.

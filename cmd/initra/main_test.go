@@ -58,6 +58,43 @@ func TestNewGeneratesAPIProjectWithFrameworkRequireAndNoPkgCopy(t *testing.T) {
 	require.Contains(t, stdout.String(), "created")
 }
 
+func TestNewGeneratesAPIMigrationsWithoutPhysicalForeignKeys(t *testing.T) {
+	target := filepath.Join(t.TempDir(), "demo")
+
+	err := run([]string{
+		"new", target,
+		"--type", "api",
+		"--module", "example.com/demo",
+		"--replace", repoRoot(t),
+	}, ioDiscard{}, "dev")
+
+	require.NoError(t, err)
+	migrationContent := readFile(t, filepath.Join(target, "db", "migrations", "20260430135023_init.sql"))
+	require.NotContains(t, migrationContent, "FOREIGN KEY")
+	require.NotContains(t, migrationContent, "REFERENCES")
+
+	require.NoFileExists(t, filepath.Join(target, "internal", "ent", "migrate", "main.go"))
+	diffGenerator := readFile(t, filepath.Join(target, "internal", "ent", "migratediff", "main.go"))
+	require.Contains(t, diffGenerator, `_ "github.com/lib/pq"`)
+	require.Contains(t, diffGenerator, "boot.LoadConfig")
+	require.Contains(t, diffGenerator, "databaseURL")
+	require.Contains(t, diffGenerator, "migrate.WithForeignKeys(false)")
+	require.Contains(t, diffGenerator, "schema.WithMigrationMode(schema.ModeReplay)")
+
+	entSchema := readFile(t, filepath.Join(target, "internal", "ent", "schema", "sys_user.go"))
+	require.Contains(t, entSchema, "entsql.WithComments(true)")
+	require.Contains(t, entSchema, `schema.Comment("系统后台用户表，用于后台登录、审计和权限归属。")`)
+
+	migrateSchema := readFile(t, filepath.Join(target, "internal", "ent", "migrate", "schema.go"))
+	require.Contains(t, migrateSchema, `"系统后台用户表，用于后台登录、审计和权限归属。"`)
+	require.Contains(t, migrateSchema, `Comment: "登录用户名，全局唯一。"`)
+
+	atlasScript := readFile(t, filepath.Join(target, "scripts", "atlas.ps1"))
+	require.Contains(t, atlasScript, "go run ./internal/ent/migratediff/main.go")
+	require.Contains(t, atlasScript, "-config-dir")
+	require.NotContains(t, atlasScript, "docker://postgres/16/dev")
+}
+
 func TestNewGeneratesWorkerPlaceholderProject(t *testing.T) {
 	target := filepath.Join(t.TempDir(), "worker")
 
@@ -194,7 +231,10 @@ func TestMigrateCommandsGenerateFiles(t *testing.T) {
 
 	require.NoError(t, run([]string{"migrate", "diff", "add_order"}, ioDiscard{}, "dev"))
 	diffScript := readFile(t, filepath.Join(target, "scripts", "migrate-diff-add_order.ps1"))
-	require.Contains(t, diffScript, "atlas migrate diff add_order")
+	require.Contains(t, diffScript, "go run ./internal/ent/migratediff/main.go add_order")
+	require.Contains(t, diffScript, "-config-dir $ConfigDir")
+	require.Contains(t, diffScript, `"-dev-url", $DevURL`)
+	require.NotContains(t, diffScript, "docker://postgres/16/dev")
 }
 
 func TestDoctorReportsEnvironmentChecks(t *testing.T) {

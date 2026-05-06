@@ -12,42 +12,43 @@ import (
 	"github.com/teamsillybees/initra/examples/api/internal/ent/sysmenu"
 )
 
-// SysMenu is the model entity for the SysMenu schema.
+// 系统菜单与按钮权限表，统一承载菜单、目录、按钮三类资源。
 type SysMenu struct {
 	config `json:"-"`
 	// ID of the ent.
+	// 雪花算法生成的主键 ID。
 	ID int64 `json:"id,omitempty"`
-	// DeletedAt holds the value of the "deleted_at" field.
+	// 逻辑删除时间，NULL 表示未删除。
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// CreatedAt holds the value of the "created_at" field.
+	// 创建时间。
 	CreatedAt time.Time `json:"created_at,omitempty"`
-	// UpdatedAt holds the value of the "updated_at" field.
+	// 最后更新时间。
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// CreatedBy holds the value of the "created_by" field.
+	// 创建人用户 ID。
 	CreatedBy *int64 `json:"created_by,omitempty"`
-	// UpdatedBy holds the value of the "updated_by" field.
+	// 最后更新人用户 ID。
 	UpdatedBy *int64 `json:"updated_by,omitempty"`
-	// ParentID holds the value of the "parent_id" field.
+	// 父级菜单 ID，0 表示顶级目录。
 	ParentID int64 `json:"parent_id,omitempty"`
-	// AppID holds the value of the "app_id" field.
+	// 所属应用编码，用于多应用场景区分菜单树。
 	AppID *string `json:"app_id,omitempty"`
-	// Title holds the value of the "title" field.
+	// 菜单或按钮展示标题。
 	Title string `json:"title,omitempty"`
-	// MenuType holds the value of the "menu_type" field.
+	// 资源类型：0-菜单，1-按钮，2-目录。
 	MenuType int16 `json:"menu_type,omitempty"`
-	// RoutePath holds the value of the "route_path" field.
+	// 前端路由路径。
 	RoutePath *string `json:"route_path,omitempty"`
-	// ComponentPath holds the value of the "component_path" field.
+	// 前端组件路径。
 	ComponentPath *string `json:"component_path,omitempty"`
-	// PermissionCode holds the value of the "permission_code" field.
+	// 权限资源编码，例如 system:user:read。
 	PermissionCode *string `json:"permission_code,omitempty"`
-	// Icon holds the value of the "icon" field.
+	// 菜单图标标识。
 	Icon *string `json:"icon,omitempty"`
-	// IsVisible holds the value of the "is_visible" field.
+	// 是否在前端菜单树中可见。
 	IsVisible bool `json:"is_visible,omitempty"`
-	// IsCached holds the value of the "is_cached" field.
+	// 前端页面是否缓存。
 	IsCached bool `json:"is_cached,omitempty"`
-	// SortID holds the value of the "sort_id" field.
+	// 排序值，值越小越靠前。
 	SortID int `json:"sort_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SysMenuQuery when eager-loading is set.

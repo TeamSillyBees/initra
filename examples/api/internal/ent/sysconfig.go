@@ -12,30 +12,31 @@ import (
 	"github.com/teamsillybees/initra/examples/api/internal/ent/sysconfig"
 )
 
-// SysConfig is the model entity for the SysConfig schema.
+// 系统配置表，用于集中存放可在后台维护的运行时配置。
 type SysConfig struct {
 	config `json:"-"`
 	// ID of the ent.
+	// 雪花算法生成的主键 ID。
 	ID int64 `json:"id,omitempty"`
-	// DeletedAt holds the value of the "deleted_at" field.
+	// 逻辑删除时间，NULL 表示未删除。
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// CreatedAt holds the value of the "created_at" field.
+	// 创建时间。
 	CreatedAt time.Time `json:"created_at,omitempty"`
-	// UpdatedAt holds the value of the "updated_at" field.
+	// 最后更新时间。
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// CreatedBy holds the value of the "created_by" field.
+	// 创建人用户 ID。
 	CreatedBy *int64 `json:"created_by,omitempty"`
-	// UpdatedBy holds the value of the "updated_by" field.
+	// 最后更新人用户 ID。
 	UpdatedBy *int64 `json:"updated_by,omitempty"`
-	// ConfigKey holds the value of the "config_key" field.
+	// 配置键，程序通过该键读取配置。
 	ConfigKey string `json:"config_key,omitempty"`
-	// ConfigValue holds the value of the "config_value" field.
+	// 配置值。
 	ConfigValue string `json:"config_value,omitempty"`
-	// ConfigDesc holds the value of the "config_desc" field.
+	// 配置项描述。
 	ConfigDesc *string `json:"config_desc,omitempty"`
-	// IsBuiltin holds the value of the "is_builtin" field.
+	// 是否为系统内置配置，内置配置通常不允许删除。
 	IsBuiltin bool `json:"is_builtin,omitempty"`
-	// SortID holds the value of the "sort_id" field.
+	// 排序值。
 	SortID       int `json:"sort_id,omitempty"`
 	selectValues sql.SelectValues
 }

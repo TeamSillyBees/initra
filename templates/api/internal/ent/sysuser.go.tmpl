@@ -12,38 +12,39 @@ import (
 	"{{ .ModulePath }}/internal/ent/sysuser"
 )
 
-// SysUser is the model entity for the SysUser schema.
+// 系统后台用户表，用于后台登录、审计和权限归属。
 type SysUser struct {
 	config `json:"-"`
 	// ID of the ent.
+	// 雪花算法生成的主键 ID。
 	ID int64 `json:"id,omitempty"`
-	// DeletedAt holds the value of the "deleted_at" field.
+	// 逻辑删除时间，NULL 表示未删除。
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// CreatedAt holds the value of the "created_at" field.
+	// 创建时间。
 	CreatedAt time.Time `json:"created_at,omitempty"`
-	// UpdatedAt holds the value of the "updated_at" field.
+	// 最后更新时间。
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// CreatedBy holds the value of the "created_by" field.
+	// 创建人用户 ID。
 	CreatedBy *int64 `json:"created_by,omitempty"`
-	// UpdatedBy holds the value of the "updated_by" field.
+	// 最后更新人用户 ID。
 	UpdatedBy *int64 `json:"updated_by,omitempty"`
-	// Username holds the value of the "username" field.
+	// 登录用户名，全局唯一。
 	Username string `json:"username,omitempty"`
-	// PasswordHash holds the value of the "password_hash" field.
+	// 经过安全哈希后的密码密文。
 	PasswordHash string `json:"password_hash,omitempty"`
-	// Nickname holds the value of the "nickname" field.
+	// 用户昵称或显示名。
 	Nickname *string `json:"nickname,omitempty"`
-	// Phone holds the value of the "phone" field.
+	// 手机号，可用于登录或通知。
 	Phone *string `json:"phone,omitempty"`
-	// Email holds the value of the "email" field.
+	// 邮箱地址，可用于找回密码和通知。
 	Email *string `json:"email,omitempty"`
-	// AvatarURL holds the value of the "avatar_url" field.
+	// 头像资源地址。
 	AvatarURL *string `json:"avatar_url,omitempty"`
-	// IsSuperAdmin holds the value of the "is_super_admin" field.
+	// 是否为超级管理员，超级管理员通常拥有全量权限。
 	IsSuperAdmin bool `json:"is_super_admin,omitempty"`
-	// IsEnable holds the value of the "is_enable" field.
+	// 账号是否启用。
 	IsEnable bool `json:"is_enable,omitempty"`
-	// SortID holds the value of the "sort_id" field.
+	// 排序值，便于后台列表定制顺序。
 	SortID int `json:"sort_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SysUserQuery when eager-loading is set.

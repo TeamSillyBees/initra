@@ -71,5 +71,7 @@ func (SysMenu) Indexes() []ent.Index {
 func (SysMenu) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Annotation{Table: "sys_menu"},
+		entsql.WithComments(true),
+		schema.Comment("系统菜单与按钮权限表，统一承载菜单、目录、按钮三类资源。"),
 	}
 }

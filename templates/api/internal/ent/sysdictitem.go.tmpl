@@ -13,38 +13,39 @@ import (
 	"{{ .ModulePath }}/internal/ent/sysdictitem"
 )
 
-// SysDictItem is the model entity for the SysDictItem schema.
+// 系统字典项表，用于保存某个字典集下的具体值。
 type SysDictItem struct {
 	config `json:"-"`
 	// ID of the ent.
+	// 雪花算法生成的主键 ID。
 	ID int64 `json:"id,omitempty"`
-	// DeletedAt holds the value of the "deleted_at" field.
+	// 逻辑删除时间，NULL 表示未删除。
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// CreatedAt holds the value of the "created_at" field.
+	// 创建时间。
 	CreatedAt time.Time `json:"created_at,omitempty"`
-	// UpdatedAt holds the value of the "updated_at" field.
+	// 最后更新时间。
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// CreatedBy holds the value of the "created_by" field.
+	// 创建人用户 ID。
 	CreatedBy *int64 `json:"created_by,omitempty"`
-	// UpdatedBy holds the value of the "updated_by" field.
+	// 最后更新人用户 ID。
 	UpdatedBy *int64 `json:"updated_by,omitempty"`
-	// CollectionID holds the value of the "collection_id" field.
+	// 字典集 ID，关联 sys_dict_collection.id。
 	CollectionID int64 `json:"collection_id,omitempty"`
-	// CollectionCode holds the value of the "collection_code" field.
+	// 字典集编码，便于按编码直接查询字典项。
 	CollectionCode string `json:"collection_code,omitempty"`
-	// Code holds the value of the "code" field.
+	// 字典项编码，程序实际使用的值。
 	Code string `json:"code,omitempty"`
-	// ParentCode holds the value of the "parent_code" field.
+	// 父级字典项编码，0 表示顶级节点。
 	ParentCode string `json:"parent_code,omitempty"`
-	// Label holds the value of the "label" field.
+	// 字典项展示文本。
 	Label string `json:"label,omitempty"`
-	// IsDefaultValue holds the value of the "is_default_value" field.
+	// 是否为默认值。
 	IsDefaultValue bool `json:"is_default_value,omitempty"`
-	// IsEnable holds the value of the "is_enable" field.
+	// 字典项是否启用。
 	IsEnable bool `json:"is_enable,omitempty"`
-	// Description holds the value of the "description" field.
+	// 字典项描述。
 	Description *string `json:"description,omitempty"`
-	// SortID holds the value of the "sort_id" field.
+	// 排序值。
 	SortID int `json:"sort_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SysDictItemQuery when eager-loading is set.

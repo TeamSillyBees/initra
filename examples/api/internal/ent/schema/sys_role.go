@@ -62,5 +62,7 @@ func (SysRole) Indexes() []ent.Index {
 func (SysRole) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Annotation{Table: "sys_role"},
+		entsql.WithComments(true),
+		schema.Comment("系统角色表，用于承载后台角色定义。"),
 	}
 }

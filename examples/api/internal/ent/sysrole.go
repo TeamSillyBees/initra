@@ -12,32 +12,33 @@ import (
 	"github.com/teamsillybees/initra/examples/api/internal/ent/sysrole"
 )
 
-// SysRole is the model entity for the SysRole schema.
+// 系统角色表，用于承载后台角色定义。
 type SysRole struct {
 	config `json:"-"`
 	// ID of the ent.
+	// 雪花算法生成的主键 ID。
 	ID int64 `json:"id,omitempty"`
-	// DeletedAt holds the value of the "deleted_at" field.
+	// 逻辑删除时间，NULL 表示未删除。
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// CreatedAt holds the value of the "created_at" field.
+	// 创建时间。
 	CreatedAt time.Time `json:"created_at,omitempty"`
-	// UpdatedAt holds the value of the "updated_at" field.
+	// 最后更新时间。
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// CreatedBy holds the value of the "created_by" field.
+	// 创建人用户 ID。
 	CreatedBy *int64 `json:"created_by,omitempty"`
-	// UpdatedBy holds the value of the "updated_by" field.
+	// 最后更新人用户 ID。
 	UpdatedBy *int64 `json:"updated_by,omitempty"`
-	// Code holds the value of the "code" field.
+	// 角色编码，程序内稳定引用，例如 admin、viewer。
 	Code string `json:"code,omitempty"`
-	// Name holds the value of the "name" field.
+	// 角色名称，用于管理界面展示。
 	Name string `json:"name,omitempty"`
-	// Remark holds the value of the "remark" field.
+	// 角色备注说明。
 	Remark *string `json:"remark,omitempty"`
-	// IsBuiltin holds the value of the "is_builtin" field.
+	// 是否为系统内置角色，内置角色通常不允许删除。
 	IsBuiltin bool `json:"is_builtin,omitempty"`
-	// IsEnable holds the value of the "is_enable" field.
+	// 角色是否启用，禁用后不参与授权。
 	IsEnable bool `json:"is_enable,omitempty"`
-	// SortID holds the value of the "sort_id" field.
+	// 角色排序值，值越小越靠前。
 	SortID int `json:"sort_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SysRoleQuery when eager-loading is set.

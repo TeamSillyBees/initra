@@ -55,5 +55,7 @@ func (SysDictCollection) Edges() []ent.Edge {
 func (SysDictCollection) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Annotation{Table: "sys_dict_collection"},
+		entsql.WithComments(true),
+		schema.Comment("系统字典集表，用于定义一类字典的元信息。"),
 	}
 }
