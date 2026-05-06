@@ -3,7 +3,6 @@ package boot
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -47,16 +46,20 @@ func Bootstrap(ctx context.Context, options Options) (*Application, error) {
 
 	logger := do.MustInvoke[*zap.Logger](injector)
 	db := do.MustInvoke[*sql.DB](injector)
-	redisClient := do.MustInvoke[*redis.Client](injector)
+	var redisClient *redis.Client
+	if cfg.Redis.Enabled {
+		redisClient = do.MustInvoke[*redis.Client](injector)
+	}
 	webApp := do.MustInvoke[*server.App](injector)
 
 	registerRoutes(injector, webApp, options.BuildInfo)
 
 	s := &http.Server{
-		Addr:              fmt.Sprintf(":%d", cfg.App.Port),
+		Addr:              cfg.Server.Addr,
 		Handler:           webApp.Engine,
-		ReadTimeout:       cfg.HTTP.ReadTimeout,
-		WriteTimeout:      cfg.HTTP.WriteTimeout,
+		ReadTimeout:       cfg.Server.ReadTimeout,
+		WriteTimeout:      cfg.Server.WriteTimeout,
+		IdleTimeout:       cfg.Server.IdleTimeout,
 		ReadHeaderTimeout: 3 * time.Second,
 	}
 

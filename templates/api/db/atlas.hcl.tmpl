@@ -5,7 +5,7 @@ variable "local_url" {
 
 variable "dev_url" {
   type    = string
-  default = "postgres://paperlingo:MKD8eqa9nax!rxg.utq@192.168.100.3:5432/initra_dev?sslmode=disable"
+  default = "postgres://postgres:postgres@127.0.0.1:5432/initra_dev?sslmode=disable"
 }
 
 variable "test_url" {

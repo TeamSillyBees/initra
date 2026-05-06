@@ -11,43 +11,70 @@ import (
 
 // Config 是示例项目的应用配置聚合根。
 type Config struct {
-	App      AppConfig      `mapstructure:"app"`
-	HTTP     HTTPConfig     `mapstructure:"http"`
-	Logger   logging.Config `mapstructure:"logger"`
-	Database db.Config      `mapstructure:"database"`
-	Redis    RedisConfig    `mapstructure:"redis"`
-	JWT      JWTConfig      `mapstructure:"jwt"`
-	Casbin   CasbinConfig   `mapstructure:"casbin"`
-	Cache    CacheConfig    `mapstructure:"cache"`
-	IDGen    IDGenConfig    `mapstructure:"idgen"`
+	App           AppConfig           `mapstructure:"app"`
+	Server        ServerConfig        `mapstructure:"server"`
+	Database      db.Config           `mapstructure:"database"`
+	Redis         RedisConfig         `mapstructure:"redis"`
+	Auth          AuthConfig          `mapstructure:"auth"`
+	Log           logging.Config      `mapstructure:"log"`
+	Observability ObservabilityConfig `mapstructure:"observability"`
+	Casbin        CasbinConfig        `mapstructure:"casbin"`
+	Cache         CacheConfig         `mapstructure:"cache"`
+	IDGen         IDGenConfig         `mapstructure:"idgen"`
 }
 
 // AppConfig 描述应用基础元信息。
 type AppConfig struct {
-	Name string `mapstructure:"name"`
-	Env  string `mapstructure:"env"`
-	Port int    `mapstructure:"port"`
+	Name       string `mapstructure:"name"`
+	Env        string `mapstructure:"env"`
+	Version    string `mapstructure:"version"`
+	InstanceID string `mapstructure:"instance_id"`
 }
 
-// HTTPConfig 描述 HTTP Server 的读写超时等基础参数。
-type HTTPConfig struct {
-	ReadTimeout  time.Duration `mapstructure:"read_timeout"`
-	WriteTimeout time.Duration `mapstructure:"write_timeout"`
+// ServerConfig 描述 HTTP Server 的监听地址、超时和关闭参数。
+type ServerConfig struct {
+	Addr            string        `mapstructure:"addr"`
+	ReadTimeout     time.Duration `mapstructure:"read_timeout"`
+	WriteTimeout    time.Duration `mapstructure:"write_timeout"`
+	IdleTimeout     time.Duration `mapstructure:"idle_timeout"`
+	ShutdownTimeout time.Duration `mapstructure:"shutdown_timeout"`
 }
 
 // RedisConfig 描述 Redis 连接配置。
 type RedisConfig struct {
+	Enabled  bool   `mapstructure:"enabled"`
 	Addr     string `mapstructure:"addr"`
 	Password string `mapstructure:"password"`
 	DB       int    `mapstructure:"db"`
+	PoolSize int    `mapstructure:"pool_size"`
 }
 
-// JWTConfig 描述 Token 签发所需配置。
+// AuthConfig 描述认证与令牌配置。
+type AuthConfig struct {
+	Enabled              bool          `mapstructure:"enabled"`
+	AccessTokenTTL       time.Duration `mapstructure:"access_token_ttl"`
+	RefreshTokenTTL      time.Duration `mapstructure:"refresh_token_ttl"`
+	AllowMultipleDevices bool          `mapstructure:"allow_multiple_devices"`
+	JWT                  JWTConfig     `mapstructure:"jwt"`
+}
+
+// JWTConfig 描述 JWT 签发所需配置。
 type JWTConfig struct {
-	Issuer          string        `mapstructure:"issuer"`
-	Secret          string        `mapstructure:"secret"`
-	AccessTokenTTL  time.Duration `mapstructure:"access_token_ttl"`
-	RefreshTokenTTL time.Duration `mapstructure:"refresh_token_ttl"`
+	Issuer string `mapstructure:"issuer"`
+	Secret string `mapstructure:"secret"`
+}
+
+// ObservabilityConfig 描述可观测性能力开关。
+type ObservabilityConfig struct {
+	Metrics FeatureConfig `mapstructure:"metrics"`
+	Tracing FeatureConfig `mapstructure:"tracing"`
+	Pprof   FeatureConfig `mapstructure:"pprof"`
+	Health  FeatureConfig `mapstructure:"health"`
+}
+
+// FeatureConfig 描述单项能力是否启用。
+type FeatureConfig struct {
+	Enabled bool `mapstructure:"enabled"`
 }
 
 // CasbinConfig 描述权限模型与策略文件路径。
@@ -76,6 +103,11 @@ func LoadConfig(env string, configDir string) (*Config, error) {
 	})
 }
 
+// SafeForLog 返回脱敏后的配置副本，可安全用于结构化日志打印。
+func (c *Config) SafeForLog() map[string]any {
+	return platformconfig.Sanitize(c, c.Log.Mask.Fields)
+}
+
 // Validate 对启动所需关键配置进行兜底校验。
 func (c *Config) Validate() error {
 	switch {
@@ -83,20 +115,34 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("app.name 不能为空")
 	case c.App.Env == "":
 		return fmt.Errorf("app.env 不能为空")
-	case c.App.Port <= 0:
-		return fmt.Errorf("app.port 必须大于 0")
+	case c.Server.Addr == "":
+		return fmt.Errorf("server.addr 不能为空")
+	case c.Server.ReadTimeout <= 0:
+		return fmt.Errorf("server.read_timeout 必须大于 0")
+	case c.Server.WriteTimeout <= 0:
+		return fmt.Errorf("server.write_timeout 必须大于 0")
+	case c.Server.IdleTimeout <= 0:
+		return fmt.Errorf("server.idle_timeout 必须大于 0")
+	case c.Server.ShutdownTimeout <= 0:
+		return fmt.Errorf("server.shutdown_timeout 必须大于 0")
 	case c.Database.DSN == "":
-		return fmt.Errorf("db.dsn 不能为空")
-	case c.JWT.Issuer == "":
-		return fmt.Errorf("jwt.issuer 不能为空")
-	case c.JWT.Secret == "":
-		return fmt.Errorf("jwt.secret 不能为空")
-	case c.JWT.AccessTokenTTL <= 0:
-		return fmt.Errorf("jwt.access_token_ttl 必须大于 0")
-	case c.JWT.RefreshTokenTTL <= 0:
-		return fmt.Errorf("jwt.refresh_token_ttl 必须大于 0")
-	case c.JWT.RefreshTokenTTL <= c.JWT.AccessTokenTTL:
-		return fmt.Errorf("jwt.refresh_token_ttl 必须大于 jwt.access_token_ttl")
+		return fmt.Errorf("database.dsn 不能为空")
+	case c.Redis.Enabled && c.Redis.Addr == "":
+		return fmt.Errorf("redis.addr 不能为空")
+	case c.Redis.Enabled && c.Redis.PoolSize <= 0:
+		return fmt.Errorf("redis.pool_size 必须大于 0")
+	case !c.Auth.Enabled:
+		return fmt.Errorf("auth.enabled 当前必须为 true")
+	case c.Auth.JWT.Issuer == "":
+		return fmt.Errorf("auth.jwt.issuer 不能为空")
+	case c.Auth.JWT.Secret == "":
+		return fmt.Errorf("auth.jwt.secret 不能为空")
+	case c.Auth.AccessTokenTTL <= 0:
+		return fmt.Errorf("auth.access_token_ttl 必须大于 0")
+	case c.Auth.RefreshTokenTTL <= 0:
+		return fmt.Errorf("auth.refresh_token_ttl 必须大于 0")
+	case c.Auth.RefreshTokenTTL <= c.Auth.AccessTokenTTL:
+		return fmt.Errorf("auth.refresh_token_ttl 必须大于 auth.access_token_ttl")
 	case c.Casbin.ModelPath == "":
 		return fmt.Errorf("casbin.model_path 不能为空")
 	case c.Casbin.PolicyPath == "":
@@ -111,26 +157,42 @@ func (c *Config) Validate() error {
 // configDefaults 统一声明示例项目配置默认值。
 func configDefaults() map[string]any {
 	return map[string]any{
-		"app.port":                8080,
-		"http.read_timeout":       "5s",
-		"http.write_timeout":      "10s",
-		"logger.level":            "info",
-		"logger.format":           "json",
-		"database.driver":         "postgres",
-		"database.dsn":            "",
-		"database.max_open_conns": 20,
-		"database.max_idle_conns": 10,
-		"redis.addr":              "127.0.0.1:6379",
-		"redis.password":          "",
-		"redis.db":                0,
-		"jwt.issuer":              "",
-		"jwt.secret":              "",
-		"jwt.access_token_ttl":    "15m",
-		"jwt.refresh_token_ttl":   "168h",
-		"casbin.model_path":       "",
-		"casbin.policy_path":      "",
-		"cache.local_ttl":         "1m",
-		"cache.remote_ttl":        "10m",
-		"idgen.node":              1,
+		"app.version":                   "dev",
+		"app.instance_id":               "local-1",
+		"server.addr":                   ":8080",
+		"server.read_timeout":           "10s",
+		"server.write_timeout":          "30s",
+		"server.idle_timeout":           "60s",
+		"server.shutdown_timeout":       "20s",
+		"database.driver":               "postgres",
+		"database.dsn":                  "",
+		"database.max_open_conns":       20,
+		"database.max_idle_conns":       10,
+		"database.conn_max_lifetime":    "1h",
+		"redis.enabled":                 false,
+		"redis.addr":                    "127.0.0.1:6379",
+		"redis.password":                "",
+		"redis.db":                      0,
+		"redis.pool_size":               10,
+		"auth.enabled":                  true,
+		"auth.access_token_ttl":         "15m",
+		"auth.refresh_token_ttl":        "720h",
+		"auth.allow_multiple_devices":   true,
+		"auth.jwt.issuer":               "",
+		"auth.jwt.secret":               "",
+		"log.level":                     "info",
+		"log.format":                    "json",
+		"log.output":                    "stdout",
+		"log.mask.enabled":              true,
+		"log.mask.fields":               []string{"password", "token", "secret", "authorization"},
+		"observability.metrics.enabled": true,
+		"observability.tracing.enabled": false,
+		"observability.pprof.enabled":   false,
+		"observability.health.enabled":  true,
+		"casbin.model_path":             "",
+		"casbin.policy_path":            "",
+		"cache.local_ttl":               "1m",
+		"cache.remote_ttl":              "10m",
+		"idgen.node":                    1,
 	}
 }

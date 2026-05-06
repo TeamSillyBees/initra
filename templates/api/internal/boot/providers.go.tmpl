@@ -21,16 +21,20 @@ import (
 
 func registerProviders(ctx context.Context, injector *do.Injector, cfg *Config, buildInfo observability.BuildInfoVO) {
 	do.Provide(injector, func(i *do.Injector) (*zap.Logger, error) {
-		return logging.NewLogger(cfg.Logger)
+		return logging.NewLogger(cfg.Log)
 	})
 	do.Provide(injector, func(i *do.Injector) (*sql.DB, error) {
 		return db.Open(ctx, cfg.Database)
 	})
 	do.Provide(injector, func(i *do.Injector) (*redis.Client, error) {
+		if !cfg.Redis.Enabled {
+			return nil, nil
+		}
 		client := redis.NewClient(&redis.Options{
 			Addr:     cfg.Redis.Addr,
 			Password: cfg.Redis.Password,
 			DB:       cfg.Redis.DB,
+			PoolSize: cfg.Redis.PoolSize,
 		})
 		if err := client.Ping(ctx).Err(); err != nil {
 			_ = client.Close()
@@ -39,7 +43,10 @@ func registerProviders(ctx context.Context, injector *do.Injector, cfg *Config, 
 		return client, nil
 	})
 	do.Provide(injector, func(i *do.Injector) (*platformcache.Manager, error) {
-		client := do.MustInvoke[*redis.Client](i)
+		var client *redis.Client
+		if cfg.Redis.Enabled {
+			client = do.MustInvoke[*redis.Client](i)
+		}
 		return platformcache.NewManager(platformcache.Config{
 			AppName:   cfg.App.Name,
 			LocalTTL:  cfg.Cache.LocalTTL,
@@ -53,13 +60,17 @@ func registerProviders(ctx context.Context, injector *do.Injector, cfg *Config, 
 		return auth.NewBcryptPasswordManager(0), nil
 	})
 	do.Provide(injector, func(i *do.Injector) (*auth.JWTManager, error) {
-		client := do.MustInvoke[*redis.Client](i)
+		var store auth.TokenStore = auth.NewMemoryTokenStore()
+		if cfg.Redis.Enabled {
+			client := do.MustInvoke[*redis.Client](i)
+			store = auth.NewRedisTokenStore(cfg.App.Name, client)
+		}
 		return auth.NewJWTManager(auth.JWTConfig{
-			Issuer:          cfg.JWT.Issuer,
-			Secret:          cfg.JWT.Secret,
-			AccessTokenTTL:  cfg.JWT.AccessTokenTTL,
-			RefreshTokenTTL: cfg.JWT.RefreshTokenTTL,
-			Store:           auth.NewRedisTokenStore(cfg.App.Name, client),
+			Issuer:          cfg.Auth.JWT.Issuer,
+			Secret:          cfg.Auth.JWT.Secret,
+			AccessTokenTTL:  cfg.Auth.AccessTokenTTL,
+			RefreshTokenTTL: cfg.Auth.RefreshTokenTTL,
+			Store:           store,
 		})
 	})
 	do.Provide(injector, func(i *do.Injector) (*casbin.Enforcer, error) {
@@ -85,7 +96,10 @@ func registerModules(injector *do.Injector) {
 }
 
 func registerRoutes(injector *do.Injector, webApp *server.App, buildInfo observability.BuildInfoVO) {
-	observability.NewModule(buildInfo).Register(webApp.API, webApp.Registry)
+	cfg := do.MustInvoke[*Config](injector)
+	if cfg.Observability.Health.Enabled {
+		observability.NewModule(buildInfo).Register(webApp.API, webApp.Registry)
+	}
 
 	// 新增业务模块完成依赖注册后，需要在这里解析 Module 并调用 Register。
 	// Register 内部应同时注册 Huma operation 与 RouteSecurity，避免 /api 路由因缺少安全元信息被拒绝。

@@ -5,16 +5,18 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // Config 描述 PostgreSQL 连接池配置。
 type Config struct {
-	Driver       string `mapstructure:"driver"`
-	DSN          string `mapstructure:"dsn"`
-	MaxOpenConns int    `mapstructure:"max_open_conns"`
-	MaxIdleConns int    `mapstructure:"max_idle_conns"`
+	Driver          string        `mapstructure:"driver"`
+	DSN             string        `mapstructure:"dsn"`
+	MaxOpenConns    int           `mapstructure:"max_open_conns"`
+	MaxIdleConns    int           `mapstructure:"max_idle_conns"`
+	ConnMaxLifetime time.Duration `mapstructure:"conn_max_lifetime"`
 }
 
 // Open 初始化 PostgreSQL 连接池并执行一次启动探活。
@@ -24,7 +26,7 @@ func Open(ctx context.Context, cfg Config) (*sql.DB, error) {
 		driver = "postgres"
 	}
 	if !strings.EqualFold(driver, "postgres") && !strings.EqualFold(driver, "pgx") {
-		return nil, fmt.Errorf("db.driver 仅支持 postgres，当前为 %q", cfg.Driver)
+		return nil, fmt.Errorf("database.driver 仅支持 postgres，当前为 %q", cfg.Driver)
 	}
 	db, err := sql.Open("pgx", cfg.DSN)
 	if err != nil {
@@ -33,6 +35,7 @@ func Open(ctx context.Context, cfg Config) (*sql.DB, error) {
 
 	db.SetMaxOpenConns(cfg.MaxOpenConns)
 	db.SetMaxIdleConns(cfg.MaxIdleConns)
+	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 
 	if err := db.PingContext(ctx); err != nil {
 		_ = db.Close()

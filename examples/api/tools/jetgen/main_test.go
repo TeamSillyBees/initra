@@ -81,7 +81,7 @@ func TestRunRejectsNonPostgresDriver(t *testing.T) {
 	})
 
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "db.driver")
+	require.Contains(t, err.Error(), "database.driver")
 }
 
 // TestGenerateJetKeepsConfiguredDestAsGeneratedRoot 验证 dest 目录就是生成根目录，不再追加数据库名和 schema 名。
@@ -132,15 +132,19 @@ func writeConfigFile(t *testing.T, configDir, env, driver, dsn string) {
 app:
   name: initra
   env: ` + env + `
+server:
+  addr: ":8080"
 database:
   driver: ` + driver + `
   dsn: ` + dsn + `
 casbin:
   model_path: ./configs/rbac_model.conf
   policy_path: ./configs/rbac_policy.csv
-jwt:
-  issuer: initra
-  secret: test-secret
+auth:
+  enabled: true
+  jwt:
+    issuer: initra
+    secret: test-secret
 `)
 	require.NoError(t, os.WriteFile(filepath.Join(configDir, "config."+env+".yaml"), content, 0o600))
 }

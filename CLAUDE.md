@@ -110,6 +110,9 @@ internal/module/<module>/
 - 面向标准项目模板：业务项目在 `internal/boot/config.go` 中定义自己的配置结构，使用 `pkg/config` 泛型加载。
 - 面向可复用 Go package：`pkg/config` 只提供泛型加载能力，不绑定具体业务配置结构。
 - 面向工程化 CLI 和标准项目模板：模板文件中的模块路径使用 `{{ .ModulePath }}`，禁止硬编码 `github.com/teamsillybees/initra/examples/api`。
+- 配置规范使用结构体定义，必须支持默认值、环境变量覆盖配置文件、启动校验和敏感配置脱敏打印。
+- 运行环境统一使用 `app.env` 或无前缀环境变量 `APP_ENV` 表示；其他配置环境变量默认使用 `INITRA_` 前缀。
+- 密码、Token、Secret、Access Key、Authorization、带密码的 DSN 禁止明文输出到日志。
 
 ### 测试
 

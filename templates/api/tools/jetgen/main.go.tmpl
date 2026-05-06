@@ -91,7 +91,7 @@ func run(args []string, getenv func(string) string, generate generatorFunc) erro
 	}
 
 	if driver := strings.ToLower(strings.TrimSpace(cfg.Database.Driver)); driver != "postgres" {
-		return fmt.Errorf("db.driver 仅支持 postgres，当前为 %q", cfg.Database.Driver)
+		return fmt.Errorf("database.driver 仅支持 postgres，当前为 %q", cfg.Database.Driver)
 	}
 
 	req := generateRequest{

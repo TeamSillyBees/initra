@@ -2,12 +2,18 @@ package config
 
 import (
 	"fmt"
+	"net/url"
+	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
+	"unicode"
 
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/spf13/viper"
 )
+
+const maskedValue = "***"
 
 // LoaderOptions 描述配置加载入口所需的最小输入。
 type LoaderOptions struct {
@@ -33,8 +39,12 @@ func LoadInto[T any](opts LoaderOptions) (*T, error) {
 	v.AddConfigPath(normalized.ConfigDir)
 	v.SetEnvPrefix(normalized.EnvPrefix)
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	if err := v.BindEnv("app.env", "APP_ENV"); err != nil {
+		return nil, fmt.Errorf("绑定运行环境变量失败: %w", err)
+	}
 	v.AutomaticEnv()
 
+	v.SetDefault("app.env", normalized.Env)
 	for key, value := range normalized.Defaults {
 		v.SetDefault(key, value)
 	}
@@ -57,10 +67,24 @@ func LoadInto[T any](opts LoaderOptions) (*T, error) {
 	return &cfg, nil
 }
 
+// Sanitize 返回适合打印到日志的配置副本，敏感字段会被脱敏。
+func Sanitize(value any, fields []string) map[string]any {
+	sanitized := sanitizeValue(reflect.ValueOf(value), "", newSensitiveFieldSet(fields))
+	if result, ok := sanitized.(map[string]any); ok {
+		return result
+	}
+	return map[string]any{
+		"value": sanitized,
+	}
+}
+
 // normalizeOptions 为配置加载入口补齐默认环境、目录和环境变量前缀。
 func normalizeOptions(opts LoaderOptions) LoaderOptions {
 	if opts.Env == "" {
-		opts.Env = "dev"
+		opts.Env = strings.TrimSpace(os.Getenv("APP_ENV"))
+		if opts.Env == "" {
+			opts.Env = "dev"
+		}
 	}
 	if opts.ConfigDir == "" {
 		opts.ConfigDir = filepath.Join(".", "configs")
@@ -75,4 +99,163 @@ func normalizeOptions(opts LoaderOptions) LoaderOptions {
 		opts.Defaults = map[string]any{}
 	}
 	return opts
+}
+
+func sanitizeValue(value reflect.Value, key string, sensitiveFields map[string]struct{}) any {
+	if !value.IsValid() {
+		return nil
+	}
+	for value.Kind() == reflect.Pointer || value.Kind() == reflect.Interface {
+		if value.IsNil() {
+			return nil
+		}
+		value = value.Elem()
+	}
+
+	if isSensitiveField(key, sensitiveFields) {
+		return maskValue(key, value)
+	}
+
+	switch value.Kind() {
+	case reflect.Struct:
+		return sanitizeStruct(value, sensitiveFields)
+	case reflect.Map:
+		return sanitizeMap(value, sensitiveFields)
+	case reflect.Slice, reflect.Array:
+		items := make([]any, 0, value.Len())
+		for i := 0; i < value.Len(); i++ {
+			items = append(items, sanitizeValue(value.Index(i), "", sensitiveFields))
+		}
+		return items
+	default:
+		if value.CanInterface() {
+			return value.Interface()
+		}
+		return nil
+	}
+}
+
+func sanitizeStruct(value reflect.Value, sensitiveFields map[string]struct{}) map[string]any {
+	result := make(map[string]any)
+	valueType := value.Type()
+	for i := 0; i < value.NumField(); i++ {
+		field := valueType.Field(i)
+		if field.PkgPath != "" {
+			continue
+		}
+		name, ok := configFieldName(field)
+		if !ok {
+			continue
+		}
+		result[name] = sanitizeValue(value.Field(i), name, sensitiveFields)
+	}
+	return result
+}
+
+func sanitizeMap(value reflect.Value, sensitiveFields map[string]struct{}) map[string]any {
+	result := make(map[string]any, value.Len())
+	iter := value.MapRange()
+	for iter.Next() {
+		key := fmt.Sprint(iter.Key().Interface())
+		result[key] = sanitizeValue(iter.Value(), key, sensitiveFields)
+	}
+	return result
+}
+
+func configFieldName(field reflect.StructField) (string, bool) {
+	for _, tagName := range []string{"mapstructure", "yaml", "json"} {
+		tag := field.Tag.Get(tagName)
+		if tag == "-" {
+			return "", false
+		}
+		if tag != "" {
+			name := strings.Split(tag, ",")[0]
+			if name != "" {
+				return name, true
+			}
+		}
+	}
+	return toSnakeName(field.Name), true
+}
+
+func toSnakeName(name string) string {
+	var builder strings.Builder
+	for i, r := range name {
+		if i > 0 && unicode.IsUpper(r) {
+			builder.WriteByte('_')
+		}
+		builder.WriteRune(unicode.ToLower(r))
+	}
+	return builder.String()
+}
+
+func newSensitiveFieldSet(fields []string) map[string]struct{} {
+	defaults := []string{"password", "token", "secret", "authorization", "access_key", "dsn"}
+	result := make(map[string]struct{}, len(defaults)+len(fields))
+	for _, field := range append(defaults, fields...) {
+		normalized := normalizeSensitiveField(field)
+		if normalized != "" {
+			result[normalized] = struct{}{}
+		}
+	}
+	return result
+}
+
+func isSensitiveField(key string, sensitiveFields map[string]struct{}) bool {
+	normalized := normalizeSensitiveField(key)
+	if normalized == "" {
+		return false
+	}
+	if _, ok := sensitiveFields[normalized]; ok {
+		return true
+	}
+	for field := range sensitiveFields {
+		switch field {
+		case "password", "secret", "accesskey", "authorization":
+			if strings.Contains(normalized, field) {
+				return true
+			}
+		case "token":
+			if normalized == "token" || strings.HasSuffix(normalized, "token") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func normalizeSensitiveField(field string) string {
+	var builder strings.Builder
+	for _, r := range strings.ToLower(strings.TrimSpace(field)) {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			builder.WriteRune(r)
+		}
+	}
+	return builder.String()
+}
+
+func maskValue(key string, value reflect.Value) any {
+	if normalizeSensitiveField(key) == "dsn" && value.Kind() == reflect.String {
+		return maskDSN(value.String())
+	}
+	return maskedValue
+}
+
+func maskDSN(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return raw
+	}
+
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.User == nil {
+		return maskedValue
+	}
+	afterScheme := strings.TrimPrefix(raw, parsed.Scheme+"://")
+	atIndex := strings.Index(afterScheme, "@")
+	if atIndex < 0 {
+		return maskedValue
+	}
+
+	return parsed.Scheme + "://" + parsed.User.Username() + ":***@" + afterScheme[atIndex+1:]
 }

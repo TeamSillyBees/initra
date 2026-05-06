@@ -19,7 +19,11 @@ func (a *Application) Run(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		timeout := a.Config.Server.ShutdownTimeout
+		if timeout <= 0 {
+			timeout = 10 * time.Second
+		}
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 		return a.Shutdown(shutdownCtx)
 	case err := <-errCh:
@@ -37,8 +41,10 @@ func (a *Application) Shutdown(ctx context.Context) error {
 	if err := a.DB.Close(); err != nil && firstErr == nil {
 		firstErr = err
 	}
-	if err := a.Redis.Close(); err != nil && firstErr == nil {
-		firstErr = err
+	if a.Redis != nil {
+		if err := a.Redis.Close(); err != nil && firstErr == nil {
+			firstErr = err
+		}
 	}
 	if err := a.Logger.Sync(); err != nil && firstErr == nil {
 		firstErr = err
