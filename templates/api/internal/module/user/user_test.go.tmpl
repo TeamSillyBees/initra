@@ -7,13 +7,16 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/teamsillybees/initra/pkg/pagination"
 )
 
 var errInvalidPassword = errors.New("invalid password")
 
 type fakeUserRepository struct {
-	created *User
-	byID    map[int64]*User
+	created   *User
+	byID      map[int64]*User
+	lastPage  PageUsersDTO
+	pageTotal int64
 }
 
 func (f *fakeUserRepository) Create(_ context.Context, user *User) error {
@@ -44,13 +47,18 @@ func (f *fakeUserRepository) FindByUsername(_ context.Context, username string) 
 	return nil, nil
 }
 
-func (f *fakeUserRepository) List(_ context.Context, _ ListUsersParams) ([]*User, int64, error) {
+func (f *fakeUserRepository) Page(_ context.Context, input PageUsersDTO) ([]*User, int64, error) {
+	f.lastPage = input
 	items := make([]*User, 0, len(f.byID))
 	for _, user := range f.byID {
 		cloned := *user
 		items = append(items, &cloned)
 	}
-	return items, int64(len(items)), nil
+	total := int64(len(items))
+	if f.pageTotal > 0 {
+		total = f.pageTotal
+	}
+	return items, total, nil
 }
 
 func (f *fakeUserRepository) Update(_ context.Context, user *User) error {
@@ -117,7 +125,7 @@ func TestServiceCreateAssignsIDAndHashesPassword(t *testing.T) {
 		return now
 	})
 
-	user, err := service.Create(context.Background(), CreateUserParams{
+	user, err := service.Create(context.Background(), CreateUserDTO{
 		Username:     "alice",
 		Password:     "secret-123",
 		Nickname:     "Alice",
@@ -165,4 +173,23 @@ func TestServiceGetBackfillsCacheOnMiss(t *testing.T) {
 	require.NotNil(t, cache.stored)
 	require.Equal(t, int64(1001), cache.stored.ID)
 	require.Equal(t, []string{"admin"}, cache.stored.RoleCodes)
+}
+
+func TestServicePageReturnsPaginationMeta(t *testing.T) {
+	repo := &fakeUserRepository{
+		byID: map[int64]*User{
+			1001: {ID: 1001, Username: "alice", IsEnable: true},
+		},
+		pageTotal: 42,
+	}
+	service := NewService(repo, &fakeUserCache{}, &fakeIDGenerator{id: 1002}, fakePasswordManager{}, time.Now)
+
+	result, err := service.Page(context.Background(), PageUsersDTO{})
+	require.NoError(t, err)
+
+	require.Equal(t, pagination.PageDTO{Page: 1, PageSize: 20}, repo.lastPage.Page)
+	require.Equal(t, int64(42), result.Total)
+	require.Equal(t, 1, result.Page.Page)
+	require.Equal(t, 20, result.Page.PageSize)
+	require.Equal(t, 3, pagination.NewPageMetaVO(result.Total, result.Page).TotalPages)
 }

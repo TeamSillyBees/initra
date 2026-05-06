@@ -7,6 +7,7 @@ import (
 
 	"github.com/teamsillybees/initra/examples/api/internal/module/bizerrors"
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
+	"github.com/teamsillybees/initra/pkg/pagination"
 )
 
 // userRepo 定义 user 模块访问持久化层的最小能力。
@@ -14,7 +15,7 @@ type userRepo interface {
 	Create(ctx context.Context, user *User) error
 	FindByID(ctx context.Context, id int64) (*User, error)
 	FindByUsername(ctx context.Context, username string) (*User, error)
-	List(ctx context.Context, input ListUsersParams) ([]*User, int64, error)
+	Page(ctx context.Context, input PageUsersDTO) ([]*User, int64, error)
 	Update(ctx context.Context, user *User) error
 	Delete(ctx context.Context, id int64, operatorID int64) error
 }
@@ -67,7 +68,7 @@ func NewService(
 }
 
 // Create 创建用户。
-func (s *Service) Create(ctx context.Context, input CreateUserParams) (*User, error) {
+func (s *Service) Create(ctx context.Context, input CreateUserDTO) (*User, error) {
 	if strings.TrimSpace(input.Username) == "" {
 		return nil, apperrors.New(apperrors.CodeBadRequest, "username is required")
 	}
@@ -134,22 +135,27 @@ func (s *Service) Get(ctx context.Context, id int64) (*User, error) {
 	return cloneUser(user), nil
 }
 
-// List 返回分页用户列表。
-func (s *Service) List(ctx context.Context, input ListUsersParams) (*ListUsersResult, error) {
-	items, total, err := s.repo.List(ctx, input)
+// Page 返回分页用户列表。
+func (s *Service) Page(ctx context.Context, input PageUsersDTO) (*pagination.PageResult[*User], error) {
+	pageDTO, err := input.Page.Normalize()
 	if err != nil {
 		return nil, err
 	}
-	return &ListUsersResult{
-		Items:    items,
-		Total:    total,
-		Page:     normalizePage(input.Page),
-		PageSize: normalizePageSize(input.PageSize),
+	input.Page = pageDTO
+
+	items, total, err := s.repo.Page(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+	return &pagination.PageResult[*User]{
+		Page:  pageDTO,
+		Total: total,
+		Items: items,
 	}, nil
 }
 
 // Update 更新用户并清理缓存。
-func (s *Service) Update(ctx context.Context, input UpdateUserParams) (*User, error) {
+func (s *Service) Update(ctx context.Context, input UpdateUserDTO) (*User, error) {
 	user, err := s.repo.FindByID(ctx, input.ID)
 	if err != nil {
 		return nil, err
@@ -241,18 +247,4 @@ func normalizeRoleCodes(roleCodes []string) []string {
 		return []string{"viewer"}
 	}
 	return result
-}
-
-func normalizePage(page int) int {
-	if page <= 0 {
-		return 1
-	}
-	return page
-}
-
-func normalizePageSize(pageSize int) int {
-	if pageSize <= 0 {
-		return 20
-	}
-	return pageSize
 }

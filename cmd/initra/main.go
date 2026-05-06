@@ -545,17 +545,16 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
-// Get 返回 %s 详情。
-func (h *Handler) Get(ctx context.Context, input *Get%sInput) (*get%sOutput, error) {
+func (h *Handler) get(ctx context.Context, input *get%sRequest) (*get%sResponse, error) {
 	item, err := h.service.Get(ctx, input.ID)
 	if err != nil {
 		return nil, err
 	}
-	return &get%sOutput{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), %sResponse{ID: item.ID}),
+	return &get%sResponse{
+		Body: response.OK(requestctx.TraceIDFromContext(ctx), %sVO{ID: item.ID}),
 	}, nil
 }
-`, name, name, name, name, typeName, typeName, typeName, typeName)
+`, name, name, name, typeName, typeName, typeName, typeName)
 }
 
 func moduleDTOTemplate(name string) string {
@@ -564,20 +563,19 @@ func moduleDTOTemplate(name string) string {
 
 import "github.com/teamsillybees/initra/pkg/response"
 
-// Get%sInput 描述 %s 详情查询路径参数。
-type Get%sInput struct {
+type get%sRequest struct {
 	ID int64 `+"`path:\"id\" doc:\"ID\"`"+`
 }
 
-// %sResponse 描述 %s 对外响应。
-type %sResponse struct {
+// %sVO 描述 %s 对外 JSON DTO。
+type %sVO struct {
 	ID int64 `+"`json:\"id\"`"+`
 }
 
-type get%sOutput struct {
-	Body response.SuccessResponse[%sResponse]
+type get%sResponse struct {
+	Body response.SuccessVO[%sVO]
 }
-`, name, typeName, name, typeName, typeName, name, typeName, typeName, typeName)
+`, name, typeName, typeName, name, typeName, typeName, typeName)
 }
 
 func moduleRoutesTemplate(name string) string {
@@ -611,7 +609,7 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Path:        "%s",
 		Summary:     "查询%s详情",
 		Tags:        []string{"%s"},
-	}, m.handler.Get)
+	}, m.handler.get)
 	registry.Register(http.MethodGet, "%s", platformauth.RouteSecurity{Resource: "%s", Action: "read"})
 }
 `, name, name, name, name, name, path, typeName, typeName, path, name)

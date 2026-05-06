@@ -4,6 +4,7 @@ import (
 	"context"
 
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
+	"github.com/teamsillybees/initra/pkg/pagination"
 	"github.com/teamsillybees/initra/pkg/requestctx"
 	"github.com/teamsillybees/initra/pkg/response"
 )
@@ -18,51 +19,47 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
-// Get 返回用户详情。
-func (h *Handler) Get(ctx context.Context, input *GetUserInput) (*GetUserOutput, error) {
+func (h *Handler) get(ctx context.Context, input *getUserRequest) (*getUserResponse, error) {
 	user, err := h.service.Get(ctx, input.ID)
 	if err != nil {
 		return nil, err
 	}
-	return &GetUserOutput{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), toUserResponse(user)),
+	return &getUserResponse{
+		Body: response.OK(requestctx.TraceIDFromContext(ctx), toUserVO(user)),
 	}, nil
 }
 
-// List 返回用户分页列表。
-func (h *Handler) List(ctx context.Context, input *ListUsersInput) (*ListUsersOutput, error) {
-	result, err := h.service.List(ctx, ListUsersParams{
-		Page:     input.Page,
-		PageSize: input.PageSize,
-		Keyword:  input.Keyword,
+func (h *Handler) page(ctx context.Context, input *pageUsersRequest) (*pageUsersResponse, error) {
+	pageDTO, err := input.PageUsersQuery.Normalize()
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := h.service.Page(ctx, PageUsersDTO{
+		Page:    pageDTO,
+		Keyword: input.Keyword,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	items := make([]UserResponse, 0, len(result.Items))
+	items := make([]UserVO, 0, len(result.Items))
 	for _, item := range result.Items {
-		items = append(items, toUserResponse(item))
+		items = append(items, toUserVO(item))
 	}
 
-	return &ListUsersOutput{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), UserListResponse{
-			Items:    items,
-			Total:    result.Total,
-			Page:     result.Page,
-			PageSize: result.PageSize,
-		}),
+	return &pageUsersResponse{
+		Body: response.OK(requestctx.TraceIDFromContext(ctx), pagination.NewPageVO(items, result.Total, result.Page)),
 	}, nil
 }
 
-// Create 创建用户。
-func (h *Handler) Create(ctx context.Context, input *CreateUserInput) (*CreateUserOutput, error) {
+func (h *Handler) create(ctx context.Context, input *createUserRequest) (*createUserResponse, error) {
 	operatorID := int64(0)
 	if principal, ok := platformauth.PrincipalFromContext(ctx); ok {
 		operatorID = principal.UserID
 	}
 
-	user, err := h.service.Create(ctx, CreateUserParams{
+	user, err := h.service.Create(ctx, CreateUserDTO{
 		Username:     input.Body.Username,
 		Password:     input.Body.Password,
 		Nickname:     input.Body.Nickname,
@@ -79,19 +76,18 @@ func (h *Handler) Create(ctx context.Context, input *CreateUserInput) (*CreateUs
 		return nil, err
 	}
 
-	return &CreateUserOutput{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), toUserResponse(user)),
+	return &createUserResponse{
+		Body: response.OK(requestctx.TraceIDFromContext(ctx), toUserVO(user)),
 	}, nil
 }
 
-// Update 更新用户。
-func (h *Handler) Update(ctx context.Context, input *UpdateUserInput) (*UpdateUserOutput, error) {
+func (h *Handler) update(ctx context.Context, input *updateUserRequest) (*updateUserResponse, error) {
 	operatorID := int64(0)
 	if principal, ok := platformauth.PrincipalFromContext(ctx); ok {
 		operatorID = principal.UserID
 	}
 
-	user, err := h.service.Update(ctx, UpdateUserParams{
+	user, err := h.service.Update(ctx, UpdateUserDTO{
 		ID:           input.ID,
 		Nickname:     input.Body.Nickname,
 		Phone:        input.Body.Phone,
@@ -107,13 +103,12 @@ func (h *Handler) Update(ctx context.Context, input *UpdateUserInput) (*UpdateUs
 		return nil, err
 	}
 
-	return &UpdateUserOutput{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), toUserResponse(user)),
+	return &updateUserResponse{
+		Body: response.OK(requestctx.TraceIDFromContext(ctx), toUserVO(user)),
 	}, nil
 }
 
-// Delete 删除用户。
-func (h *Handler) Delete(ctx context.Context, input *DeleteUserInput) (*DeleteUserOutput, error) {
+func (h *Handler) delete(ctx context.Context, input *deleteUserRequest) (*deleteUserResponse, error) {
 	operatorID := int64(0)
 	if principal, ok := platformauth.PrincipalFromContext(ctx); ok {
 		operatorID = principal.UserID
@@ -121,13 +116,13 @@ func (h *Handler) Delete(ctx context.Context, input *DeleteUserInput) (*DeleteUs
 	if err := h.service.Delete(ctx, input.ID, operatorID); err != nil {
 		return nil, err
 	}
-	return &DeleteUserOutput{
+	return &deleteUserResponse{
 		Body: response.OK(requestctx.TraceIDFromContext(ctx), map[string]any{}),
 	}, nil
 }
 
-func toUserResponse(user *User) UserResponse {
-	return UserResponse{
+func toUserVO(user *User) UserVO {
+	return UserVO{
 		ID:           user.ID,
 		Username:     user.Username,
 		Nickname:     user.Nickname,

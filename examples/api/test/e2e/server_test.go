@@ -53,8 +53,8 @@ func (m *memoryUserRepository) FindByUsername(_ context.Context, username string
 	return nil, nil
 }
 
-// List 返回全部用户副本和总数。
-func (m *memoryUserRepository) List(_ context.Context, _ usermodule.ListUsersParams) ([]*usermodule.User, int64, error) {
+// Page 返回全部用户副本和总数。
+func (m *memoryUserRepository) Page(_ context.Context, _ usermodule.PageUsersDTO) ([]*usermodule.User, int64, error) {
 	items := make([]*usermodule.User, 0, len(m.items))
 	for _, user := range m.items {
 		cloned := *user
@@ -157,7 +157,7 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	}, logger, jwtManager, enforcer)
 	require.NoError(t, err)
 
-	observability.NewModule(observability.BuildInfo{
+	observability.NewModule(observability.BuildInfoVO{
 		Version:   "test",
 		Commit:    "abc123",
 		BuildTime: "2026-04-21T00:00:00Z",

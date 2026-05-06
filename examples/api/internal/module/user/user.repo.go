@@ -113,18 +113,9 @@ func (r *Repository) FindByUsername(ctx context.Context, username string) (*User
 	return r.queryOne(ctx, stmt)
 }
 
-// List 分页查询用户列表。
-func (r *Repository) List(ctx context.Context, input ListUsersParams) ([]*User, int64, error) {
-	page := input.Page
-	if page <= 0 {
-		page = 1
-	}
-	pageSize := input.PageSize
-	if pageSize <= 0 {
-		pageSize = 20
-	}
-	offset := int64((page - 1) * pageSize)
-
+// Page 分页查询用户列表。
+func (r *Repository) Page(ctx context.Context, input PageUsersDTO) ([]*User, int64, error) {
+	pageDTO := input.Page
 	condition := SysUser.DeletedAt.IS_NULL()
 	if keyword := strings.TrimSpace(input.Keyword); keyword != "" {
 		pattern := "%" + keyword + "%"
@@ -143,8 +134,8 @@ func (r *Repository) List(ctx context.Context, input ListUsersParams) ([]*User, 
 		FROM(SysUser).
 		WHERE(condition).
 		ORDER_BY(SysUser.SortID.ASC(), SysUser.ID.ASC()).
-		LIMIT(int64(pageSize)).
-		OFFSET(offset)
+		LIMIT(pageDTO.Limit()).
+		OFFSET(pageDTO.Offset())
 
 	executor := platformdb.ExecutorFromContext(ctx, r.db)
 	query, args := stmt.Sql()

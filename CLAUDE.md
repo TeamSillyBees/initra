@@ -69,18 +69,20 @@ go run ./cmd/initra new $target --type api --module example.com/demo-api --repla
 ```
 internal/module/<module>/
   <module>.handler.go Handler + HTTP 适配方法 + DTO/领域模型转换
-  <module>.dto.go     HTTP 请求/响应 DTO + Huma input/output 类型
+  <module>.dto.go     HTTP 边界类型：内部 Request/Response、Query、Body、VO
   <module>.service.go 业务逻辑 + 私有接口定义
   <module>.repo.go    数据库实现
-  <module>.model.go   领域实体 + service/repo 参数与结果类型
+  <module>.model.go   领域实体 + service/repo DTO 与结果类型
   <module>.routes.go  路由注册 + Module 结构体
   providers.go        samber/do 依赖注入
   cache.go            可选，缓存适配器
   <module>_test.go    单元测试
 ```
 
-- `*.model.go` 只放模块内部稳定模型，不放 `json`、`path`、`query` 等传输层 tag。
-- `*.dto.go` 只放 HTTP 边界类型，包括请求体、路径/查询输入、响应体和 Huma output wrapper。
+- `*.model.go` 只放模块内部稳定模型，不放 `json`、`path`、`query` 等传输层 tag；service/repo 层的结构体入参统一使用 `DTO` 后缀，不再使用 `Params`。
+- 禁止使用 `Result` 后缀命名 service/repo 层返回值，列表直接使用 `[]T`，分页统一使用 `pagination.PageResult[T]` 泛型封装。
+- `*.dto.go` 只放 HTTP 边界类型：Huma/Gin 包装类型用非导出的 `request`/`response` 后缀；HTTP 查询参数用 `Query` 后缀；HTTP 请求体用 `Body` 后缀；对外 JSON DTO 用 `VO` 后缀。分页 JSON 输出使用 `pagination.PageVO[T]` 泛型，不定义模块专属分页 VO。
+- `Response` 只表示 Huma/Gin 内部响应包装，不作为对外 JSON DTO 后缀；统一成功/错误响应等 JSON 结构使用 `VO` 命名。
 - `*.handler.go` 可引用 DTO 类型，但不再定义 DTO；它只负责参数转换、调用 service 和包装响应。
 
 ### 依赖规则

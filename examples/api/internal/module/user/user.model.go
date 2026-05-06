@@ -1,6 +1,10 @@
 package user
 
-import "time"
+import (
+	"time"
+
+	"github.com/teamsillybees/initra/pkg/pagination"
+)
 
 // User 是 user 模块的核心领域实体。
 type User struct {
@@ -22,8 +26,8 @@ type User struct {
 	UpdatedBy    int64
 }
 
-// CreateUserParams 描述创建用户时所需的输入。
-type CreateUserParams struct {
+// CreateUserDTO 描述创建用户时所需的输入。
+type CreateUserDTO struct {
 	Username     string
 	Password     string
 	Nickname     string
@@ -37,8 +41,8 @@ type CreateUserParams struct {
 	OperatorID   int64
 }
 
-// UpdateUserParams 描述更新用户时允许变更的字段。
-type UpdateUserParams struct {
+// UpdateUserDTO 描述更新用户时允许变更的字段。
+type UpdateUserDTO struct {
 	ID           int64
 	Nickname     *string
 	Phone        *string
@@ -51,17 +55,8 @@ type UpdateUserParams struct {
 	OperatorID   int64
 }
 
-// ListUsersParams 描述分页查询用户列表的输入参数。
-type ListUsersParams struct {
-	Page     int
-	PageSize int
-	Keyword  string
-}
-
-// ListUsersResult 描述分页查询结果。
-type ListUsersResult struct {
-	Items    []*User
-	Total    int64
-	Page     int
-	PageSize int
+// PageUsersDTO 描述分页查询用户的输入参数。
+type PageUsersDTO struct {
+	Page    pagination.PageDTO
+	Keyword string
 }

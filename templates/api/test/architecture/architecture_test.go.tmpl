@@ -51,6 +51,8 @@ func TestExampleUsesAPIFoundationLayout(t *testing.T) {
 		}
 		require.FileExists(t, filepath.Join(moduleDir, "providers.go"))
 		requireNoTransportTypes(t, filepath.Join(moduleDir, moduleName+".handler.go"))
+		requireHTTPNaming(t, filepath.Join(moduleDir, moduleName+".dto.go"))
+		requireNoHTTPNamingInModel(t, filepath.Join(moduleDir, moduleName+".model.go"))
 	}
 	require.FileExists(t, filepath.Join(root, "db", "schema", "01_sys_user.sql"))
 	require.FileExists(t, filepath.Join(root, "db", "seeds", "001_seed_admin.sql"))
@@ -60,15 +62,41 @@ func TestExampleUsesAPIFoundationLayout(t *testing.T) {
 	require.True(t, errors.Is(err, os.ErrNotExist), "示例项目不应继续保留 internal/app 业务目录")
 }
 
-// requireNoTransportTypes 确认 handler 文件只承载 HTTP 适配逻辑，不再混放 DTO 类型。
+// requireNoTransportTypes 确认 handler 文件只承载 HTTP 适配逻辑，不再混放类型定义。
 func requireNoTransportTypes(t *testing.T, path string) {
 	t.Helper()
 
 	content, err := os.ReadFile(path)
 	require.NoError(t, err)
 
-	transportType := regexp.MustCompile(`(?m)^type\s+\w+(Input|Request|Response|Output)\s+`)
-	require.Falsef(t, transportType.Match(content), "%s should keep transport DTOs in *.dto.go", path)
+	transportType := regexp.MustCompile(`(?m)^type\s+\w+(Input|Output|Request|Response|Query|Body|VO|DTO|Params)\s+`)
+	exportedHandlerMethod := regexp.MustCompile(`(?m)^func\s+\(h\s+\*Handler\)\s+[A-Z]\w*\s*\(`)
+	require.Falsef(t, transportType.Match(content), "%s should keep type definitions outside handler files", path)
+	require.Falsef(t, exportedHandlerMethod.Match(content), "%s should keep Huma handler methods unexported", path)
+}
+
+// requireHTTPNaming 固定 HTTP 边界类型命名：Huma 包装类型仅内部使用，JSON 出参使用 VO。
+func requireHTTPNaming(t *testing.T, path string) {
+	t.Helper()
+
+	content, err := os.ReadFile(path)
+	require.NoError(t, err)
+
+	legacyType := regexp.MustCompile(`(?m)^type\s+\w+(Input|Output|Params)\s+`)
+	exportedWrapper := regexp.MustCompile(`(?m)^type\s+[A-Z]\w*(Request|Response)\s+`)
+	require.Falsef(t, legacyType.Match(content), "%s should not use Input/Output/Params suffixes", path)
+	require.Falsef(t, exportedWrapper.Match(content), "%s should keep Huma Request/Response wrappers unexported", path)
+}
+
+// requireNoHTTPNamingInModel 确认领域模型文件不承载 HTTP 边界类型。
+func requireNoHTTPNamingInModel(t *testing.T, path string) {
+	t.Helper()
+
+	content, err := os.ReadFile(path)
+	require.NoError(t, err)
+
+	httpType := regexp.MustCompile(`(?m)^type\s+\w+(Input|Output|Request|Response|Query|Body|VO|Params)\s+`)
+	require.Falsef(t, httpType.Match(content), "%s should keep HTTP boundary types in *.dto.go", path)
 }
 
 // goList 调用 go list 并解析指定包模式的依赖元信息。

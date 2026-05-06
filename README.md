@@ -27,6 +27,10 @@ scripts/            根仓库测试、检查、构建入口
 
 模板生成的业务项目是独立 Go module，通过 `go.mod` 引入 `github.com/teamsillybees/initra` 的可复用 Go package，不复制根仓库 `pkg/` 源码，也不依赖根仓库 `internal/`。
 
+## 模型命名约定
+
+标准 API 项目按模块保持 flat package。HTTP 边界类型放在 `*.dto.go`：Huma/Gin 包装类型使用非导出的 `request`/`response` 后缀；查询参数使用 `Query`；请求体使用 `Body`；对外 JSON DTO 使用 `VO`；分页 JSON 输出使用 `pagination.PageVO[T]` 泛型。领域实体和 service/repo 入参放在 `*.model.go`，结构体入参统一使用 `DTO` 后缀；禁止使用 `Result` 后缀命名返回值，列表直接使用 `[]T`，分页使用 `pagination.PageResult[T]` 泛型封装。
+
 ## 可复用 Go package
 
 - `pkg/config`：泛型配置加载，不绑定业务项目配置结构。

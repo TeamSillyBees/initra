@@ -1,21 +1,18 @@
 package user
 
-import "github.com/teamsillybees/initra/pkg/response"
+import (
+	"github.com/teamsillybees/initra/pkg/pagination"
+	"github.com/teamsillybees/initra/pkg/response"
+)
 
-// GetUserInput 描述用户详情查询的路径参数。
-type GetUserInput struct {
-	ID int64 `path:"id" example:"1001" doc:"用户 ID"`
+// PageUsersQuery 描述用户分页 HTTP 查询参数。
+type PageUsersQuery struct {
+	pagination.PageQuery
+	Keyword string `query:"keyword" example:"alice" doc:"用户名、昵称、手机号或邮箱关键字"`
 }
 
-// ListUsersInput 描述用户列表分页查询参数。
-type ListUsersInput struct {
-	Page     int    `query:"page" example:"1" doc:"页码"`
-	PageSize int    `query:"page_size" example:"20" doc:"每页数量"`
-	Keyword  string `query:"keyword" example:"alice" doc:"用户名、昵称、手机号或邮箱关键字"`
-}
-
-// CreateUserRequest 描述创建用户请求体。
-type CreateUserRequest struct {
+// CreateUserBody 描述创建用户请求体。
+type CreateUserBody struct {
 	Username     string   `json:"username" example:"alice"`
 	Password     string   `json:"password" example:"secret-123"`
 	Nickname     string   `json:"nickname" example:"Alice"`
@@ -28,13 +25,8 @@ type CreateUserRequest struct {
 	SortID       int      `json:"sort_id" example:"0"`
 }
 
-// CreateUserInput 描述创建用户接口输入。
-type CreateUserInput struct {
-	Body CreateUserRequest
-}
-
-// UpdateUserRequest 描述更新用户请求体。
-type UpdateUserRequest struct {
+// UpdateUserBody 描述更新用户请求体。
+type UpdateUserBody struct {
 	Nickname     *string   `json:"nickname,omitempty" example:"Alice Updated"`
 	Phone        *string   `json:"phone,omitempty" example:"13800000001"`
 	Email        *string   `json:"email,omitempty" example:"alice.updated@example.com"`
@@ -45,19 +37,8 @@ type UpdateUserRequest struct {
 	SortID       *int      `json:"sort_id,omitempty" example:"10"`
 }
 
-// UpdateUserInput 描述更新用户接口输入。
-type UpdateUserInput struct {
-	ID   int64 `path:"id" example:"1001" doc:"用户 ID"`
-	Body UpdateUserRequest
-}
-
-// DeleteUserInput 描述删除用户接口输入。
-type DeleteUserInput struct {
-	ID int64 `path:"id" example:"1001" doc:"用户 ID"`
-}
-
-// UserResponse 是 user 模块对外暴露的用户 DTO。
-type UserResponse struct {
+// UserVO 是 user 模块对外暴露的用户 JSON DTO。
+type UserVO struct {
 	ID           int64    `json:"id"`
 	Username     string   `json:"username"`
 	Nickname     string   `json:"nickname"`
@@ -70,30 +51,43 @@ type UserResponse struct {
 	SortID       int      `json:"sort_id"`
 }
 
-// UserListResponse 是用户分页列表 DTO。
-type UserListResponse struct {
-	Items    []UserResponse `json:"items"`
-	Total    int64          `json:"total"`
-	Page     int            `json:"page"`
-	PageSize int            `json:"page_size"`
+type getUserRequest struct {
+	ID int64 `path:"id" example:"1001" doc:"用户 ID"`
 }
 
-type getUserOutput struct {
-	Body response.SuccessResponse[UserResponse]
+type getUserResponse struct {
+	Body response.SuccessVO[UserVO]
 }
 
-type listUsersOutput struct {
-	Body response.SuccessResponse[UserListResponse]
+type pageUsersRequest struct {
+	PageUsersQuery
 }
 
-type createUserOutput struct {
-	Body response.SuccessResponse[UserResponse]
+type pageUsersResponse struct {
+	Body response.SuccessVO[pagination.PageVO[UserVO]]
 }
 
-type updateUserOutput struct {
-	Body response.SuccessResponse[UserResponse]
+type createUserRequest struct {
+	Body CreateUserBody
 }
 
-type deleteUserOutput struct {
-	Body response.SuccessResponse[map[string]any]
+type createUserResponse struct {
+	Body response.SuccessVO[UserVO]
+}
+
+type updateUserRequest struct {
+	ID   int64 `path:"id" example:"1001" doc:"用户 ID"`
+	Body UpdateUserBody
+}
+
+type updateUserResponse struct {
+	Body response.SuccessVO[UserVO]
+}
+
+type deleteUserRequest struct {
+	ID int64 `path:"id" example:"1001" doc:"用户 ID"`
+}
+
+type deleteUserResponse struct {
+	Body response.SuccessVO[map[string]any]
 }

@@ -19,9 +19,8 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
-// Login 执行账号密码登录。
-func (h *Handler) Login(ctx context.Context, input *LoginInput) (*LoginOutput, error) {
-	result, err := h.service.Login(ctx, LoginParams{
+func (h *Handler) login(ctx context.Context, input *loginRequest) (*loginResponse, error) {
+	identity, tokenPair, err := h.service.Login(ctx, LoginDTO{
 		Username: input.Body.Username,
 		Password: input.Body.Password,
 	})
@@ -29,32 +28,30 @@ func (h *Handler) Login(ctx context.Context, input *LoginInput) (*LoginOutput, e
 		return nil, err
 	}
 
-	return &LoginOutput{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), LoginResponse{
-			AccessToken:  result.AccessToken,
-			RefreshToken: result.RefreshToken,
-			User:         toUserIdentity(result.User),
+	return &loginResponse{
+		Body: response.OK(requestctx.TraceIDFromContext(ctx), LoginVO{
+			AccessToken:  tokenPair.AccessToken,
+			RefreshToken: tokenPair.RefreshToken,
+			User:         toUserIdentityVO(identity),
 		}),
 	}, nil
 }
 
-// Refresh 使用 opaque refresh token 轮转新的 token pair。
-func (h *Handler) Refresh(ctx context.Context, input *RefreshInput) (*RefreshOutput, error) {
-	result, err := h.service.Refresh(ctx, input.Body.RefreshToken)
+func (h *Handler) refresh(ctx context.Context, input *refreshRequest) (*refreshResponse, error) {
+	tokenPair, err := h.service.Refresh(ctx, input.Body.RefreshToken)
 	if err != nil {
 		return nil, err
 	}
 
-	return &RefreshOutput{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), RefreshResponse{
-			AccessToken:  result.AccessToken,
-			RefreshToken: result.RefreshToken,
+	return &refreshResponse{
+		Body: response.OK(requestctx.TraceIDFromContext(ctx), RefreshVO{
+			AccessToken:  tokenPair.AccessToken,
+			RefreshToken: tokenPair.RefreshToken,
 		}),
 	}, nil
 }
 
-// Me 返回当前登录用户信息。
-func (h *Handler) Me(ctx context.Context, _ *MeInput) (*MeOutput, error) {
+func (h *Handler) me(ctx context.Context, _ *meRequest) (*meResponse, error) {
 	principal, ok := platformauth.PrincipalFromContext(ctx)
 	if !ok {
 		return nil, apperrors.New(apperrors.CodeUnauthorized, "user principal is missing")
@@ -65,13 +62,13 @@ func (h *Handler) Me(ctx context.Context, _ *MeInput) (*MeOutput, error) {
 		return nil, err
 	}
 
-	return &MeOutput{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), toUserIdentity(user)),
+	return &meResponse{
+		Body: response.OK(requestctx.TraceIDFromContext(ctx), toUserIdentityVO(user)),
 	}, nil
 }
 
-func toUserIdentity(identity *Identity) UserIdentity {
-	return UserIdentity{
+func toUserIdentityVO(identity *Identity) UserIdentityVO {
+	return UserIdentityVO{
 		UserID:       identity.UserID,
 		Username:     identity.Username,
 		Nickname:     identity.Nickname,

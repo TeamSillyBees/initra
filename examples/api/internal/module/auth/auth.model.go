@@ -11,21 +11,8 @@ type Identity struct {
 	IsEnable     bool
 }
 
-// LoginParams 描述登录输入参数。
-type LoginParams struct {
+// LoginDTO 描述登录输入参数。
+type LoginDTO struct {
 	Username string
 	Password string
-}
-
-// LoginResult 描述登录成功后的响应载荷。
-type LoginResult struct {
-	AccessToken  string
-	RefreshToken string
-	User         *Identity
-}
-
-// RefreshResult 描述刷新 token 的响应载荷。
-type RefreshResult struct {
-	AccessToken  string
-	RefreshToken string
 }

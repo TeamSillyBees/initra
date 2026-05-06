@@ -139,16 +139,16 @@ func TestServiceLoginReturnsTokenPairForValidCredentials(t *testing.T) {
 
 	service := NewService(repo, fakePasswordVerifier{}, tokenManager)
 
-	result, err := service.Login(context.Background(), LoginParams{
+	identity, tokenPair, err := service.Login(context.Background(), LoginDTO{
 		Username: "alice",
 		Password: "secret-123",
 	})
 	require.NoError(t, err)
-	require.Equal(t, int64(1001), result.User.UserID)
-	require.Equal(t, "Alice", result.User.Nickname)
-	require.Equal(t, []string{"admin"}, result.User.RoleCodes)
-	require.NotEmpty(t, result.AccessToken)
-	require.NotEmpty(t, result.RefreshToken)
+	require.Equal(t, int64(1001), identity.UserID)
+	require.Equal(t, "Alice", identity.Nickname)
+	require.Equal(t, []string{"admin"}, identity.RoleCodes)
+	require.NotEmpty(t, tokenPair.AccessToken)
+	require.NotEmpty(t, tokenPair.RefreshToken)
 	require.NotEmpty(t, store.storedRefreshTokenID)
 	require.Empty(t, store.blacklistedTokenID)
 }
@@ -184,18 +184,18 @@ func TestServiceRefreshIssuesNewAccessToken(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	result, err := service.Refresh(context.Background(), pair.RefreshToken)
+	tokenPair, err := service.Refresh(context.Background(), pair.RefreshToken)
 	require.NoError(t, err)
-	require.NotEmpty(t, result.AccessToken)
-	require.NotEmpty(t, result.RefreshToken)
+	require.NotEmpty(t, tokenPair.AccessToken)
+	require.NotEmpty(t, tokenPair.RefreshToken)
 
-	claims, err := tokenManager.ParseAccessToken(context.Background(), result.AccessToken)
+	claims, err := tokenManager.ParseAccessToken(context.Background(), tokenPair.AccessToken)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), claims.UserID)
 
 	_, err = tokenManager.ValidateRefreshToken(context.Background(), pair.RefreshToken)
 	require.Error(t, err)
 
-	_, err = tokenManager.ValidateRefreshToken(context.Background(), result.RefreshToken)
+	_, err = tokenManager.ValidateRefreshToken(context.Background(), tokenPair.RefreshToken)
 	require.NoError(t, err)
 }

@@ -44,20 +44,20 @@ func NewService(repo identityRepo, passwords passwordVerifier, tokens tokenManag
 }
 
 // Login 校验账号密码并签发 access JWT 与 opaque refresh token。
-func (s *Service) Login(ctx context.Context, input LoginParams) (*LoginResult, error) {
+func (s *Service) Login(ctx context.Context, input LoginDTO) (*Identity, platformauth.TokenPair, error) {
 	if strings.TrimSpace(input.Username) == "" || strings.TrimSpace(input.Password) == "" {
-		return nil, apperrors.New(apperrors.CodeBadRequest, "username and password are required")
+		return nil, platformauth.TokenPair{}, apperrors.New(apperrors.CodeBadRequest, "username and password are required")
 	}
 
 	identity, err := s.repo.FindByUsername(ctx, strings.TrimSpace(input.Username))
 	if err != nil {
-		return nil, err
+		return nil, platformauth.TokenPair{}, err
 	}
 	if identity == nil || !identity.IsEnable {
-		return nil, bizerrors.LoginFailed()
+		return nil, platformauth.TokenPair{}, bizerrors.LoginFailed()
 	}
 	if err := s.passwords.Compare(identity.PasswordHash, input.Password); err != nil {
-		return nil, bizerrors.LoginFailed()
+		return nil, platformauth.TokenPair{}, bizerrors.LoginFailed()
 	}
 
 	tokenPair, err := s.tokens.IssueTokenPair(ctx, platformauth.Principal{
@@ -65,36 +65,32 @@ func (s *Service) Login(ctx context.Context, input LoginParams) (*LoginResult, e
 		Roles:  append([]string(nil), identity.RoleCodes...),
 	})
 	if err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeInternalError, "issue token failed")
+		return nil, platformauth.TokenPair{}, apperrors.Wrap(err, apperrors.CodeInternalError, "issue token failed")
 	}
 
-	return &LoginResult{
-		AccessToken:  tokenPair.AccessToken,
-		RefreshToken: tokenPair.RefreshToken,
-		User:         cloneIdentity(identity),
-	}, nil
+	return cloneIdentity(identity), tokenPair, nil
 }
 
 // Refresh 校验 opaque refresh token 并轮转新的 token pair。
-func (s *Service) Refresh(ctx context.Context, refreshToken string) (*RefreshResult, error) {
+func (s *Service) Refresh(ctx context.Context, refreshToken string) (platformauth.TokenPair, error) {
 	if strings.TrimSpace(refreshToken) == "" {
-		return nil, apperrors.New(apperrors.CodeBadRequest, "refresh token is required")
+		return platformauth.TokenPair{}, apperrors.New(apperrors.CodeBadRequest, "refresh token is required")
 	}
 
 	record, err := s.tokens.ConsumeRefreshToken(ctx, refreshToken)
 	if err != nil {
 		if errors.Is(err, platformauth.ErrTokenStoreFailure) {
-			return nil, apperrors.Wrap(err, apperrors.CodeInternalError, "consume refresh token failed")
+			return platformauth.TokenPair{}, apperrors.Wrap(err, apperrors.CodeInternalError, "consume refresh token failed")
 		}
-		return nil, apperrors.New(apperrors.CodeUnauthorized, "refresh token is invalid")
+		return platformauth.TokenPair{}, apperrors.New(apperrors.CodeUnauthorized, "refresh token is invalid")
 	}
 
 	identity, err := s.repo.FindByID(ctx, record.UserID)
 	if err != nil {
-		return nil, err
+		return platformauth.TokenPair{}, err
 	}
 	if identity == nil || !identity.IsEnable {
-		return nil, apperrors.New(apperrors.CodeUnauthorized, "refresh token is invalid")
+		return platformauth.TokenPair{}, apperrors.New(apperrors.CodeUnauthorized, "refresh token is invalid")
 	}
 
 	tokenPair, err := s.tokens.IssueTokenPair(ctx, platformauth.Principal{
@@ -102,13 +98,10 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (*RefreshRes
 		Roles:  append([]string(nil), identity.RoleCodes...),
 	})
 	if err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeInternalError, "issue token failed")
+		return platformauth.TokenPair{}, apperrors.Wrap(err, apperrors.CodeInternalError, "issue token failed")
 	}
 
-	return &RefreshResult{
-		AccessToken:  tokenPair.AccessToken,
-		RefreshToken: tokenPair.RefreshToken,
-	}, nil
+	return tokenPair, nil
 }
 
 // Me 查询当前登录用户信息。

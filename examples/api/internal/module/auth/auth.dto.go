@@ -2,45 +2,42 @@ package auth
 
 import "github.com/teamsillybees/initra/pkg/response"
 
-// LoginRequest 描述登录请求体。
-type LoginRequest struct {
+// LoginBody 描述登录请求体。
+type LoginBody struct {
 	Username string `json:"username" example:"alice"`
 	Password string `json:"password" example:"secret-123"`
 }
 
-// LoginInput 描述登录接口输入。
-type LoginInput struct {
-	Body LoginRequest
+type loginRequest struct {
+	Body LoginBody
 }
 
-// RefreshRequest 描述刷新 token 请求体。
-type RefreshRequest struct {
+// RefreshBody 描述刷新 token 请求体。
+type RefreshBody struct {
 	RefreshToken string `json:"refresh_token" example:"token"`
 }
 
-// RefreshInput 描述刷新接口输入。
-type RefreshInput struct {
-	Body RefreshRequest
+type refreshRequest struct {
+	Body RefreshBody
 }
 
-// MeInput 仅作为当前用户接口的占位输入。
-type MeInput struct{}
+type meRequest struct{}
 
-// LoginResponse 描述登录成功响应体。
-type LoginResponse struct {
-	AccessToken  string       `json:"access_token"`
-	RefreshToken string       `json:"refresh_token"`
-	User         UserIdentity `json:"user"`
+// LoginVO 描述登录成功响应体。
+type LoginVO struct {
+	AccessToken  string         `json:"access_token"`
+	RefreshToken string         `json:"refresh_token"`
+	User         UserIdentityVO `json:"user"`
 }
 
-// RefreshResponse 描述刷新 token 响应体。
-type RefreshResponse struct {
+// RefreshVO 描述刷新 token 响应体。
+type RefreshVO struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
 
-// UserIdentity 描述当前登录用户的公开身份信息。
-type UserIdentity struct {
+// UserIdentityVO 描述当前登录用户的公开身份信息。
+type UserIdentityVO struct {
 	UserID       int64    `json:"user_id"`
 	Username     string   `json:"username"`
 	Nickname     string   `json:"nickname"`
@@ -49,17 +46,14 @@ type UserIdentity struct {
 	IsEnable     bool     `json:"is_enable"`
 }
 
-// LoginOutput 是 Huma 登录接口响应包装。
-type LoginOutput struct {
-	Body response.SuccessResponse[LoginResponse]
+type loginResponse struct {
+	Body response.SuccessVO[LoginVO]
 }
 
-// RefreshOutput 是 Huma 刷新接口响应包装。
-type RefreshOutput struct {
-	Body response.SuccessResponse[RefreshResponse]
+type refreshResponse struct {
+	Body response.SuccessVO[RefreshVO]
 }
 
-// MeOutput 是 Huma 当前用户接口响应包装。
-type MeOutput struct {
-	Body response.SuccessResponse[UserIdentity]
+type meResponse struct {
+	Body response.SuccessVO[UserIdentityVO]
 }

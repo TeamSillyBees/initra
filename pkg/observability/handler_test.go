@@ -34,7 +34,7 @@ func TestModuleRegistersHealthReadyAndVersionEndpoints(t *testing.T) {
 	}, logger, jwtManager, enforcer)
 	require.NoError(t, err)
 
-	module := observability.NewModule(observability.BuildInfo{
+	module := observability.NewModule(observability.BuildInfoVO{
 		Version:   "test",
 		Commit:    "abc123",
 		BuildTime: "2026-04-21T00:00:00Z",

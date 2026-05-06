@@ -28,7 +28,7 @@ func main() {
 
 	app, err := boot.Bootstrap(ctx, boot.Options{
 		Env: os.Getenv("APP_ENV"),
-		BuildInfo: observability.BuildInfo{
+		BuildInfo: observability.BuildInfoVO{
 			Version:   version,
 			Commit:    commit,
 			BuildTime: buildTime,

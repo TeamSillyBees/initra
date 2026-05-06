@@ -18,7 +18,7 @@ import (
 type Options struct {
 	Env       string
 	ConfigDir string
-	BuildInfo observability.BuildInfo
+	BuildInfo observability.BuildInfoVO
 }
 
 // Application 是启动完成后的应用聚合根。

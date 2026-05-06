@@ -41,6 +41,7 @@ func TestNewGeneratesAPIProjectWithFrameworkRequireAndNoPkgCopy(t *testing.T) {
 		require.FileExists(t, filepath.Join(moduleDir, "providers.go"))
 		handlerContent := readFile(t, filepath.Join(moduleDir, moduleName+".handler.go"))
 		require.NotContains(t, handlerContent, "Input struct")
+		require.NotContains(t, handlerContent, "Output struct")
 		require.NotContains(t, handlerContent, "Response struct")
 	}
 	require.FileExists(t, filepath.Join(target, "db", "schema", "01_sys_user.sql"))
@@ -143,8 +144,12 @@ func TestModuleAddGeneratesVerticalSliceModule(t *testing.T) {
 	require.NotContains(t, handlerContent, "type GetOrderInput")
 	require.NotContains(t, handlerContent, "type OrderResponse")
 	dtoContent := readFile(t, filepath.Join(moduleDir, "order.dto.go"))
-	require.Contains(t, dtoContent, "type GetOrderInput")
-	require.Contains(t, dtoContent, "type OrderResponse")
+	require.Contains(t, dtoContent, "type getOrderRequest")
+	require.Contains(t, dtoContent, "type getOrderResponse")
+	require.Contains(t, dtoContent, "type OrderVO")
+	require.NotContains(t, dtoContent, "Input")
+	require.NotContains(t, dtoContent, "Output")
+	require.NotContains(t, dtoContent, "type OrderResponse")
 	require.Contains(t, stdout.String(), "created module order")
 }
 

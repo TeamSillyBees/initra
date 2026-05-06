@@ -19,7 +19,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func registerProviders(ctx context.Context, injector *do.Injector, cfg *Config, buildInfo observability.BuildInfo) {
+func registerProviders(ctx context.Context, injector *do.Injector, cfg *Config, buildInfo observability.BuildInfoVO) {
 	do.Provide(injector, func(i *do.Injector) (*zap.Logger, error) {
 		return logging.NewLogger(cfg.Logger)
 	})
@@ -84,7 +84,7 @@ func registerModules(injector *do.Injector) {
 	authmodule.Provide(injector)
 }
 
-func registerRoutes(injector *do.Injector, webApp *server.App, buildInfo observability.BuildInfo) {
+func registerRoutes(injector *do.Injector, webApp *server.App, buildInfo observability.BuildInfoVO) {
 	observability.NewModule(buildInfo).Register(webApp.API, webApp.Registry)
 
 	// 新增业务模块完成依赖注册后，需要在这里解析 Module 并调用 Register。
