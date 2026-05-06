@@ -1,9 +1,8 @@
 package auth
 
 import (
-	"database/sql"
-
 	"github.com/samber/do"
+	"github.com/teamsillybees/initra/examples/api/internal/ent"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 )
 
@@ -16,8 +15,8 @@ const (
 // Provide 使用 do 注册 auth 模块依赖。
 func Provide(injector *do.Injector) {
 	do.ProvideNamed(injector, authRepositoryServiceName, func(i *do.Injector) (*Repository, error) {
-		db := do.MustInvoke[*sql.DB](i)
-		return NewRepository(db), nil
+		client := do.MustInvoke[*ent.Client](i)
+		return NewRepository(client), nil
 	})
 	do.ProvideNamed(injector, authServiceServiceName, func(i *do.Injector) (*Service, error) {
 		repo := do.MustInvokeNamed[*Repository](i, authRepositoryServiceName)

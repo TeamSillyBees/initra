@@ -275,7 +275,7 @@ func runMigrate(args []string, stdout io.Writer) error {
 			return err
 		}
 		path := filepath.Join("scripts", "migrate-diff-"+name+".ps1")
-		content := "param(\n    [string]$Env = \"local\"\n)\n\natlas migrate diff " + name + " --env $Env -c file://db/atlas.hcl\n"
+		content := migrateDiffScript(name)
 		if err := writeNewFile(path, content); err != nil {
 			return err
 		}
@@ -288,6 +288,32 @@ func runMigrate(args []string, stdout io.Writer) error {
 	}
 }
 
+func migrateDiffScript(name string) string {
+	return fmt.Sprintf(`param(
+    [string]$Env = "",
+    [string]$ConfigDir = "configs",
+    [string]$DevURL = ""
+)
+
+$ErrorActionPreference = "Stop"
+$repoRoot = Split-Path -Parent $PSScriptRoot
+Push-Location $repoRoot
+try {
+    $optionalArgs = @()
+    if (![string]::IsNullOrWhiteSpace($Env)) {
+        $optionalArgs += @("-env", $Env)
+    }
+    if (![string]::IsNullOrWhiteSpace($DevURL)) {
+        $optionalArgs += @("-dev-url", $DevURL)
+    }
+    go run ./internal/ent/migratediff/main.go %s -config-dir $ConfigDir @optionalArgs
+}
+finally {
+    Pop-Location
+}
+`, name)
+}
+
 func runDoctor(args []string, stdout io.Writer) error {
 	if len(args) != 0 {
 		return fmt.Errorf("用法: initra doctor")
@@ -298,7 +324,7 @@ func runDoctor(args []string, stdout io.Writer) error {
 
 	reportTool(stdout, "Go", "go", "version")
 	reportTool(stdout, "Atlas", "atlas", "version")
-	reportTool(stdout, "go-jet", "jet", "-version")
+	reportTool(stdout, "Ent", "go", "run", "entgo.io/ent/cmd/ent", "--help")
 	reportTool(stdout, "golangci-lint", "golangci-lint", "version")
 	reportFile(stdout, "config.local.yaml", filepath.Join("configs", "config.local.yaml"))
 	reportFile(stdout, "Atlas config", filepath.Join("db", "atlas.hcl"))

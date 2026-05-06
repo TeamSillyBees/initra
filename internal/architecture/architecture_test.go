@@ -29,6 +29,13 @@ func TestPublicPackagesDoNotImportExamples(t *testing.T) {
 				pkg.ImportPath,
 				imported,
 			)
+			require.Falsef(
+				t,
+				strings.Contains(imported, "/internal/ent"),
+				"%s imports generated Ent package %s",
+				pkg.ImportPath,
+				imported,
+			)
 		}
 	}
 }

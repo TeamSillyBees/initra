@@ -2,161 +2,127 @@ package user
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"strings"
 	"time"
 
-	. "github.com/go-jet/jet/v2/postgres"
-	platformdb "github.com/teamsillybees/initra/pkg/db"
+	"{{ .ModulePath }}/internal/data"
+	appent "{{ .ModulePath }}/internal/ent"
+	"{{ .ModulePath }}/internal/ent/sysrole"
+	"{{ .ModulePath }}/internal/ent/sysuser"
+	"{{ .ModulePath }}/internal/ent/sysuserrole"
+	"github.com/teamsillybees/initra/pkg/entx"
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
-	. "{{ .ModulePath }}/internal/gen/jet/table"
 )
 
-// Repository 使用 Jet SQL Builder 实现 user 模块仓储。
+// Repository 使用 Ent Client 实现 user 模块仓储。
 type Repository struct {
-	db    *sql.DB
-	idgen idGenerator
+	client *appent.Client
 }
 
 // NewRepository 创建 user 仓储实例。
-func NewRepository(db *sql.DB, idgen idGenerator) *Repository {
-	return &Repository{
-		db:    db,
-		idgen: idgen,
-	}
+func NewRepository(client *appent.Client) *Repository {
+	return &Repository{client: client}
 }
 
 // Create 持久化一个新的用户实体及其角色关系。
 func (r *Repository) Create(ctx context.Context, user *User) error {
-	return platformdb.WithinTx(ctx, r.db, func(txCtx context.Context) error {
-		executor := platformdb.ExecutorFromContext(txCtx, r.db)
-
-		stmt := SysUser.
-			INSERT(
-				SysUser.ID,
-				SysUser.Username,
-				SysUser.PasswordHash,
-				SysUser.Nickname,
-				SysUser.Phone,
-				SysUser.Email,
-				SysUser.AvatarURL,
-				SysUser.IsSuperAdmin,
-				SysUser.IsEnable,
-				SysUser.SortID,
-				SysUser.CreatedAt,
-				SysUser.UpdatedAt,
-				SysUser.CreatedBy,
-				SysUser.UpdatedBy,
-			).
-			VALUES(
-				user.ID,
-				user.Username,
-				user.PasswordHash,
-				user.Nickname,
-				user.Phone,
-				user.Email,
-				user.AvatarURL,
-				user.IsSuperAdmin,
-				user.IsEnable,
-				user.SortID,
-				user.CreatedAt,
-				user.UpdatedAt,
-				user.CreatedBy,
-				user.UpdatedBy,
-			)
-
-		query, args := stmt.Sql()
-		if _, err := executor.ExecContext(txCtx, query, args...); err != nil {
-			return apperrors.Wrap(err, apperrors.CodeDBError, "create user failed")
-		}
-
-		roleIDs, err := r.resolveRoleIDs(txCtx, user.RoleCodes)
+	return data.WithinTx(ctx, r.client, func(txCtx context.Context, txClient *appent.Client) error {
+		roleIDs, err := r.resolveRoleIDs(txCtx, txClient, user.RoleCodes)
 		if err != nil {
 			return err
 		}
-		if err := r.replaceUserRoles(txCtx, user.ID, roleIDs, user.CreatedBy, user.CreatedAt); err != nil {
-			return err
+
+		record, err := txClient.SysUser.Create().
+			SetUsername(user.Username).
+			SetPasswordHash(user.PasswordHash).
+			SetNillableNickname(nullableString(user.Nickname)).
+			SetNillablePhone(nullableString(user.Phone)).
+			SetNillableEmail(nullableString(user.Email)).
+			SetNillableAvatarURL(nullableString(user.AvatarURL)).
+			SetIsSuperAdmin(user.IsSuperAdmin).
+			SetIsEnable(user.IsEnable).
+			SetSortID(user.SortID).
+			Save(txCtx)
+		if err != nil {
+			return mapEntWriteError(err, "create user failed")
 		}
 
+		fillDomainFromEnt(user, record)
+		user.RoleCodes = normalizeCodes(user.RoleCodes)
+		if err := r.replaceUserRoles(txCtx, txClient, record.ID, roleIDs); err != nil {
+			return err
+		}
 		return nil
 	})
 }
 
 // FindByID 根据用户 ID 查询用户详情。
 func (r *Repository) FindByID(ctx context.Context, id int64) (*User, error) {
-	stmt := selectBase().
-		FROM(SysUser).
-		WHERE(
-			AND(
-				SysUser.ID.EQ(Int64(id)),
-				SysUser.DeletedAt.IS_NULL(),
-			),
+	record, err := r.client.SysUser.Query().
+		Where(
+			sysuser.ID(id),
+			sysuser.DeletedAtIsNil(),
 		).
-		LIMIT(1)
-
-	return r.queryOne(ctx, stmt)
+		Only(ctx)
+	if appent.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "query user failed")
+	}
+	return r.toDomain(ctx, record)
 }
 
 // FindByUsername 根据用户名查询用户详情。
 func (r *Repository) FindByUsername(ctx context.Context, username string) (*User, error) {
-	stmt := selectBase().
-		FROM(SysUser).
-		WHERE(
-			AND(
-				SysUser.Username.EQ(String(strings.TrimSpace(username))),
-				SysUser.DeletedAt.IS_NULL(),
-			),
+	record, err := r.client.SysUser.Query().
+		Where(
+			sysuser.Username(strings.TrimSpace(username)),
+			sysuser.DeletedAtIsNil(),
 		).
-		LIMIT(1)
-
-	return r.queryOne(ctx, stmt)
+		Only(ctx)
+	if appent.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "query user failed")
+	}
+	return r.toDomain(ctx, record)
 }
 
 // Page 分页查询用户列表。
 func (r *Repository) Page(ctx context.Context, input PageUsersDTO) ([]*User, int64, error) {
 	pageDTO := input.Page
-	condition := SysUser.DeletedAt.IS_NULL()
+	query := r.client.SysUser.Query().Where(sysuser.DeletedAtIsNil())
 	if keyword := strings.TrimSpace(input.Keyword); keyword != "" {
-		pattern := "%" + keyword + "%"
-		condition = AND(
-			condition,
-			OR(
-				SysUser.Username.LIKE(String(pattern)),
-				SysUser.Nickname.LIKE(String(pattern)),
-				SysUser.Phone.LIKE(String(pattern)),
-				SysUser.Email.LIKE(String(pattern)),
-			),
-		)
+		query.Where(sysuser.Or(
+			sysuser.UsernameContainsFold(keyword),
+			sysuser.NicknameContainsFold(keyword),
+			sysuser.PhoneContainsFold(keyword),
+			sysuser.EmailContainsFold(keyword),
+		))
 	}
 
-	stmt := selectBase().
-		FROM(SysUser).
-		WHERE(condition).
-		ORDER_BY(SysUser.SortID.ASC(), SysUser.ID.ASC()).
-		LIMIT(pageDTO.Limit()).
-		OFFSET(pageDTO.Offset())
+	total, err := query.Clone().Count(ctx)
+	if err != nil {
+		return nil, 0, apperrors.Wrap(err, apperrors.CodeDBError, "count users failed")
+	}
 
-	executor := platformdb.ExecutorFromContext(ctx, r.db)
-	query, args := stmt.Sql()
-	rows, err := executor.QueryContext(ctx, query, args...)
+	records, err := query.
+		Order(appent.Asc(sysuser.FieldSortID), appent.Asc(sysuser.FieldID)).
+		Limit(int(pageDTO.Limit())).
+		Offset(int(pageDTO.Offset())).
+		All(ctx)
 	if err != nil {
 		return nil, 0, apperrors.Wrap(err, apperrors.CodeDBError, "list users failed")
 	}
-	defer rows.Close()
 
-	items := make([]*User, 0)
-	userIDs := make([]int64, 0)
-	for rows.Next() {
-		record, err := scanUser(rows)
-		if err != nil {
-			return nil, 0, err
-		}
-		items = append(items, record)
-		userIDs = append(userIDs, record.ID)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, 0, apperrors.Wrap(err, apperrors.CodeDBError, "iterate users failed")
+	userIDs := make([]int64, 0, len(records))
+	items := make([]*User, 0, len(records))
+	for _, record := range records {
+		item := userFromEnt(record)
+		items = append(items, item)
+		userIDs = append(userIDs, item.ID)
 	}
 
 	roleCodesByUserID, err := r.loadRoleCodesByUserIDs(ctx, userIDs)
@@ -170,185 +136,97 @@ func (r *Repository) Page(ctx context.Context, input PageUsersDTO) ([]*User, int
 		}
 	}
 
-	countStmt := SELECT(COUNT(SysUser.ID).AS("total")).
-		FROM(SysUser).
-		WHERE(condition)
-
-	countQuery, countArgs := countStmt.Sql()
-	var total int64
-	if err := executor.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
-		return nil, 0, apperrors.Wrap(err, apperrors.CodeDBError, "count users failed")
-	}
-
-	return items, total, nil
+	return items, int64(total), nil
 }
 
 // Update 更新用户基础信息与角色配置。
 func (r *Repository) Update(ctx context.Context, user *User) error {
-	return platformdb.WithinTx(ctx, r.db, func(txCtx context.Context) error {
-		executor := platformdb.ExecutorFromContext(txCtx, r.db)
+	return data.WithinTx(ctx, r.client, func(txCtx context.Context, txClient *appent.Client) error {
+		update := txClient.SysUser.UpdateOneID(user.ID).
+			Where(sysuser.DeletedAtIsNil()).
+			SetIsSuperAdmin(user.IsSuperAdmin).
+			SetIsEnable(user.IsEnable).
+			SetSortID(user.SortID)
+		setOptionalStrings(update, user)
 
-		stmt := SysUser.
-			UPDATE(
-				SysUser.Nickname,
-				SysUser.Phone,
-				SysUser.Email,
-				SysUser.AvatarURL,
-				SysUser.IsSuperAdmin,
-				SysUser.IsEnable,
-				SysUser.SortID,
-				SysUser.UpdatedAt,
-				SysUser.UpdatedBy,
-			).
-			SET(
-				user.Nickname,
-				user.Phone,
-				user.Email,
-				user.AvatarURL,
-				user.IsSuperAdmin,
-				user.IsEnable,
-				user.SortID,
-				user.UpdatedAt,
-				user.UpdatedBy,
-			).
-			WHERE(
-				AND(
-					SysUser.ID.EQ(Int64(user.ID)),
-					SysUser.DeletedAt.IS_NULL(),
-				),
-			)
-
-		query, args := stmt.Sql()
-		if _, err := executor.ExecContext(txCtx, query, args...); err != nil {
-			return apperrors.Wrap(err, apperrors.CodeDBError, "update user failed")
+		record, err := update.Save(txCtx)
+		if appent.IsNotFound(err) {
+			return nil
+		}
+		if err != nil {
+			return mapEntWriteError(err, "update user failed")
 		}
 
-		roleIDs, err := r.resolveRoleIDs(txCtx, user.RoleCodes)
+		roleIDs, err := r.resolveRoleIDs(txCtx, txClient, user.RoleCodes)
 		if err != nil {
 			return err
 		}
-		if err := r.replaceUserRoles(txCtx, user.ID, roleIDs, user.UpdatedBy, user.UpdatedAt); err != nil {
+		if err := r.replaceUserRoles(txCtx, txClient, user.ID, roleIDs); err != nil {
 			return err
 		}
 
+		refreshed, err := r.findByIDWithClient(txCtx, txClient, record.ID)
+		if err != nil {
+			return err
+		}
+		if refreshed != nil {
+			*user = *refreshed
+		}
 		return nil
 	})
 }
 
 // Delete 通过软删除方式移除用户，并清理角色关系。
 func (r *Repository) Delete(ctx context.Context, id int64, operatorID int64) error {
-	return platformdb.WithinTx(ctx, r.db, func(txCtx context.Context) error {
-		executor := platformdb.ExecutorFromContext(txCtx, r.db)
-		now := time.Now()
-
-		stmt := SysUser.
-			UPDATE(
-				SysUser.DeletedAt,
-				SysUser.UpdatedAt,
-				SysUser.UpdatedBy,
+	ctx = entx.WithOperatorID(ctx, operatorID)
+	return data.WithinTx(ctx, r.client, func(txCtx context.Context, txClient *appent.Client) error {
+		deletedAt := data.SoftDeleteTime()
+		if _, err := txClient.SysUser.Update().
+			Where(
+				sysuser.ID(id),
+				sysuser.DeletedAtIsNil(),
 			).
-			SET(
-				now,
-				now,
-				operatorID,
-			).
-			WHERE(
-				AND(
-					SysUser.ID.EQ(Int64(id)),
-					SysUser.DeletedAt.IS_NULL(),
-				),
-			)
-
-		query, args := stmt.Sql()
-		if _, err := executor.ExecContext(txCtx, query, args...); err != nil {
-			return apperrors.Wrap(err, apperrors.CodeDBError, "delete user failed")
+			SetDeletedAt(deletedAt).
+			Save(txCtx); err != nil {
+			return mapEntWriteError(err, "delete user failed")
 		}
 
-		roleStmt := SysUserRole.
-			DELETE().
-			WHERE(SysUserRole.UserID.EQ(Int64(id)))
-		roleQuery, roleArgs := roleStmt.Sql()
-		if _, err := executor.ExecContext(txCtx, roleQuery, roleArgs...); err != nil {
-			return apperrors.Wrap(err, apperrors.CodeDBError, "delete user roles failed")
+		if _, err := txClient.SysUserRole.Update().
+			Where(
+				sysuserrole.UserID(id),
+				sysuserrole.DeletedAtIsNil(),
+			).
+			SetDeletedAt(deletedAt).
+			Save(txCtx); err != nil {
+			return mapEntWriteError(err, "delete user roles failed")
 		}
-
 		return nil
 	})
 }
 
-type rowScanner interface {
-	Scan(dest ...any) error
-}
-
-type userRecord struct {
-	ID           int64
-	Username     string
-	PasswordHash string
-	Nickname     sql.NullString
-	Phone        sql.NullString
-	Email        sql.NullString
-	AvatarURL    sql.NullString
-	IsSuperAdmin bool
-	IsEnable     bool
-	SortID       int
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	DeletedAt    sql.NullTime
-	CreatedBy    sql.NullInt64
-	UpdatedBy    sql.NullInt64
-}
-
-func selectBase() SelectStatement {
-	return SELECT(
-		SysUser.ID.AS("id"),
-		SysUser.Username.AS("username"),
-		SysUser.PasswordHash.AS("password_hash"),
-		SysUser.Nickname.AS("nickname"),
-		SysUser.Phone.AS("phone"),
-		SysUser.Email.AS("email"),
-		SysUser.AvatarURL.AS("avatar_url"),
-		SysUser.IsSuperAdmin.AS("is_super_admin"),
-		SysUser.IsEnable.AS("is_enable"),
-		SysUser.SortID.AS("sort_id"),
-		SysUser.CreatedAt.AS("created_at"),
-		SysUser.UpdatedAt.AS("updated_at"),
-		SysUser.DeletedAt.AS("deleted_at"),
-		SysUser.CreatedBy.AS("created_by"),
-		SysUser.UpdatedBy.AS("updated_by"),
-	)
-}
-
-func (r *Repository) queryOne(ctx context.Context, stmt SelectStatement) (*User, error) {
-	executor := platformdb.ExecutorFromContext(ctx, r.db)
-	query, args := stmt.Sql()
-	row := executor.QueryRowContext(ctx, query, args...)
-
-	record := userRecord{}
-	if err := row.Scan(
-		&record.ID,
-		&record.Username,
-		&record.PasswordHash,
-		&record.Nickname,
-		&record.Phone,
-		&record.Email,
-		&record.AvatarURL,
-		&record.IsSuperAdmin,
-		&record.IsEnable,
-		&record.SortID,
-		&record.CreatedAt,
-		&record.UpdatedAt,
-		&record.DeletedAt,
-		&record.CreatedBy,
-		&record.UpdatedBy,
-	); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
+func (r *Repository) findByIDWithClient(ctx context.Context, client *appent.Client, id int64) (*User, error) {
+	record, err := client.SysUser.Query().
+		Where(
+			sysuser.ID(id),
+			sysuser.DeletedAtIsNil(),
+		).
+		Only(ctx)
+	if appent.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
 		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "query user failed")
 	}
+	return r.toDomainWithClient(ctx, client, record)
+}
 
-	user := record.toDomain()
-	roleCodes, err := r.loadRoleCodes(ctx, user.ID)
+func (r *Repository) toDomain(ctx context.Context, record *appent.SysUser) (*User, error) {
+	return r.toDomainWithClient(ctx, r.client, record)
+}
+
+func (r *Repository) toDomainWithClient(ctx context.Context, client *appent.Client, record *appent.SysUser) (*User, error) {
+	user := userFromEnt(record)
+	roleCodes, err := r.loadRoleCodes(ctx, client, user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -356,102 +234,58 @@ func (r *Repository) queryOne(ctx context.Context, stmt SelectStatement) (*User,
 	return user, nil
 }
 
-func scanUser(scanner rowScanner) (*User, error) {
-	record := userRecord{}
-	if err := scanner.Scan(
-		&record.ID,
-		&record.Username,
-		&record.PasswordHash,
-		&record.Nickname,
-		&record.Phone,
-		&record.Email,
-		&record.AvatarURL,
-		&record.IsSuperAdmin,
-		&record.IsEnable,
-		&record.SortID,
-		&record.CreatedAt,
-		&record.UpdatedAt,
-		&record.DeletedAt,
-		&record.CreatedBy,
-		&record.UpdatedBy,
-	); err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "scan user failed")
-	}
-	return record.toDomain(), nil
-}
-
-func (r userRecord) toDomain() *User {
-	user := &User{
-		ID:           r.ID,
-		Username:     r.Username,
-		PasswordHash: r.PasswordHash,
-		Nickname:     r.Nickname.String,
-		Phone:        r.Phone.String,
-		Email:        r.Email.String,
-		AvatarURL:    r.AvatarURL.String,
-		RoleCodes:    []string{},
-		IsSuperAdmin: r.IsSuperAdmin,
-		IsEnable:     r.IsEnable,
-		SortID:       r.SortID,
-		CreatedAt:    r.CreatedAt,
-		UpdatedAt:    r.UpdatedAt,
-	}
-	if r.DeletedAt.Valid {
-		deletedAt := r.DeletedAt.Time
-		user.DeletedAt = &deletedAt
-	}
-	if r.CreatedBy.Valid {
-		user.CreatedBy = r.CreatedBy.Int64
-	}
-	if r.UpdatedBy.Valid {
-		user.UpdatedBy = r.UpdatedBy.Int64
-	}
+func userFromEnt(record *appent.SysUser) *User {
+	user := &User{}
+	fillDomainFromEnt(user, record)
+	user.RoleCodes = []string{}
 	return user
 }
 
-func (r *Repository) resolveRoleIDs(ctx context.Context, roleCodes []string) ([]int64, error) {
+func fillDomainFromEnt(user *User, record *appent.SysUser) {
+	user.ID = record.ID
+	user.Username = record.Username
+	user.PasswordHash = record.PasswordHash
+	user.Nickname = stringValue(record.Nickname)
+	user.Phone = stringValue(record.Phone)
+	user.Email = stringValue(record.Email)
+	user.AvatarURL = stringValue(record.AvatarURL)
+	user.IsSuperAdmin = record.IsSuperAdmin
+	user.IsEnable = record.IsEnable
+	user.SortID = record.SortID
+	user.CreatedAt = record.CreatedAt
+	user.UpdatedAt = record.UpdatedAt
+	user.DeletedAt = cloneTimePtr(record.DeletedAt)
+	user.CreatedBy = int64Value(record.CreatedBy)
+	user.UpdatedBy = int64Value(record.UpdatedBy)
+}
+
+func (r *Repository) resolveRoleIDs(ctx context.Context, client *appent.Client, roleCodes []string) ([]int64, error) {
 	normalizedCodes := normalizeCodes(roleCodes)
 	if len(normalizedCodes) == 0 {
 		return []int64{}, nil
 	}
 
-	executor := platformdb.ExecutorFromContext(ctx, r.db)
-	stmt := SELECT(
-		SysRole.ID.AS("id"),
-		SysRole.Code.AS("code"),
-	).
-		FROM(SysRole).
-		WHERE(
-			AND(
-				SysRole.Code.IN(stringExpressions(normalizedCodes)...),
-				SysRole.DeletedAt.IS_NULL(),
-				SysRole.IsEnable.EQ(Bool(true)),
-			),
+	var rows []struct {
+		ID   int64  `json:"id"`
+		Code string `json:"code"`
+	}
+	err := client.SysRole.Query().
+		Where(
+			sysrole.CodeIn(normalizedCodes...),
+			sysrole.DeletedAtIsNil(),
+			sysrole.IsEnable(true),
 		).
-		ORDER_BY(SysRole.SortID.ASC(), SysRole.ID.ASC())
-
-	query, args := stmt.Sql()
-	rows, err := executor.QueryContext(ctx, query, args...)
+		Order(appent.Asc(sysrole.FieldSortID), appent.Asc(sysrole.FieldID)).
+		Select(sysrole.FieldID, sysrole.FieldCode).
+		Scan(ctx, &rows)
 	if err != nil {
 		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "query roles failed")
 	}
-	defer rows.Close()
 
-	roleIDsByCode := make(map[string]int64, len(normalizedCodes))
-	for rows.Next() {
-		var (
-			roleID   int64
-			roleCode string
-		)
-		if err := rows.Scan(&roleID, &roleCode); err != nil {
-			return nil, apperrors.Wrap(err, apperrors.CodeDBError, "scan roles failed")
-		}
-		roleIDsByCode[roleCode] = roleID
+	roleIDsByCode := make(map[string]int64, len(rows))
+	for _, row := range rows {
+		roleIDsByCode[row.Code] = row.ID
 	}
-	if err := rows.Err(); err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "iterate roles failed")
-	}
-
 	if len(roleIDsByCode) != len(normalizedCodes) {
 		missingCodes := make([]string, 0)
 		for _, roleCode := range normalizedCodes {
@@ -473,76 +307,69 @@ func (r *Repository) resolveRoleIDs(ctx context.Context, roleCodes []string) ([]
 	return roleIDs, nil
 }
 
-func (r *Repository) replaceUserRoles(ctx context.Context, userID int64, roleIDs []int64, operatorID int64, createdAt time.Time) error {
-	executor := platformdb.ExecutorFromContext(ctx, r.db)
-
-	deleteStmt := SysUserRole.
-		DELETE().
-		WHERE(SysUserRole.UserID.EQ(Int64(userID)))
-	deleteQuery, deleteArgs := deleteStmt.Sql()
-	if _, err := executor.ExecContext(ctx, deleteQuery, deleteArgs...); err != nil {
-		return apperrors.Wrap(err, apperrors.CodeDBError, "replace user roles failed")
+func (r *Repository) replaceUserRoles(ctx context.Context, client *appent.Client, userID int64, roleIDs []int64) error {
+	deletedAt := data.SoftDeleteTime()
+	if _, err := client.SysUserRole.Update().
+		Where(
+			sysuserrole.UserID(userID),
+			sysuserrole.DeletedAtIsNil(),
+		).
+		SetDeletedAt(deletedAt).
+		Save(ctx); err != nil {
+		return mapEntWriteError(err, "replace user roles failed")
 	}
 
-	if len(roleIDs) == 0 {
-		return nil
-	}
-	if r.idgen == nil {
-		return apperrors.New(apperrors.CodeInternalError, "user role id generator is missing")
-	}
-
-	insertStmt := SysUserRole.INSERT(
-		SysUserRole.ID,
-		SysUserRole.UserID,
-		SysUserRole.RoleID,
-		SysUserRole.CreatedBy,
-		SysUserRole.CreatedAt,
-	)
 	for _, roleID := range roleIDs {
-		insertStmt = insertStmt.VALUES(r.idgen.NextID(), userID, roleID, operatorID, createdAt)
-	}
-
-	query, args := insertStmt.Sql()
-	if _, err := executor.ExecContext(ctx, query, args...); err != nil {
-		return apperrors.Wrap(err, apperrors.CodeDBError, "insert user roles failed")
+		relation, err := client.SysUserRole.Query().
+			Where(
+				sysuserrole.UserID(userID),
+				sysuserrole.RoleID(roleID),
+			).
+			Only(ctx)
+		switch {
+		case appent.IsNotFound(err):
+			if _, err := client.SysUserRole.Create().
+				SetUserID(userID).
+				SetRoleID(roleID).
+				Save(ctx); err != nil {
+				return mapEntWriteError(err, "insert user roles failed")
+			}
+		case err != nil:
+			return apperrors.Wrap(err, apperrors.CodeDBError, "query user role relation failed")
+		default:
+			if _, err := client.SysUserRole.UpdateOne(relation).
+				ClearDeletedAt().
+				Save(ctx); err != nil {
+				return mapEntWriteError(err, "restore user role relation failed")
+			}
+		}
 	}
 	return nil
 }
 
-func (r *Repository) loadRoleCodes(ctx context.Context, userID int64) ([]string, error) {
-	executor := platformdb.ExecutorFromContext(ctx, r.db)
-	stmt := SELECT(SysRole.Code.AS("code")).
-		FROM(
-			SysUserRole.
-				INNER_JOIN(SysRole, SysRole.ID.EQ(SysUserRole.RoleID)),
-		).
-		WHERE(
-			AND(
-				SysUserRole.UserID.EQ(Int64(userID)),
-				SysUserRole.DeletedAt.IS_NULL(),
-				SysRole.DeletedAt.IS_NULL(),
-				SysRole.IsEnable.EQ(Bool(true)),
+func (r *Repository) loadRoleCodes(ctx context.Context, client *appent.Client, userID int64) ([]string, error) {
+	var rows []struct {
+		Code string `json:"code"`
+	}
+	err := client.SysRole.Query().
+		Where(
+			sysrole.DeletedAtIsNil(),
+			sysrole.IsEnable(true),
+			sysrole.HasUserRolesWith(
+				sysuserrole.UserID(userID),
+				sysuserrole.DeletedAtIsNil(),
 			),
 		).
-		ORDER_BY(SysRole.SortID.ASC(), SysRole.ID.ASC())
-
-	query, args := stmt.Sql()
-	rows, err := executor.QueryContext(ctx, query, args...)
+		Order(appent.Asc(sysrole.FieldSortID), appent.Asc(sysrole.FieldID)).
+		Select(sysrole.FieldCode).
+		Scan(ctx, &rows)
 	if err != nil {
 		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "query user roles failed")
 	}
-	defer rows.Close()
 
-	roleCodes := make([]string, 0)
-	for rows.Next() {
-		var roleCode string
-		if err := rows.Scan(&roleCode); err != nil {
-			return nil, apperrors.Wrap(err, apperrors.CodeDBError, "scan user roles failed")
-		}
-		roleCodes = append(roleCodes, roleCode)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "iterate user roles failed")
+	roleCodes := make([]string, 0, len(rows))
+	for _, row := range rows {
+		roleCodes = append(roleCodes, row.Code)
 	}
 	return roleCodes, nil
 }
@@ -553,44 +380,31 @@ func (r *Repository) loadRoleCodesByUserIDs(ctx context.Context, userIDs []int64
 		return result, nil
 	}
 
-	executor := platformdb.ExecutorFromContext(ctx, r.db)
-	stmt := SELECT(
-		SysUserRole.UserID.AS("user_id"),
-		SysRole.Code.AS("code"),
-	).
-		FROM(
-			SysUserRole.
-				INNER_JOIN(SysRole, SysRole.ID.EQ(SysUserRole.RoleID)),
-		).
-		WHERE(
-			AND(
-				SysUserRole.UserID.IN(int64Expressions(userIDs)...),
-				SysUserRole.DeletedAt.IS_NULL(),
-				SysRole.DeletedAt.IS_NULL(),
-				SysRole.IsEnable.EQ(Bool(true)),
+	roles, err := r.client.SysRole.Query().
+		Where(
+			sysrole.DeletedAtIsNil(),
+			sysrole.IsEnable(true),
+			sysrole.HasUserRolesWith(
+				sysuserrole.UserIDIn(userIDs...),
+				sysuserrole.DeletedAtIsNil(),
 			),
 		).
-		ORDER_BY(SysUserRole.UserID.ASC(), SysRole.SortID.ASC(), SysRole.ID.ASC())
-
-	query, args := stmt.Sql()
-	rows, err := executor.QueryContext(ctx, query, args...)
+		WithUserRoles(func(query *appent.SysUserRoleQuery) {
+			query.Where(
+				sysuserrole.UserIDIn(userIDs...),
+				sysuserrole.DeletedAtIsNil(),
+			)
+		}).
+		Order(appent.Asc(sysrole.FieldSortID), appent.Asc(sysrole.FieldID)).
+		All(ctx)
 	if err != nil {
 		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "query users roles failed")
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var (
-			userID   int64
-			roleCode string
-		)
-		if err := rows.Scan(&userID, &roleCode); err != nil {
-			return nil, apperrors.Wrap(err, apperrors.CodeDBError, "scan users roles failed")
+	for _, role := range roles {
+		for _, relation := range role.Edges.UserRoles {
+			result[relation.UserID] = append(result[relation.UserID], role.Code)
 		}
-		result[userID] = append(result[userID], roleCode)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "iterate users roles failed")
 	}
 	return result, nil
 }
@@ -615,18 +429,54 @@ func normalizeCodes(values []string) []string {
 	return result
 }
 
-func stringExpressions(values []string) []Expression {
-	expressions := make([]Expression, 0, len(values))
-	for _, value := range values {
-		expressions = append(expressions, String(value))
-	}
-	return expressions
+func setOptionalStrings(update *appent.SysUserUpdateOne, user *User) {
+	setOrClearString(update.SetNickname, update.ClearNickname, user.Nickname)
+	setOrClearString(update.SetPhone, update.ClearPhone, user.Phone)
+	setOrClearString(update.SetEmail, update.ClearEmail, user.Email)
+	setOrClearString(update.SetAvatarURL, update.ClearAvatarURL, user.AvatarURL)
 }
 
-func int64Expressions(values []int64) []Expression {
-	expressions := make([]Expression, 0, len(values))
-	for _, value := range values {
-		expressions = append(expressions, Int64(value))
+func setOrClearString(set func(string) *appent.SysUserUpdateOne, clear func() *appent.SysUserUpdateOne, value string) {
+	if strings.TrimSpace(value) == "" {
+		clear()
+		return
 	}
-	return expressions
+	set(value)
+}
+
+func nullableString(value string) *string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+	return &value
+}
+
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
+}
+
+func int64Value(value *int64) int64 {
+	if value == nil {
+		return 0
+	}
+	return *value
+}
+
+func cloneTimePtr(value *time.Time) *time.Time {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+	return &cloned
+}
+
+func mapEntWriteError(err error, message string) error {
+	if appent.IsConstraintError(err) {
+		return apperrors.Wrap(err, apperrors.CodeBadRequest, message)
+	}
+	return apperrors.Wrap(err, apperrors.CodeDBError, message)
 }

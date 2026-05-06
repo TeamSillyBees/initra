@@ -56,8 +56,13 @@ func TestExampleUsesAPIFoundationLayout(t *testing.T) {
 	}
 	require.FileExists(t, filepath.Join(root, "db", "schema", "01_sys_user.sql"))
 	require.FileExists(t, filepath.Join(root, "db", "seeds", "001_seed_admin.sql"))
-	require.FileExists(t, filepath.Join(root, "internal", "gen", "jet", "table", "sys_user.go"))
-	require.FileExists(t, filepath.Join(root, "tools", "jetgen", "main.go"))
+	require.NoDirExists(t, filepath.Join(root, "internal", "gen", "jet"))
+	require.NoDirExists(t, filepath.Join(root, "tools", "jetgen"))
+	require.NoFileExists(t, filepath.Join(root, "scripts", "jet"+".ps1"))
+	require.DirExists(t, filepath.Join(root, "internal", "ent", "schema"))
+	require.FileExists(t, filepath.Join(root, "internal", "ent", "client.go"))
+	require.FileExists(t, filepath.Join(root, "internal", "data", "tx.go"))
+	requireNoEntImportOutsideRepositories(t, root)
 	_, err := os.Stat(filepath.Join(root, "internal", "app"))
 	require.True(t, errors.Is(err, os.ErrNotExist), "示例项目不应继续保留 internal/app 业务目录")
 }
@@ -97,6 +102,23 @@ func requireNoHTTPNamingInModel(t *testing.T, path string) {
 
 	httpType := regexp.MustCompile(`(?m)^type\s+\w+(Input|Output|Request|Response|Query|Body|VO|Params)\s+`)
 	require.Falsef(t, httpType.Match(content), "%s should keep HTTP boundary types in *.dto.go", path)
+}
+
+// requireNoEntImportOutsideRepositories 确认 Ent 只出现在持久化边界，不泄漏到 handler/service/dto。
+func requireNoEntImportOutsideRepositories(t *testing.T, root string) {
+	t.Helper()
+
+	moduleRoot := filepath.Join(root, "internal", "module")
+	require.NoError(t, filepath.WalkDir(moduleRoot, func(path string, entry os.DirEntry, err error) error {
+		require.NoError(t, err)
+		if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, ".repo.go") || filepath.Base(path) == "providers.go" {
+			return nil
+		}
+		content, err := os.ReadFile(path)
+		require.NoError(t, err)
+		require.NotContainsf(t, string(content), "/internal/ent", "%s should not import internal/ent", path)
+		return nil
+	}))
 }
 
 // goList 调用 go list 并解析指定包模式的依赖元信息。

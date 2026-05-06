@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -190,7 +189,7 @@ func toSnakeName(name string) string {
 }
 
 func newSensitiveFieldSet(fields []string) map[string]struct{} {
-	defaults := []string{"password", "token", "secret", "authorization", "access_key", "dsn"}
+	defaults := []string{"password", "token", "secret", "authorization", "access_key"}
 	result := make(map[string]struct{}, len(defaults)+len(fields))
 	for _, field := range append(defaults, fields...) {
 		normalized := normalizeSensitiveField(field)
@@ -235,27 +234,5 @@ func normalizeSensitiveField(field string) string {
 }
 
 func maskValue(key string, value reflect.Value) any {
-	if normalizeSensitiveField(key) == "dsn" && value.Kind() == reflect.String {
-		return maskDSN(value.String())
-	}
 	return maskedValue
-}
-
-func maskDSN(raw string) string {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return raw
-	}
-
-	parsed, err := url.Parse(raw)
-	if err != nil || parsed.User == nil {
-		return maskedValue
-	}
-	afterScheme := strings.TrimPrefix(raw, parsed.Scheme+"://")
-	atIndex := strings.Index(afterScheme, "@")
-	if atIndex < 0 {
-		return maskedValue
-	}
-
-	return parsed.Scheme + "://" + parsed.User.Username() + ":***@" + afterScheme[atIndex+1:]
 }

@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/teamsillybees/initra/pkg/entx"
 	"github.com/teamsillybees/initra/pkg/pagination"
 )
 
@@ -14,14 +14,17 @@ var errInvalidPassword = errors.New("invalid password")
 
 type fakeUserRepository struct {
 	created   *User
+	createCtx context.Context
 	byID      map[int64]*User
+	updateCtx context.Context
 	lastPage  PageUsersDTO
 	pageTotal int64
 }
 
-func (f *fakeUserRepository) Create(_ context.Context, user *User) error {
+func (f *fakeUserRepository) Create(ctx context.Context, user *User) error {
 	cloned := *user
 	f.created = &cloned
+	f.createCtx = ctx
 	if f.byID == nil {
 		f.byID = map[int64]*User{}
 	}
@@ -61,8 +64,9 @@ func (f *fakeUserRepository) Page(_ context.Context, input PageUsersDTO) ([]*Use
 	return items, total, nil
 }
 
-func (f *fakeUserRepository) Update(_ context.Context, user *User) error {
+func (f *fakeUserRepository) Update(ctx context.Context, user *User) error {
 	cloned := *user
+	f.updateCtx = ctx
 	f.byID[user.ID] = &cloned
 	return nil
 }
@@ -95,14 +99,6 @@ func (f *fakeUserCache) Delete(_ context.Context, _ int64) error {
 	return nil
 }
 
-type fakeIDGenerator struct {
-	id int64
-}
-
-func (f *fakeIDGenerator) NextID() int64 {
-	return f.id
-}
-
 type fakePasswordManager struct{}
 
 func (fakePasswordManager) Hash(password string) (string, error) {
@@ -116,14 +112,11 @@ func (fakePasswordManager) Compare(hash string, password string) error {
 	return nil
 }
 
-func TestServiceCreateAssignsIDAndHashesPassword(t *testing.T) {
-	now := time.Date(2026, 4, 21, 10, 0, 0, 0, time.UTC)
+func TestServiceCreateHashesPasswordAndPassesOperatorInContext(t *testing.T) {
 	repo := &fakeUserRepository{}
 	cache := &fakeUserCache{}
 
-	service := NewService(repo, cache, &fakeIDGenerator{id: 1001}, fakePasswordManager{}, func() time.Time {
-		return now
-	})
+	service := NewService(repo, cache, fakePasswordManager{})
 
 	user, err := service.Create(context.Background(), CreateUserDTO{
 		Username:     "alice",
@@ -137,7 +130,7 @@ func TestServiceCreateAssignsIDAndHashesPassword(t *testing.T) {
 		OperatorID:   9001,
 	})
 	require.NoError(t, err)
-	require.Equal(t, int64(1001), user.ID)
+	require.Zero(t, user.ID)
 	require.Equal(t, "hashed:secret-123", repo.created.PasswordHash)
 	require.Equal(t, "Alice", repo.created.Nickname)
 	require.Equal(t, "13800000000", repo.created.Phone)
@@ -145,8 +138,11 @@ func TestServiceCreateAssignsIDAndHashesPassword(t *testing.T) {
 	require.Equal(t, []string{"admin"}, repo.created.RoleCodes)
 	require.True(t, repo.created.IsSuperAdmin)
 	require.True(t, repo.created.IsEnable)
-	require.Equal(t, now, repo.created.CreatedAt)
-	require.Equal(t, int64(9001), repo.created.CreatedBy)
+	require.True(t, repo.created.CreatedAt.IsZero())
+	require.Zero(t, repo.created.CreatedBy)
+	operatorID, ok := entx.OperatorIDFromContext(repo.createCtx)
+	require.True(t, ok)
+	require.Equal(t, int64(9001), operatorID)
 }
 
 func TestServiceGetBackfillsCacheOnMiss(t *testing.T) {
@@ -165,7 +161,7 @@ func TestServiceGetBackfillsCacheOnMiss(t *testing.T) {
 	}
 	cache := &fakeUserCache{}
 
-	service := NewService(repo, cache, &fakeIDGenerator{id: 1002}, fakePasswordManager{}, time.Now)
+	service := NewService(repo, cache, fakePasswordManager{})
 
 	user, err := service.Get(context.Background(), 1001)
 	require.NoError(t, err)
@@ -182,7 +178,7 @@ func TestServicePageReturnsPaginationMeta(t *testing.T) {
 		},
 		pageTotal: 42,
 	}
-	service := NewService(repo, &fakeUserCache{}, &fakeIDGenerator{id: 1002}, fakePasswordManager{}, time.Now)
+	service := NewService(repo, &fakeUserCache{}, fakePasswordManager{})
 
 	result, err := service.Page(context.Background(), PageUsersDTO{})
 	require.NoError(t, err)
@@ -192,4 +188,35 @@ func TestServicePageReturnsPaginationMeta(t *testing.T) {
 	require.Equal(t, 1, result.Page.Page)
 	require.Equal(t, 20, result.Page.PageSize)
 	require.Equal(t, 3, pagination.NewPageMetaVO(result.Total, result.Page).TotalPages)
+}
+
+func TestServiceUpdatePassesOperatorInContextWithoutSettingAuditFields(t *testing.T) {
+	repo := &fakeUserRepository{
+		byID: map[int64]*User{
+			1001: {
+				ID:        1001,
+				Username:  "alice",
+				Nickname:  "Alice",
+				RoleCodes: []string{"viewer"},
+				IsEnable:  true,
+			},
+		},
+	}
+	service := NewService(repo, &fakeUserCache{}, fakePasswordManager{})
+	nickname := " Alice Updated "
+
+	user, err := service.Update(context.Background(), UpdateUserDTO{
+		ID:         1001,
+		Nickname:   &nickname,
+		RoleCodes:  &[]string{"admin"},
+		OperatorID: 9002,
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, "Alice Updated", user.Nickname)
+	require.True(t, repo.byID[1001].UpdatedAt.IsZero())
+	require.Zero(t, repo.byID[1001].UpdatedBy)
+	operatorID, ok := entx.OperatorIDFromContext(repo.updateCtx)
+	require.True(t, ok)
+	require.Equal(t, int64(9002), operatorID)
 }

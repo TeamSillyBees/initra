@@ -2,7 +2,7 @@
 
 本文档面向 API 项目模板。
 
-`examples/api` 是 `initra new <app> --type api` 的可运行示例项目，包含认证、用户管理、缓存、JWT、Casbin、Atlas、数据库 schema、seed 数据和 go-jet 生成代码。它用于验证和展示标准 API 项目模板；运行时通用能力来自根模块 `pkg/*`，项目生成入口来自 `cmd/initra`。
+`examples/api` 是 `initra new <app> --type api` 的可运行示例项目，包含认证、用户管理、缓存、JWT、Casbin、Ent schema 与生成代码、Atlas、seed 数据和版本化迁移。它用于验证和展示标准 API 项目模板；运行时通用能力来自根模块 `pkg/*`，项目生成入口来自 `cmd/initra`。
 
 ## 运行
 
@@ -37,6 +37,9 @@ go run ./cmd/server
 go test ./... -count=1
 go vet ./...
 .\scripts\build.ps1
+.\scripts\ent.ps1
 .\scripts\atlas.ps1 migrate status --env local
-.\scripts\jet.ps1 -Env local
+.\scripts\atlas.ps1 migrate diff <name>
 ```
+
+`internal/ent/schema` 是数据库结构主源；`db/migrations` 是版本化迁移历史；`db/seeds` 保存种子数据。迁移 diff 必须使用 `.\scripts\atlas.ps1 migrate diff <name>` 或 `initra migrate diff <name>` 生成的脚本；这些入口通过 `internal/ent/migratediff/main.go` 调用 Ent `migrate.WithForeignKeys(false)`，只生成索引和唯一约束，不生成物理外键约束。默认从 `configs/config.<env>.yaml` 读取数据库连接，`env` 优先使用 `--env` 或 `APP_ENV`，也可以通过 `--dev-url` 显式覆盖。`db/schema/*.sql` 仅作为历史参考或 DBA 阅读材料，不再作为 Atlas diff 的 schema source。

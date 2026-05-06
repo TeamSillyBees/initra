@@ -40,8 +40,11 @@ server:
   shutdown_timeout: 20s
 
 database:
-  driver: postgres
-  dsn: "postgres://postgres:postgres@127.0.0.1:5432/example?sslmode=disable"
+  host: "127.0.0.1"
+  port: 5432
+  user: "postgres"
+  password: "postgres"
+  dbname: "example"
   max_open_conns: 20
   max_idle_conns: 10
   conn_max_lifetime: 1h

@@ -2,7 +2,7 @@
 
 `initra` 是面向企业内部 Go 服务的快速开发脚手架，项目介绍统一按三个部分理解：
 
-1. **标准项目模板**：通过 `templates/api` 提供包含 auth/user、DB schema、seed 和 go-jet 生成代码的 RESTful API 服务模板，通过 `templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。
+1. **标准项目模板**：通过 `templates/api` 提供包含 auth/user、Ent schema 与生成代码、seed 和 Atlas migrations 的 RESTful API 服务模板，通过 `templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。
 2. **可复用的 Go package**：通过根模块 `pkg/*` 沉淀 Web、配置、错误、日志、认证、数据访问、Redis、缓存、对象存储、HTTP Client、任务调度等通用能力，业务项目通过 `go.mod` 按需引入。
 3. **工程化 CLI**：通过 `cmd/initra` 承载生成项目、业务模块、CRUD 样例、迁移文件、配置样例、接口骨架、测试骨架和代码生成命令。
 
@@ -21,7 +21,7 @@ scripts/            根仓库测试、检查、构建入口
 
 ## 项目模板
 
-`api` 模板生成可直接运行的 Web API 基础项目，默认包含 Gin + Huma、统一响应/错误、JWT/Casbin 中间件装配、配置加载、日志、health/ready/version 接口，以及 auth/user 基础业务模块、数据库 schema、seed 数据、Atlas 配置和 go-jet 生成代码。业务方仍可通过后续 CLI 命令追加新的模块、CRUD 样例和配置能力。
+`api` 模板生成可直接运行的 Web API 基础项目，默认包含 Gin + Huma、统一响应/错误、JWT/Casbin 中间件装配、配置加载、日志、health/ready/version 接口，以及 auth/user 基础业务模块、Ent schema 与生成代码、seed 数据和 Atlas 配置。API 标准模板使用 Ent 作为类型安全持久化访问层，使用 Ent Mixin + Runtime Hook 实现雪花 ID、审计字段和软删除等通用自动填充能力。业务方仍可通过后续 CLI 命令追加新的模块、CRUD 样例和配置能力。
 
 `worker` 模板面向后台任务、定时任务、消费任务、批处理任务。目前只提供可编译的占位入口，后续 worker 所需框架能力成熟后再扩展。
 
@@ -34,7 +34,8 @@ scripts/            根仓库测试、检查、构建入口
 ## 可复用 Go package
 
 - `pkg/config`：泛型配置加载，不绑定业务项目配置结构。
-- `pkg/logging`、`pkg/db`、`pkg/cache`、`pkg/idgen`：基础设施封装。
+- `pkg/logging`、`pkg/cache`、`pkg/idgen`：基础设施封装。
+- `pkg/entx`：Ent 通用 Hook 和上下文工具，不依赖具体项目生成的 `internal/ent`。
 - `pkg/errors`、`pkg/response`、`pkg/requestctx`：统一错误、响应、trace/request id。
 - `pkg/auth`：JWT、refresh token、Redis token store、Casbin、路由安全元信息。
 - `pkg/server`：Gin + Huma 应用与认证授权中间件装配。

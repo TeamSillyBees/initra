@@ -106,8 +106,7 @@ CREATE TABLE "sys_dict_item" (
   "updated_by" bigint NULL,
   "updated_at" timestamp NOT NULL,
   PRIMARY KEY ("id"),
-  CONSTRAINT "uk_sys_dict_item_collection_code_code" UNIQUE ("collection_code", "code"),
-  CONSTRAINT "fk_sys_dict_item_collection_id" FOREIGN KEY ("collection_id") REFERENCES "sys_dict_collection" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
+  CONSTRAINT "uk_sys_dict_item_collection_code_code" UNIQUE ("collection_code", "code")
 );
 -- Create index "idx_sys_dict_item_collection_code" to table: "sys_dict_item"
 CREATE INDEX "idx_sys_dict_item_collection_code" ON "sys_dict_item" ("collection_code");
@@ -265,9 +264,7 @@ CREATE TABLE "sys_role_menu" (
   "created_by" bigint NULL,
   "created_at" timestamp NOT NULL,
   PRIMARY KEY ("id"),
-  CONSTRAINT "uk_sys_role_menu_role_id_menu_id" UNIQUE ("role_id", "menu_id"),
-  CONSTRAINT "fk_sys_role_menu_menu_id" FOREIGN KEY ("menu_id") REFERENCES "sys_menu" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION,
-  CONSTRAINT "fk_sys_role_menu_role_id" FOREIGN KEY ("role_id") REFERENCES "sys_role" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
+  CONSTRAINT "uk_sys_role_menu_role_id_menu_id" UNIQUE ("role_id", "menu_id")
 );
 -- Create index "idx_sys_role_menu_menu_id" to table: "sys_role_menu"
 CREATE INDEX "idx_sys_role_menu_menu_id" ON "sys_role_menu" ("menu_id");
@@ -354,9 +351,7 @@ CREATE TABLE "sys_user_role" (
   "created_by" bigint NULL,
   "created_at" timestamp NOT NULL,
   PRIMARY KEY ("id"),
-  CONSTRAINT "uk_sys_user_role_user_id_role_id" UNIQUE ("user_id", "role_id"),
-  CONSTRAINT "fk_sys_user_role_role_id" FOREIGN KEY ("role_id") REFERENCES "sys_role" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION,
-  CONSTRAINT "fk_sys_user_role_user_id" FOREIGN KEY ("user_id") REFERENCES "sys_user" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
+  CONSTRAINT "uk_sys_user_role_user_id_role_id" UNIQUE ("user_id", "role_id")
 );
 -- Create index "idx_sys_user_role_role_id" to table: "sys_user_role"
 CREATE INDEX "idx_sys_user_role_role_id" ON "sys_user_role" ("role_id");
