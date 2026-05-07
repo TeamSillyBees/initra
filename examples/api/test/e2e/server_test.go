@@ -1,10 +1,13 @@
 package e2e_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,10 +16,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 	authmodule "github.com/teamsillybees/initra/examples/api/internal/module/auth"
+	filemodule "github.com/teamsillybees/initra/examples/api/internal/module/file"
 	usermodule "github.com/teamsillybees/initra/examples/api/internal/module/user"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/observability"
 	"github.com/teamsillybees/initra/pkg/server"
+	"github.com/teamsillybees/initra/pkg/storage"
+	"github.com/teamsillybees/initra/pkg/storage/local"
 	"go.uber.org/zap"
 )
 
@@ -196,6 +202,20 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	authService := authmodule.NewService(identityRepo, passwords, jwtManager)
 	authmodule.NewModule(authmodule.NewHandler(authService)).Register(app.API, app.Registry)
 
+	localStorage, err := local.New(storage.Config{
+		Enabled:  true,
+		Provider: storage.ProviderLocal,
+		Local: storage.LocalConfig{
+			RootDir:           t.TempDir(),
+			GenerateDatePath:  false,
+			AllowedExtensions: []string{"txt"},
+			MaxSize:           1024 * 1024,
+		},
+	})
+	require.NoError(t, err)
+	fileService := filemodule.NewService(localStorage)
+	filemodule.NewModule(filemodule.NewHandler(fileService)).Register(app.API, app.Registry)
+
 	loginResp := struct {
 		Code string `json:"code"`
 		Data struct {
@@ -223,6 +243,38 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	userRec := httptest.NewRecorder()
 	app.Engine.ServeHTTP(userRec, userReq)
 	require.Equal(t, http.StatusOK, userRec.Code)
+
+	uploadBody := &bytes.Buffer{}
+	uploadWriter := multipartWriter(t, uploadBody, "file", "hello.txt", "hello local file")
+	uploadReq := httptest.NewRequest(http.MethodPost, "/api/v1/files/local", uploadBody)
+	uploadReq.Header.Set("Authorization", "Bearer "+loginResp.Data.AccessToken)
+	uploadReq.Header.Set("Content-Type", uploadWriter.FormDataContentType())
+	uploadRec := httptest.NewRecorder()
+	app.Engine.ServeHTTP(uploadRec, uploadReq)
+	require.Equal(t, http.StatusCreated, uploadRec.Code)
+
+	uploadResp := struct {
+		Code string `json:"code"`
+		Data struct {
+			Key string `json:"key"`
+		} `json:"data"`
+	}{}
+	require.NoError(t, json.Unmarshal(uploadRec.Body.Bytes(), &uploadResp))
+	require.Equal(t, "OK", uploadResp.Code)
+	require.NotEmpty(t, uploadResp.Data.Key)
+
+	downloadReq := httptest.NewRequest(http.MethodGet, "/api/v1/files/local/download?key="+url.QueryEscape(uploadResp.Data.Key), nil)
+	downloadReq.Header.Set("Authorization", "Bearer "+loginResp.Data.AccessToken)
+	downloadRec := httptest.NewRecorder()
+	app.Engine.ServeHTTP(downloadRec, downloadReq)
+	require.Equalf(t, http.StatusOK, downloadRec.Code, "body: %s", downloadRec.Body.String())
+	require.Equal(t, "hello local file", downloadRec.Body.String())
+
+	deleteReq := httptest.NewRequest(http.MethodDelete, "/api/v1/files/local?key="+url.QueryEscape(uploadResp.Data.Key), nil)
+	deleteReq.Header.Set("Authorization", "Bearer "+loginResp.Data.AccessToken)
+	deleteRec := httptest.NewRecorder()
+	app.Engine.ServeHTTP(deleteRec, deleteReq)
+	require.Equalf(t, http.StatusOK, deleteRec.Code, "body: %s", deleteRec.Body.String())
 
 	healthReq := httptest.NewRequest(http.MethodGet, "/health", nil)
 	healthRec := httptest.NewRecorder()
@@ -258,6 +310,9 @@ m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
 	policy := `
 p, admin, auth, read
 p, admin, user, read
+p, admin, file, read
+p, admin, file, write
+p, admin, file, delete
 g, admin, admin
 `
 
@@ -265,4 +320,16 @@ g, admin, admin
 	require.NoError(t, os.WriteFile(policyPath, []byte(strings.TrimSpace(policy)), 0o600))
 
 	return modelPath, policyPath
+}
+
+func multipartWriter(t *testing.T, body *bytes.Buffer, fieldName string, fileName string, content string) *multipart.Writer {
+	t.Helper()
+
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile(fieldName, fileName)
+	require.NoError(t, err)
+	_, err = part.Write([]byte(content))
+	require.NoError(t, err)
+	require.NoError(t, writer.Close())
+	return writer
 }

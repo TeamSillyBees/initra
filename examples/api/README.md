@@ -2,7 +2,7 @@
 
 本文档面向 API 项目模板。
 
-`examples/api` 是 `initra new <app> --type api` 的可运行示例项目，包含认证、用户管理、缓存、JWT、Casbin、Ent schema 与生成代码、Atlas、seed 数据和版本化迁移。它用于验证和展示标准 API 项目模板；运行时通用能力来自根模块 `pkg/*`，项目生成入口来自 `cmd/initra`。
+`examples/api` 是 `initra new <app> --type api` 的可运行示例项目，包含认证、用户管理、local 文件示例、缓存、JWT、Casbin、Ent schema 与生成代码、Atlas、seed 数据和版本化迁移。它用于验证和展示标准 API 项目模板；运行时通用能力来自根模块 `pkg/*`，项目生成入口来自 `cmd/initra`。
 
 ## 运行
 
@@ -23,11 +23,24 @@ go run ./cmd/server
 
 配置文件位于 `configs/config.<env>.yaml`。运行环境使用 `app.env` 或 `APP_ENV` 表示；除 `APP_ENV` 外，环境变量覆盖默认使用 `INITRA_` 前缀，例如 `INITRA_AUTH_JWT_SECRET`、`INITRA_DATABASE_DSN`。
 
-标准分组为 `app`、`server`、`database`、`redis`、`auth`、`log`、`observability`。当前模板额外保留 `casbin`、`cache`、`idgen`，分别用于权限策略、缓存 TTL 和雪花 ID 节点。配置打印前使用 `Config.SafeForLog()` 脱敏，密码、Token、Secret、Access Key、Authorization 和带密码的 DSN 不应明文进入日志。
+标准分组为 `app`、`server`、`database`、`redis`、`auth`、`log`、`observability`。当前模板额外保留 `casbin`、`cache`、`idgen`、`storage`，分别用于权限策略、缓存 TTL、雪花 ID 节点和文件/对象存储。配置打印前使用 `Config.SafeForLog()` 脱敏，密码、Token、Secret、Access Key、Authorization 和带密码的 DSN 不应明文进入日志。
 
 `redis.enabled: false` 时缓存与 token 状态使用进程内能力；多实例部署或需要跨进程 token 吊销时应启用 Redis。
 
 业务代码需要直接使用 Redis 时，优先通过根模块 `pkg/redisx` 组合 go-redis client、Key Builder、缓存、Lua script registry、SCAN+UNLINK 和 redislock 短时间互斥锁。不要使用 `KEYS`，不要手动拼接关键 Redis key，不要记录密码、token、验证码、session value；复杂命令可以直接使用底层 go-redis client。
+
+## 文件存储示例
+
+`internal/module/file` 提供 local 文件示例，业务层只依赖 `pkg/storage.Service` 小接口，不直接依赖云厂商 SDK。默认配置为 `storage.provider: local`，文件写入 `./var/uploads`，Casbin 资源为 `file`，admin 角色默认拥有 `read/write/delete` 权限。
+
+登录后可通过以下接口体验完整链路：
+
+- `POST /api/v1/files/local`：multipart 表单字段 `file` 上传文件。
+- `GET /api/v1/files/local/download?key=<object-key>`：按 key 下载文件。
+- `GET /api/v1/files/local/meta?key=<object-key>`：按 key 查询元信息。
+- `DELETE /api/v1/files/local?key=<object-key>`：按 key 删除文件。
+
+需要切换阿里云 OSS、腾讯云 COS、AWS S3 或 S3 兼容服务时，保持业务代码不变，只调整 `configs/config.<env>.yaml` 的 `storage` 分组。
 
 ## 模型命名约定
 
