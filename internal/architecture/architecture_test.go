@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"io/fs"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -51,6 +53,45 @@ func TestLowLevelPackagesDoNotImportWeb(t *testing.T) {
 	}
 }
 
+// TestRedisConstructionGoesThroughRedisx 固定 Redis client 和 Lua 脚本必须通过 pkg/redisx 统一封装。
+func TestRedisConstructionGoesThroughRedisx(t *testing.T) {
+	disallowed := []string{
+		"redis.NewClient(",
+		"redis.NewFailoverClient(",
+		"redis.NewUniversalClient(",
+		"redis.NewScript(",
+	}
+	allowedDirs := []string{
+		filepath.Join("pkg", "redisx"),
+	}
+
+	root := repoRoot(t)
+	for _, dir := range []string{"pkg", filepath.Join("examples", "api")} {
+		err := filepath.WalkDir(filepath.Join(root, dir), func(path string, entry fs.DirEntry, err error) error {
+			require.NoError(t, err)
+			if entry.IsDir() {
+				rel, relErr := filepath.Rel(root, path)
+				require.NoError(t, relErr)
+				if isPathUnderAny(rel, allowedDirs) {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			if filepath.Ext(path) != ".go" {
+				return nil
+			}
+
+			content, readErr := os.ReadFile(path)
+			require.NoError(t, readErr)
+			for _, token := range disallowed {
+				require.NotContainsf(t, string(content), token, "%s must use pkg/redisx instead of %s", path, token)
+			}
+			return nil
+		})
+		require.NoError(t, err)
+	}
+}
+
 func goList(t *testing.T, pattern string) []goPackage {
 	t.Helper()
 
@@ -71,6 +112,17 @@ func goList(t *testing.T, pattern string) []goPackage {
 		packages = append(packages, pkg)
 	}
 	return packages
+}
+
+func isPathUnderAny(path string, prefixes []string) bool {
+	clean := filepath.Clean(path)
+	for _, prefix := range prefixes {
+		prefix = filepath.Clean(prefix)
+		if clean == prefix || strings.HasPrefix(clean, prefix+string(filepath.Separator)) {
+			return true
+		}
+	}
+	return false
 }
 
 func repoRoot(t *testing.T) string {

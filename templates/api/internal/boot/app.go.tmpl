@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/samber/do"
 	"github.com/teamsillybees/initra/pkg/observability"
+	"github.com/teamsillybees/initra/pkg/redisx"
 	"github.com/teamsillybees/initra/pkg/server"
 	"go.uber.org/zap"
 )
@@ -28,7 +28,7 @@ type Application struct {
 	Web       *server.App
 	Server    *http.Server
 	DB        *sql.DB
-	Redis     *redis.Client
+	Redis     redisx.UniversalClient
 }
 
 // Bootstrap 完成配置加载、依赖注入、模块注册与 HTTP Server 组装。
@@ -46,9 +46,9 @@ func Bootstrap(ctx context.Context, options Options) (*Application, error) {
 
 	logger := do.MustInvoke[*zap.Logger](injector)
 	db := do.MustInvoke[*sql.DB](injector)
-	var redisClient *redis.Client
+	var redisClient redisx.UniversalClient
 	if cfg.Redis.Enabled {
-		redisClient = do.MustInvoke[*redis.Client](injector)
+		redisClient = do.MustInvoke[redisx.UniversalClient](injector)
 	}
 	webApp := do.MustInvoke[*server.App](injector)
 

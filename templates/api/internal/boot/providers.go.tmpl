@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/casbin/casbin/v2"
-	"github.com/redis/go-redis/v9"
 	"github.com/samber/do"
 	"{{ .ModulePath }}/internal/data"
 	"{{ .ModulePath }}/internal/ent"
@@ -15,6 +14,7 @@ import (
 	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/logging"
 	"github.com/teamsillybees/initra/pkg/observability"
+	"github.com/teamsillybees/initra/pkg/redisx"
 	"github.com/teamsillybees/initra/pkg/server"
 	"go.uber.org/zap"
 )
@@ -23,26 +23,27 @@ func registerProviders(ctx context.Context, injector *do.Injector, cfg *Config, 
 	do.Provide(injector, func(i *do.Injector) (*zap.Logger, error) {
 		return logging.NewLogger(cfg.Log)
 	})
-	do.Provide(injector, func(i *do.Injector) (*redis.Client, error) {
-		if !cfg.Redis.Enabled {
-			return nil, nil
-		}
-		client := redis.NewClient(&redis.Options{
+	do.Provide(injector, func(i *do.Injector) (redisx.UniversalClient, error) {
+		logger := do.MustInvoke[*zap.Logger](i)
+		return redisx.NewClient(ctx, redisx.Config{
+			Enabled:  cfg.Redis.Enabled,
+			Mode:     redisx.ModeStandalone,
 			Addr:     cfg.Redis.Addr,
 			Password: cfg.Redis.Password,
 			DB:       cfg.Redis.DB,
-			PoolSize: cfg.Redis.PoolSize,
-		})
-		if err := client.Ping(ctx).Err(); err != nil {
-			_ = client.Close()
-			return nil, err
-		}
-		return client, nil
+			Pool: redisx.PoolConfig{
+				Size: cfg.Redis.PoolSize,
+			},
+			Observability: redisx.ObservabilityConfig{
+				MetricsEnabled: cfg.Observability.Metrics.Enabled,
+				TracingEnabled: cfg.Observability.Tracing.Enabled,
+			},
+		}, logger)
 	})
 	do.Provide(injector, func(i *do.Injector) (*platformcache.Manager, error) {
-		var client *redis.Client
+		var client redisx.UniversalClient
 		if cfg.Redis.Enabled {
-			client = do.MustInvoke[*redis.Client](i)
+			client = do.MustInvoke[redisx.UniversalClient](i)
 		}
 		return platformcache.NewManager(platformcache.Config{
 			AppName:   cfg.App.Name,
@@ -63,8 +64,8 @@ func registerProviders(ctx context.Context, injector *do.Injector, cfg *Config, 
 	do.Provide(injector, func(i *do.Injector) (*auth.JWTManager, error) {
 		var store auth.TokenStore = auth.NewMemoryTokenStore()
 		if cfg.Redis.Enabled {
-			client := do.MustInvoke[*redis.Client](i)
-			store = auth.NewRedisTokenStore(cfg.App.Name, client)
+			client := do.MustInvoke[redisx.UniversalClient](i)
+			store = auth.NewRedisTokenStoreWithEnv(cfg.App.Name, cfg.App.Env, client)
 		}
 		return auth.NewJWTManager(auth.JWTConfig{
 			Issuer:          cfg.Auth.JWT.Issuer,

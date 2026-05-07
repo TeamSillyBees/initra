@@ -7,7 +7,7 @@ import (
 	jetcache "github.com/mgtv-tech/jetcache-go"
 	"github.com/mgtv-tech/jetcache-go/local"
 	"github.com/mgtv-tech/jetcache-go/remote"
-	"github.com/redis/go-redis/v9"
+	"github.com/teamsillybees/initra/pkg/redisx"
 )
 
 // Config 描述缓存管理器所需的最小输入。
@@ -22,11 +22,11 @@ type Manager struct {
 	appName   string
 	localTTL  time.Duration
 	remoteTTL time.Duration
-	remote    redis.Cmdable
+	remote    redisx.Cmdable
 }
 
 // NewManager 创建缓存管理器。未提供 Redis 时会自动退化为本地缓存。
-func NewManager(cfg Config, remoteClient redis.Cmdable) *Manager {
+func NewManager(cfg Config, remoteClient redisx.Cmdable) *Manager {
 	return &Manager{
 		appName:   cfg.AppName,
 		localTTL:  cfg.LocalTTL,

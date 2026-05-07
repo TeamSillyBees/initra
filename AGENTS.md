@@ -16,7 +16,7 @@
 `initra` 是面向企业内部 Go 服务的快速开发脚手架。理解和描述本仓库时必须区分三类内容：
 
 - **标准项目模板**：`templates/api` 提供包含 auth/user、Ent schema 与生成代码、seed 和 Atlas migrations 的 RESTful API 服务模板，`templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。
-- **可复用 Go package**：根模块 `github.com/teamsillybees/initra` 的 `pkg/*`，沉淀 Web、配置、错误、日志、认证、数据库、Redis、缓存、对象存储、HTTP Client、任务调度等通用能力。
+- **可复用 Go package**：根模块 `github.com/teamsillybees/initra` 的 `pkg/*`，沉淀 Web、配置、错误、日志、认证、数据库、Redis、缓存、对象存储、HTTP Client、任务调度等通用能力；其中 Redis 基础能力统一放在 `pkg/redisx`，支持 standalone/sentinel，不支持 cluster。
 - **工程化 CLI**：`cmd/initra`，负责生成项目、业务模块、CRUD 样例、迁移文件、配置样例、接口骨架、测试骨架和代码生成命令。
 
 重要边界：
@@ -56,6 +56,7 @@ go run ./cmd/initra new $target --type api --module example.com/demo-api --repla
 - 包名保持简短、清晰、全小写；一个业务模块一个 package。
 - 不引入不必要的抽象。只有在减少真实重复、隔离复杂度或匹配现有模式时才新增抽象。
 - 共享能力放入 `pkg/*`，不要通过业务模块之间互相 import 来复用逻辑。
+- Redis 业务能力优先使用 `pkg/redisx` 的 client、Key Builder、缓存、Lua registry、SCAN+UNLINK 和 redislock 短锁；禁止生产使用 `KEYS`，禁止记录密码、token、验证码、session value。
 - 新增或修改导出 API 时，同步补齐中文注释和必要测试。
 - 禁止在业务模块中随意使用 `panic` 或吞掉错误；错误应向上返回并保留足够上下文。
 

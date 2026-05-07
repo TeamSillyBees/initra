@@ -24,7 +24,8 @@ initra 是面向企业内部 Go 服务的快速开发脚手架。所有项目介
 - 持久化：Ent 类型安全持久化访问 + Atlas migrations
 - Migration：Atlas
 - ID：snowflake
-- Cache：jetcache-go + Redis
+- Redis：`pkg/redisx` + go-redis/v9，支持 standalone/sentinel，不支持 cluster
+- Cache：jetcache-go + Redis；直接使用 Redis 时优先组合 `pkg/redisx`
 - DI：samber/do
 - Log：zap
 - Error：samber/oops + 统一错误码
@@ -92,6 +93,7 @@ internal/module/<module>/
 - 面向可复用 Go package：共享能力放入 `pkg/*`，禁止业务模块通过互相引用来解决复用问题。
 - 面向标准项目模板：示例项目只能依赖可复用 Go package `pkg/*`，不能 import 根仓库 `internal/`。
 - 面向标准项目模板和可复用 Go package：包名简短、清晰、全小写，一个模块一个 package。
+- 面向 Redis 能力：统一优先使用 `pkg/redisx` 的 client、Key Builder、缓存、Lua registry、SCAN+UNLINK 和 redislock 短锁；禁止生产使用 `KEYS`，禁止记录密码、token、验证码、session value。
 
 ### 错误处理
 

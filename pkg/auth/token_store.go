@@ -3,11 +3,18 @@ package auth
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"strings"
 	"time"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/teamsillybees/initra/pkg/redisx"
+)
+
+const (
+	refreshTokenPrefixName    = "auth_refresh"
+	accessBlacklistPrefixName = "auth_blacklist"
+	consumeRefreshScriptName  = "auth_consume_refresh_token"
+	defaultRedisTokenEnv      = "default"
 )
 
 // TokenStore 定义 JWT 生命周期管理所需的最小状态存储能力。
@@ -23,15 +30,31 @@ type TokenStore interface {
 
 // RedisTokenStore 是基于 Redis 的 token 状态存储实现。
 type RedisTokenStore struct {
-	keyPrefix string
-	client    redis.Cmdable
+	keys    *redisx.KeyBuilder
+	client  redisx.CommandClient
+	store   *redisx.Store
+	scripts *redisx.ScriptRegistry
 }
 
 // NewRedisTokenStore 创建 Redis token store。
-func NewRedisTokenStore(appName string, client redis.Cmdable) *RedisTokenStore {
+func NewRedisTokenStore(appName string, client redisx.CommandClient) *RedisTokenStore {
+	return NewRedisTokenStoreWithEnv(appName, defaultRedisTokenEnv, client)
+}
+
+// NewRedisTokenStoreWithEnv 创建带 app/env 命名空间的 Redis token store。
+func NewRedisTokenStoreWithEnv(appName string, env string, client redisx.CommandClient) *RedisTokenStore {
+	if strings.TrimSpace(env) == "" {
+		env = defaultRedisTokenEnv
+	}
+	keys := redisx.NewKeyBuilder(redisx.KeyConfig{App: appName, Env: env})
+	mustRegisterRedisTokenPrefix(keys, refreshTokenPrefixName, "auth", "refresh")
+	mustRegisterRedisTokenPrefix(keys, accessBlacklistPrefixName, "auth", "blacklist")
+
 	return &RedisTokenStore{
-		keyPrefix: appName,
-		client:    client,
+		keys:    keys,
+		client:  client,
+		store:   redisx.NewStore(client),
+		scripts: newRedisTokenScriptRegistry(),
 	}
 }
 
@@ -47,7 +70,11 @@ func (s *RedisTokenStore) StoreRefreshToken(ctx context.Context, tokenID string,
 	if err != nil {
 		return err
 	}
-	return s.client.Set(ctx, s.refreshTokenKey(tokenID), payload, ttl).Err()
+	key, err := s.refreshTokenKey(tokenID)
+	if err != nil {
+		return err
+	}
+	return s.store.SetString(ctx, key, payload, ttl)
 }
 
 // ValidateRefreshToken 校验 refresh token 是否仍在 Redis 中处于有效状态。
@@ -56,8 +83,12 @@ func (s *RedisTokenStore) ValidateRefreshToken(ctx context.Context, tokenID stri
 		return RefreshTokenRecord{}, false, nil
 	}
 
-	value, err := s.client.Get(ctx, s.refreshTokenKey(tokenID)).Result()
-	if errors.Is(err, redis.Nil) {
+	key, err := s.refreshTokenKey(tokenID)
+	if err != nil {
+		return RefreshTokenRecord{}, false, err
+	}
+	value, found, err := s.store.GetString(ctx, key)
+	if !found {
 		return RefreshTokenRecord{}, false, nil
 	}
 	if err != nil {
@@ -76,14 +107,16 @@ func (s *RedisTokenStore) ConsumeRefreshToken(ctx context.Context, tokenID strin
 		return RefreshTokenRecord{}, false, nil
 	}
 
-	value, err := consumeRefreshTokenScript.Run(
+	key, err := s.refreshTokenKey(tokenID)
+	if err != nil {
+		return RefreshTokenRecord{}, false, err
+	}
+	value, err := s.scripts.Run(
 		ctx,
 		s.client,
-		[]string{s.refreshTokenKey(tokenID)},
+		consumeRefreshScriptName,
+		[]string{key},
 	).Text()
-	if errors.Is(err, redis.Nil) {
-		return RefreshTokenRecord{}, false, nil
-	}
 	if err != nil {
 		return RefreshTokenRecord{}, false, err
 	}
@@ -102,7 +135,11 @@ func (s *RedisTokenStore) BlacklistAccessToken(ctx context.Context, tokenID stri
 	if s == nil || s.client == nil || ttl <= 0 {
 		return nil
 	}
-	return s.client.Set(ctx, s.accessBlacklistKey(tokenID), "1", ttl).Err()
+	key, err := s.accessBlacklistKey(tokenID)
+	if err != nil {
+		return err
+	}
+	return s.store.SetString(ctx, key, "1", ttl)
 }
 
 // IsAccessTokenBlacklisted 判断 access token 是否已经被服务端主动吊销。
@@ -111,21 +148,21 @@ func (s *RedisTokenStore) IsAccessTokenBlacklisted(ctx context.Context, tokenID 
 		return false, nil
 	}
 
-	count, err := s.client.Exists(ctx, s.accessBlacklistKey(tokenID)).Result()
+	key, err := s.accessBlacklistKey(tokenID)
 	if err != nil {
 		return false, err
 	}
-	return count > 0, nil
+	return s.store.Exists(ctx, key)
 }
 
 // refreshTokenKey 生成 refresh token 状态缓存 key。
-func (s *RedisTokenStore) refreshTokenKey(tokenID string) string {
-	return fmt.Sprintf("%s:auth:refresh:%s", s.keyPrefix, tokenID)
+func (s *RedisTokenStore) refreshTokenKey(tokenID string) (string, error) {
+	return s.keys.Build(refreshTokenPrefixName, tokenID)
 }
 
 // accessBlacklistKey 生成 access token 黑名单 key。
-func (s *RedisTokenStore) accessBlacklistKey(tokenID string) string {
-	return fmt.Sprintf("%s:auth:blacklist:%s", s.keyPrefix, tokenID)
+func (s *RedisTokenStore) accessBlacklistKey(tokenID string) (string, error) {
+	return s.keys.Build(accessBlacklistPrefixName, tokenID)
 }
 
 // decodeRefreshTokenRecord 解析 Redis 中保存的 refresh token 绑定记录。
@@ -137,12 +174,33 @@ func decodeRefreshTokenRecord(value string) (RefreshTokenRecord, error) {
 	return record, nil
 }
 
-// consumeRefreshTokenScript 通过 Lua 保证“读取 refresh token 绑定记录”和“删除旧 token”原子完成。
-var consumeRefreshTokenScript = redis.NewScript(`
+func mustRegisterRedisTokenPrefix(keys *redisx.KeyBuilder, name string, module string, biz string) {
+	if err := keys.RegisterPrefix(name, module, biz); err != nil {
+		panic(err)
+	}
+}
+
+func newRedisTokenScriptRegistry() *redisx.ScriptRegistry {
+	registry := redisx.NewScriptRegistry()
+	if err := registry.Register(redisx.ScriptDefinition{
+		Name:   consumeRefreshScriptName,
+		Source: consumeRefreshTokenScriptSource,
+		Keys: []redisx.ScriptArgument{{
+			Name:        "refresh_token_key",
+			Description: "refresh token 状态记录 key",
+		}},
+	}); err != nil {
+		panic(err)
+	}
+	return registry
+}
+
+// consumeRefreshTokenScriptSource 通过 Lua 保证“读取 refresh token 绑定记录”和“删除旧 token”原子完成。
+const consumeRefreshTokenScriptSource = `
 local value = redis.call("GET", KEYS[1])
 if not value then
     return ""
 end
 redis.call("DEL", KEYS[1])
 return value
-`)
+`

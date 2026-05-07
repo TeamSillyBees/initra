@@ -35,6 +35,7 @@ scripts/            根仓库测试、检查、构建入口
 
 - `pkg/config`：泛型配置加载，不绑定业务项目配置结构。
 - `pkg/logging`、`pkg/cache`、`pkg/idgen`：基础设施封装。
+- `pkg/redisx`：Redis 基础能力封装，支持 standalone/sentinel client、Ping/readiness、Key Builder、JSON/Msgpack 缓存、TTL jitter、空值缓存、singleflight、SCAN+UNLINK、Lua script registry、基于 `github.com/bsm/redislock` 的短时间分布式锁，以及 OpenTelemetry/zap hook；不支持 cluster，不封装 KEYS。
 - `pkg/entx`：Ent 通用 Hook 和上下文工具，不依赖具体项目生成的 `internal/ent`。
 - `pkg/errors`、`pkg/response`、`pkg/requestctx`：统一错误、响应、trace/request id。
 - `pkg/auth`：JWT、refresh token、Redis token store、Casbin、路由安全元信息。
