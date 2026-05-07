@@ -6,6 +6,7 @@ import (
 
 	"github.com/teamsillybees/initra/examples/api/internal/data"
 	platformconfig "github.com/teamsillybees/initra/pkg/config"
+	"github.com/teamsillybees/initra/pkg/httpclient"
 	"github.com/teamsillybees/initra/pkg/logging"
 	"github.com/teamsillybees/initra/pkg/redisx"
 	platformstorage "github.com/teamsillybees/initra/pkg/storage"
@@ -24,6 +25,7 @@ type Config struct {
 	Cache         CacheConfig            `mapstructure:"cache"`
 	IDGen         IDGenConfig            `mapstructure:"idgen"`
 	Storage       platformstorage.Config `mapstructure:"storage"`
+	HTTPClient    httpclient.Config      `mapstructure:"http_client"`
 }
 
 // AppConfig 描述应用基础元信息。
@@ -152,61 +154,78 @@ func (c *Config) Validate() error {
 	if err := c.Storage.Validate(); err != nil {
 		return err
 	}
+	if err := c.HTTPClient.Validate(); err != nil {
+		return err
+	}
 	return nil
 }
 
 // configDefaults 统一声明示例项目配置默认值。
 func configDefaults() map[string]any {
 	return map[string]any{
-		"app.version":                         "dev",
-		"app.instance_id":                     "local-1",
-		"server.addr":                         ":8080",
-		"server.read_timeout":                 "10s",
-		"server.write_timeout":                "30s",
-		"server.idle_timeout":                 "60s",
-		"server.shutdown_timeout":             "20s",
-		"database.host":                       "",
-		"database.port":                       5432,
-		"database.user":                       "",
-		"database.password":                   "",
-		"database.dbname":                     "",
-		"database.max_open_conns":             20,
-		"database.max_idle_conns":             10,
-		"database.conn_max_lifetime":          "1h",
-		"redis.enabled":                       false,
-		"redis.addr":                          "127.0.0.1:6379",
-		"redis.password":                      "",
-		"redis.db":                            0,
-		"redis.pool.size":                     10,
-		"redis.observability.metrics_enabled": true,
-		"redis.observability.tracing_enabled": false,
-		"auth.enabled":                        true,
-		"auth.access_token_ttl":               "15m",
-		"auth.refresh_token_ttl":              "720h",
-		"auth.allow_multiple_devices":         true,
-		"auth.jwt.issuer":                     "",
-		"auth.jwt.secret":                     "",
-		"log.level":                           "info",
-		"log.format":                          "json",
-		"log.output":                          "stdout",
-		"log.mask.enabled":                    true,
-		"log.mask.fields":                     []string{"password", "token", "secret", "authorization"},
-		"observability.metrics.enabled":       true,
-		"observability.tracing.enabled":       false,
-		"observability.pprof.enabled":         false,
-		"observability.health.enabled":        true,
-		"casbin.model_path":                   "",
-		"casbin.policy_path":                  "",
-		"cache.local_ttl":                     "1m",
-		"cache.remote_ttl":                    "10m",
-		"idgen.node":                          1,
-		"storage.enabled":                     true,
-		"storage.provider":                    string(platformstorage.ProviderLocal),
-		"storage.presign_default_ttl":         "15m",
-		"storage.local.root_dir":              "./var/uploads",
-		"storage.local.temp_dir":              ".multipart",
-		"storage.local.generate_date_path":    true,
-		"storage.local.allowed_extensions":    []string{"txt", "md", "png", "jpg", "jpeg", "gif", "pdf"},
-		"storage.local.max_size":              int64(10 * 1024 * 1024),
+		"app.version":                                        "dev",
+		"app.instance_id":                                    "local-1",
+		"server.addr":                                        ":8080",
+		"server.read_timeout":                                "10s",
+		"server.write_timeout":                               "30s",
+		"server.idle_timeout":                                "60s",
+		"server.shutdown_timeout":                            "20s",
+		"database.host":                                      "",
+		"database.port":                                      5432,
+		"database.user":                                      "",
+		"database.password":                                  "",
+		"database.dbname":                                    "",
+		"database.max_open_conns":                            20,
+		"database.max_idle_conns":                            10,
+		"database.conn_max_lifetime":                         "1h",
+		"redis.enabled":                                      false,
+		"redis.addr":                                         "127.0.0.1:6379",
+		"redis.password":                                     "",
+		"redis.db":                                           0,
+		"redis.pool.size":                                    10,
+		"redis.observability.metrics_enabled":                true,
+		"redis.observability.tracing_enabled":                false,
+		"auth.enabled":                                       true,
+		"auth.access_token_ttl":                              "15m",
+		"auth.refresh_token_ttl":                             "720h",
+		"auth.allow_multiple_devices":                        true,
+		"auth.jwt.issuer":                                    "",
+		"auth.jwt.secret":                                    "",
+		"log.level":                                          "info",
+		"log.format":                                         "json",
+		"log.output":                                         "stdout",
+		"log.mask.enabled":                                   true,
+		"log.mask.fields":                                    []string{"password", "token", "secret", "authorization"},
+		"observability.metrics.enabled":                      true,
+		"observability.tracing.enabled":                      false,
+		"observability.pprof.enabled":                        false,
+		"observability.health.enabled":                       true,
+		"casbin.model_path":                                  "",
+		"casbin.policy_path":                                 "",
+		"cache.local_ttl":                                    "1m",
+		"cache.remote_ttl":                                   "10m",
+		"idgen.node":                                         1,
+		"storage.enabled":                                    true,
+		"storage.provider":                                   string(platformstorage.ProviderLocal),
+		"storage.presign_default_ttl":                        "15m",
+		"storage.local.root_dir":                             "./var/uploads",
+		"storage.local.temp_dir":                             ".multipart",
+		"storage.local.generate_date_path":                   true,
+		"storage.local.allowed_extensions":                   []string{"txt", "md", "png", "jpg", "jpeg", "gif", "pdf"},
+		"storage.local.max_size":                             int64(10 * 1024 * 1024),
+		"http_client.enabled":                                true,
+		"http_client.timeout":                                "30s",
+		"http_client.connect_timeout":                        "10s",
+		"http_client.idle_conn_timeout":                      "90s",
+		"http_client.max_idle_conns":                         100,
+		"http_client.max_idle_conns_per_host":                20,
+		"http_client.max_response_body_size":                 int64(10 * 1024 * 1024),
+		"http_client.services.httpbingo.base_url":            "https://httpbingo.org",
+		"http_client.services.httpbingo.timeout":             "10s",
+		"http_client.services.httpbingo.headers.X-App-Id":    "initra",
+		"http_client.services.httpbingo.retry.enabled":       true,
+		"http_client.services.httpbingo.retry.count":         2,
+		"http_client.services.httpbingo.retry.wait_time":     "200ms",
+		"http_client.services.httpbingo.retry.max_wait_time": "2s",
 	}
 }

@@ -18,12 +18,14 @@ require (
 	github.com/casbin/casbin/v2 v2.135.0
 	github.com/danielgtaylor/huma/v2 v2.37.3
 	github.com/gin-gonic/gin v1.12.0
+	github.com/go-resty/resty/v2 v2.17.2
 	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/mgtv-tech/jetcache-go v1.2.6
 	github.com/redis/go-redis/extra/redisotel/v9 v9.18.0
 	github.com/redis/go-redis/v9 v9.18.0
+	github.com/samber/do v1.6.0
 	github.com/samber/oops v1.21.0
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1

@@ -9,9 +9,11 @@ import (
 	"github.com/teamsillybees/initra/examples/api/internal/ent"
 	authmodule "github.com/teamsillybees/initra/examples/api/internal/module/auth"
 	filemodule "github.com/teamsillybees/initra/examples/api/internal/module/file"
+	httpdemomodule "github.com/teamsillybees/initra/examples/api/internal/module/httpdemo"
 	usermodule "github.com/teamsillybees/initra/examples/api/internal/module/user"
 	"github.com/teamsillybees/initra/pkg/auth"
 	platformcache "github.com/teamsillybees/initra/pkg/cache"
+	"github.com/teamsillybees/initra/pkg/httpclient"
 	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/logging"
 	"github.com/teamsillybees/initra/pkg/observability"
@@ -24,6 +26,10 @@ import (
 func registerProviders(ctx context.Context, injector *do.Injector, cfg *Config, buildInfo observability.BuildInfoVO) {
 	do.Provide(injector, func(i *do.Injector) (*zap.Logger, error) {
 		return logging.NewLogger(cfg.Log)
+	})
+	do.Provide(injector, func(i *do.Injector) (httpclient.Factory, error) {
+		logger := do.MustInvoke[*zap.Logger](i)
+		return httpclient.NewFactory(cfg.HTTPClient, logger)
 	})
 	do.Provide(injector, func(i *do.Injector) (redisx.UniversalClient, error) {
 		logger := do.MustInvoke[*zap.Logger](i)
@@ -86,6 +92,7 @@ func registerModules(injector *do.Injector) {
 	usermodule.Provide(injector)
 	authmodule.Provide(injector)
 	filemodule.Provide(injector)
+	httpdemomodule.Provide(injector)
 }
 
 func registerRoutes(injector *do.Injector, webApp *server.App, buildInfo observability.BuildInfoVO) {
@@ -99,4 +106,5 @@ func registerRoutes(injector *do.Injector, webApp *server.App, buildInfo observa
 	do.MustInvoke[*usermodule.Module](injector).Register(webApp.API, webApp.Registry)
 	do.MustInvoke[*authmodule.Module](injector).Register(webApp.API, webApp.Registry)
 	do.MustInvoke[*filemodule.Module](injector).Register(webApp.API, webApp.Registry)
+	do.MustInvoke[*httpdemomodule.Module](injector).Register(webApp.API, webApp.Registry)
 }

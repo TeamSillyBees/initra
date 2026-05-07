@@ -1,0 +1,295 @@
+package httpclient
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
+)
+
+type userVO struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+func TestClientGetJSONWithHeadersQueryAndPathParams(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/users/42", r.URL.Path)
+		require.Equal(t, "1", r.URL.Query().Get("page"))
+		require.Equal(t, "trace-1", r.Header.Get("X-Trace-ID"))
+		require.Equal(t, "Bearer token-value", r.Header.Get("Authorization"))
+		writeJSON(t, w, userVO{ID: "42", Name: "alice"})
+	}))
+	defer server.Close()
+
+	client := newTestClient(t, server.URL, ServiceConfig{
+		Auth: AuthConfig{Type: AuthTypeBearer, Token: "token-value"},
+	})
+
+	got, err := GetJSON[userVO](context.Background(), client, "/users/{id}",
+		WithPathParams(map[string]string{"id": "42"}),
+		WithQuery("page", "1"),
+		WithHeader("X-Trace-ID", "trace-1"),
+	)
+
+	require.NoError(t, err)
+	require.Equal(t, &userVO{ID: "42", Name: "alice"}, got)
+}
+
+func TestClientPostJSONBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, jsonContentType, r.Header.Get("Content-Type"))
+		var body map[string]string
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+		require.Equal(t, "alice", body["name"])
+		writeJSON(t, w, userVO{ID: "1", Name: "alice"})
+	}))
+	defer server.Close()
+
+	client := newTestClient(t, server.URL, ServiceConfig{})
+
+	got, err := PostJSON[userVO](context.Background(), client, "/users", map[string]string{"name": "alice"})
+
+	require.NoError(t, err)
+	require.Equal(t, "1", got.ID)
+	require.Equal(t, "alice", got.Name)
+}
+
+func TestClientMethods(t *testing.T) {
+	var methods []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		methods = append(methods, r.Method)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	client := newTestClient(t, server.URL, ServiceConfig{})
+
+	_, err := client.Put(context.Background(), "/resource", map[string]string{"name": "alice"})
+	require.NoError(t, err)
+	_, err = client.Patch(context.Background(), "/resource", map[string]string{"name": "bob"})
+	require.NoError(t, err)
+	_, err = client.Delete(context.Background(), "/resource")
+	require.NoError(t, err)
+
+	require.Equal(t, []string{http.MethodPut, http.MethodPatch, http.MethodDelete}, methods)
+}
+
+func TestClientAuthTypes(t *testing.T) {
+	tests := []struct {
+		name    string
+		auth    AuthConfig
+		assert  func(*testing.T, *http.Request)
+		wantErr bool
+	}{
+		{
+			name: "basic",
+			auth: AuthConfig{Type: AuthTypeBasic, Username: "user", Password: "pass"},
+			assert: func(t *testing.T, r *http.Request) {
+				username, password, ok := r.BasicAuth()
+				require.True(t, ok)
+				require.Equal(t, "user", username)
+				require.Equal(t, "pass", password)
+			},
+		},
+		{
+			name: "api key",
+			auth: AuthConfig{Type: AuthTypeAPIKey, Header: "X-API-Key", Value: "api-secret"},
+			assert: func(t *testing.T, r *http.Request) {
+				require.Equal(t, "api-secret", r.Header.Get("X-API-Key"))
+			},
+		},
+		{
+			name: "custom header",
+			auth: AuthConfig{Type: AuthTypeCustomHeader, Header: "X-Service-Token", Value: "custom-secret"},
+			assert: func(t *testing.T, r *http.Request) {
+				require.Equal(t, "custom-secret", r.Header.Get("X-Service-Token"))
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				tt.assert(t, r)
+				writeJSON(t, w, map[string]string{"ok": "true"})
+			}))
+			defer server.Close()
+
+			client := newTestClient(t, server.URL, ServiceConfig{Auth: tt.auth})
+			_, err := client.Get(context.Background(), "/ping")
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestClientRetryGetAndIdempotentPostOnly(t *testing.T) {
+	var getAttempts int32
+	getServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempt := atomic.AddInt32(&getAttempts, 1)
+		if attempt < 3 {
+			http.Error(w, "retry", http.StatusBadGateway)
+			return
+		}
+		writeJSON(t, w, map[string]string{"ok": "true"})
+	}))
+	defer getServer.Close()
+
+	getClient := newTestClient(t, getServer.URL, ServiceConfig{Retry: testRetryConfig()})
+	_, err := getClient.Get(context.Background(), "/retry")
+	require.NoError(t, err)
+	require.Equal(t, int32(3), atomic.LoadInt32(&getAttempts))
+
+	var postAttempts int32
+	postServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&postAttempts, 1)
+		http.Error(w, "no retry", http.StatusBadGateway)
+	}))
+	defer postServer.Close()
+
+	postClient := newTestClient(t, postServer.URL, ServiceConfig{Retry: testRetryConfig()})
+	_, err = postClient.Post(context.Background(), "/retry", map[string]string{"name": "alice"})
+	require.Error(t, err)
+	require.True(t, IsResponseError(err))
+	require.Equal(t, int32(1), atomic.LoadInt32(&postAttempts))
+
+	var idempotentPostAttempts int32
+	idempotentPostServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempt := atomic.AddInt32(&idempotentPostAttempts, 1)
+		if attempt < 2 {
+			http.Error(w, "retry", http.StatusBadGateway)
+			return
+		}
+		writeJSON(t, w, map[string]string{"ok": "true"})
+	}))
+	defer idempotentPostServer.Close()
+
+	idempotentPostClient := newTestClient(t, idempotentPostServer.URL, ServiceConfig{Retry: testRetryConfig()})
+	_, err = idempotentPostClient.Post(context.Background(), "/retry", map[string]string{"name": "alice"}, WithIdempotent(true))
+	require.NoError(t, err)
+	require.Equal(t, int32(2), atomic.LoadInt32(&idempotentPostAttempts))
+}
+
+func TestClientTimeoutReturnsRequestError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(50 * time.Millisecond)
+		writeJSON(t, w, map[string]string{"ok": "true"})
+	}))
+	defer server.Close()
+
+	client := newTestClient(t, server.URL, ServiceConfig{})
+
+	_, err := client.Get(context.Background(), "/slow", WithTimeout(5*time.Millisecond))
+
+	var httpErr *Error
+	require.Error(t, err)
+	require.True(t, errors.As(err, &httpErr))
+	require.Equal(t, ErrorKindRequest, httpErr.Kind)
+	require.Equal(t, "timeout", httpErr.Code)
+}
+
+func TestClientResponseAndParseErrors(t *testing.T) {
+	t.Run("non 2xx", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "not found", http.StatusNotFound)
+		}))
+		defer server.Close()
+
+		client := newTestClient(t, server.URL, ServiceConfig{})
+
+		_, err := client.Get(context.Background(), "/missing")
+
+		var httpErr *Error
+		require.Error(t, err)
+		require.True(t, errors.As(err, &httpErr))
+		require.Equal(t, ErrorKindResponse, httpErr.Kind)
+		require.Equal(t, http.StatusNotFound, httpErr.StatusCode)
+	})
+
+	t.Run("invalid json", func(t *testing.T) {
+		var attempts int32
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			atomic.AddInt32(&attempts, 1)
+			w.Header().Set("Content-Type", jsonContentType)
+			_, _ = w.Write([]byte(`{bad json`))
+		}))
+		defer server.Close()
+
+		client := newTestClient(t, server.URL, ServiceConfig{Retry: testRetryConfig()})
+
+		_, err := GetJSON[userVO](context.Background(), client, "/bad-json")
+
+		var httpErr *Error
+		require.Error(t, err)
+		require.True(t, errors.As(err, &httpErr))
+		require.Equal(t, ErrorKindInternal, httpErr.Kind)
+		require.Equal(t, "response_parse_error", httpErr.Code)
+		require.Equal(t, int32(1), atomic.LoadInt32(&attempts))
+	})
+}
+
+func TestClientLogsWithoutSensitiveHeaders(t *testing.T) {
+	core, logs := observer.New(zap.InfoLevel)
+	logger := zap.New(core)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(t, w, map[string]string{"ok": "true"})
+	}))
+	defer server.Close()
+
+	factory, err := NewFactory(Config{
+		Enabled: true,
+		Services: map[string]ServiceConfig{
+			"svc": {BaseURL: server.URL},
+		},
+	}, logger)
+	require.NoError(t, err)
+	client, err := factory.Get("svc")
+	require.NoError(t, err)
+
+	_, err = client.Get(context.Background(), "/ping?token=secret",
+		WithHeader("Authorization", "Bearer secret"),
+		WithHeader("X-Trace-ID", "trace-1"),
+	)
+
+	require.NoError(t, err)
+	require.Equal(t, 1, logs.Len())
+	entry := logs.All()[0]
+	require.Equal(t, "http client request completed", entry.Message)
+	require.Equal(t, "/ping", entry.ContextMap()["url_path"])
+	require.Equal(t, "trace-1", entry.ContextMap()["trace_id"])
+	require.NotContains(t, entry.ContextMap(), "Authorization")
+	require.NotContains(t, entry.ContextMap(), "token")
+	require.NotContains(t, entry.ContextMap(), "secret")
+}
+
+func newTestClient(t *testing.T, baseURL string, override ServiceConfig) *Client {
+	t.Helper()
+	factory := newTestFactory(t, baseURL, override)
+	client, err := factory.Get("svc")
+	require.NoError(t, err)
+	return client
+}
+
+func testRetryConfig() RetryConfig {
+	return RetryConfig{
+		Enabled:     true,
+		Count:       2,
+		WaitTime:    time.Millisecond,
+		MaxWaitTime: time.Millisecond,
+	}
+}
+
+func writeJSON(t *testing.T, w http.ResponseWriter, v any) {
+	t.Helper()
+	w.Header().Set("Content-Type", jsonContentType)
+	require.NoError(t, json.NewEncoder(w).Encode(v))
+}

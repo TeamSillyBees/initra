@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	authmodule "github.com/teamsillybees/initra/examples/api/internal/module/auth"
 	filemodule "github.com/teamsillybees/initra/examples/api/internal/module/file"
+	httpdemomodule "github.com/teamsillybees/initra/examples/api/internal/module/httpdemo"
 	usermodule "github.com/teamsillybees/initra/examples/api/internal/module/user"
 )
 
@@ -21,6 +22,7 @@ func TestModuleProvideDoesNotCollide(t *testing.T) {
 		usermodule.Provide(injector)
 		authmodule.Provide(injector)
 		filemodule.Provide(injector)
+		httpdemomodule.Provide(injector)
 	})
 }
 
@@ -105,6 +107,26 @@ storage:
     allowed_extensions: ["txt", "md", "png", "jpg", "jpeg", "gif", "pdf"]
     max_size: 10485760
 
+http_client:
+  enabled: true
+  timeout: 30s
+  connect_timeout: 10s
+  idle_conn_timeout: 90s
+  max_idle_conns: 100
+  max_idle_conns_per_host: 20
+  max_response_body_size: 10485760
+  services:
+    httpbingo:
+      base_url: https://httpbingo.org
+      timeout: 10s
+      headers:
+        X-App-Id: example-api
+      retry:
+        enabled: true
+        count: 2
+        wait_time: 200ms
+        max_wait_time: 2s
+
 idgen:
   node: 1
 `)
@@ -131,6 +153,10 @@ idgen:
 	require.True(t, cfg.Storage.Enabled)
 	require.Equal(t, "./var/uploads", cfg.Storage.Local.RootDir)
 	require.Equal(t, int64(10*1024*1024), cfg.Storage.Local.MaxSize)
+	require.True(t, cfg.HTTPClient.Enabled)
+	require.Equal(t, 30*time.Second, cfg.HTTPClient.Timeout)
+	require.Equal(t, "https://httpbingo.org", cfg.HTTPClient.Services["httpbingo"].BaseURL)
+	require.Equal(t, "example-api", cfg.HTTPClient.Services["httpbingo"].Headers["x-app-id"])
 
 	safe := cfg.SafeForLog()
 	auth := safe["auth"].(map[string]any)
