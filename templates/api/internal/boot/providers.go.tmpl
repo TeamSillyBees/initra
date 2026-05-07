@@ -8,6 +8,7 @@ import (
 	"{{ .ModulePath }}/internal/data"
 	"{{ .ModulePath }}/internal/ent"
 	authmodule "{{ .ModulePath }}/internal/module/auth"
+	filemodule "{{ .ModulePath }}/internal/module/file"
 	usermodule "{{ .ModulePath }}/internal/module/user"
 	"github.com/teamsillybees/initra/pkg/auth"
 	platformcache "github.com/teamsillybees/initra/pkg/cache"
@@ -16,6 +17,8 @@ import (
 	"github.com/teamsillybees/initra/pkg/observability"
 	"github.com/teamsillybees/initra/pkg/redisx"
 	"github.com/teamsillybees/initra/pkg/server"
+	platformstorage "github.com/teamsillybees/initra/pkg/storage"
+	storageprovider "github.com/teamsillybees/initra/pkg/storage/provider"
 	"go.uber.org/zap"
 )
 
@@ -53,6 +56,9 @@ func registerProviders(ctx context.Context, injector *do.Injector, cfg *Config, 
 	})
 	do.Provide(injector, func(i *do.Injector) (*idgen.Generator, error) {
 		return idgen.NewGenerator(cfg.IDGen.Node)
+	})
+	do.Provide(injector, func(i *do.Injector) (platformstorage.Service, error) {
+		return storageprovider.New(ctx, cfg.Storage)
 	})
 	do.Provide(injector, func(i *do.Injector) (*ent.Client, error) {
 		generator := do.MustInvoke[*idgen.Generator](i)
@@ -95,6 +101,7 @@ func registerModules(injector *do.Injector) {
 	// 再在这里把模块依赖注册进同一个 do 容器。
 	usermodule.Provide(injector)
 	authmodule.Provide(injector)
+	filemodule.Provide(injector)
 }
 
 func registerRoutes(injector *do.Injector, webApp *server.App, buildInfo observability.BuildInfoVO) {
@@ -107,4 +114,5 @@ func registerRoutes(injector *do.Injector, webApp *server.App, buildInfo observa
 	// Register 内部应同时注册 Huma operation 与 RouteSecurity，避免 /api 路由因缺少安全元信息被拒绝。
 	do.MustInvoke[*usermodule.Module](injector).Register(webApp.API, webApp.Registry)
 	do.MustInvoke[*authmodule.Module](injector).Register(webApp.API, webApp.Registry)
+	do.MustInvoke[*filemodule.Module](injector).Register(webApp.API, webApp.Registry)
 }

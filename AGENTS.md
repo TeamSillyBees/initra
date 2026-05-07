@@ -15,14 +15,14 @@
 
 `initra` 是面向企业内部 Go 服务的快速开发脚手架。理解和描述本仓库时必须区分三类内容：
 
-- **标准项目模板**：`templates/api` 提供包含 auth/user、Ent schema 与生成代码、seed 和 Atlas migrations 的 RESTful API 服务模板，`templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。
-- **可复用 Go package**：根模块 `github.com/teamsillybees/initra` 的 `pkg/*`，沉淀 Web、配置、错误、日志、认证、数据库、Redis、缓存、对象存储、HTTP Client、任务调度等通用能力；其中 Redis 基础能力统一放在 `pkg/redisx`，支持 standalone/sentinel，不支持 cluster。
+- **标准项目模板**：`templates/api` 提供包含 auth/user/file 示例模块、Ent schema 与生成代码、seed 和 Atlas migrations 的 RESTful API 服务模板，`templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。
+- **可复用 Go package**：根模块 `github.com/teamsillybees/initra` 的 `pkg/*`，沉淀 Web、配置、错误、日志、认证、数据库、Redis、缓存、文件与对象存储、HTTP Client、任务调度等通用能力；其中 Redis 基础能力统一放在 `pkg/redisx`，支持 standalone/sentinel，不支持 cluster。
 - **工程化 CLI**：`cmd/initra`，负责生成项目、业务模块、CRUD 样例、迁移文件、配置样例、接口骨架、测试骨架和代码生成命令。
 
 重要边界：
 
 - `examples/api` 是独立 Go module 的可运行 API 示例项目，属于标准项目模板。
-- `templates/api` 是 CLI API 项目模板，内容应与 `examples/api` 保持同步，并保留 auth/user 基础模块、Ent schema 与生成代码、seed 数据和 Atlas migrations。
+- `templates/api` 是 CLI API 项目模板，内容应与 `examples/api` 保持同步，并保留 auth/user 基础模块、file 本地文件示例模块、Ent schema 与生成代码、seed 数据和 Atlas migrations。
 - `templates/worker` 是 CLI worker 项目模板，目前只提供可编译占位骨架。
 - `cmd/initra` 只负责生成和维护工程骨架，不承载运行时业务能力。
 - `internal/` 只服务脚手架仓库自身；标准项目模板、生成项目和外部业务项目不得 import 根仓库 `internal/`。
@@ -57,6 +57,7 @@ go run ./cmd/initra new $target --type api --module example.com/demo-api --repla
 - 不引入不必要的抽象。只有在减少真实重复、隔离复杂度或匹配现有模式时才新增抽象。
 - 共享能力放入 `pkg/*`，不要通过业务模块之间互相 import 来复用逻辑。
 - Redis 业务能力优先使用 `pkg/redisx` 的 client、Key Builder、缓存、Lua registry、SCAN+UNLINK 和 redislock 短锁；禁止生产使用 `KEYS`，禁止记录密码、token、验证码、session value。
+- 文件与对象存储业务能力优先使用 `pkg/storage` 的统一接口和 `pkg/storage/provider` 工厂；业务模块不要直接依赖云厂商 SDK。
 - 新增或修改导出 API 时，同步补齐中文注释和必要测试。
 - 禁止在业务模块中随意使用 `panic` 或吞掉错误；错误应向上返回并保留足够上下文。
 
@@ -107,6 +108,7 @@ internal/module/<module>/
 - 所有 `/api/` 接口必须通过 `registry.Register` 登记 `RouteSecurity`，鉴权中间件默认 fail-closed。
 - 公开接口，例如登录接口，必须显式设置 `Public: true`。
 - `RouteSecurity` 的 `Resource`、`Action` 必须与 Casbin policy 文件保持一致。
+- API 模板的 file 示例模块使用 `storage.provider: local` 展示上传、下载、元信息查询和删除；切换云厂商时只调整 `storage` 配置与 provider。
 - 业务项目在自己的 `internal/boot/config.go` 定义配置结构，并通过 `pkg/config` 泛型加载。
 - `pkg/config` 只提供通用加载能力，不绑定任何具体业务配置结构。
 - 配置规范使用结构体定义，必须支持默认值、环境变量覆盖配置文件、启动校验和敏感配置脱敏打印。

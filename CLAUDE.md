@@ -6,14 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 initra 是面向企业内部 Go 服务的快速开发脚手架。所有项目介绍和架构说明必须明确归属到以下三个部分，避免把模板、运行时 package 和 CLI 生成器混为一谈：
 
-- **标准项目模板**：`templates/api` 提供包含 auth/user、Ent schema 与生成代码、seed 和 Atlas migrations 的 RESTful API 服务模板，`templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。
-- **可复用的 Go package**：根模块 `github.com/teamsillybees/initra` 的 `pkg/*`，沉淀 Web、配置、错误、日志、认证、数据访问、Redis、缓存、对象存储、HTTP Client、任务调度等通用能力。
+- **标准项目模板**：`templates/api` 提供包含 auth/user/file 示例模块、Ent schema 与生成代码、seed 和 Atlas migrations 的 RESTful API 服务模板，`templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。
+- **可复用的 Go package**：根模块 `github.com/teamsillybees/initra` 的 `pkg/*`，沉淀 Web、配置、错误、日志、认证、数据访问、Redis、缓存、文件与对象存储、HTTP Client、任务调度等通用能力。
 - **工程化 CLI**：`cmd/initra`，承载生成项目、业务模块、CRUD 样例、迁移文件、配置样例、接口骨架、测试骨架和代码生成命令。
 
 跨部分边界：
 
 - `examples/api` 是独立 Go module 的可运行 API 示例项目，属于标准项目模板。
-- `templates/api` 是 CLI API 项目模板，内容与 `examples/api` 保持同步，并保留 auth/user 基础模块、Ent schema 与生成代码、seed 数据和 Atlas migrations，属于标准项目模板。
+- `templates/api` 是 CLI API 项目模板，内容与 `examples/api` 保持同步，并保留 auth/user 基础模块、file 本地文件示例模块、Ent schema 与生成代码、seed 数据和 Atlas migrations，属于标准项目模板。
 - `templates/worker` 是 CLI worker 项目模板，目前只提供可编译占位骨架。
 - `cmd/initra` 只负责生成和维护工程骨架，属于工程化 CLI。
 - `internal/` 只服务脚手架仓库自身，标准项目模板、生成项目和外部业务项目都不得 import。
@@ -31,6 +31,7 @@ initra 是面向企业内部 Go 服务的快速开发脚手架。所有项目介
 - Error：samber/oops + 统一错误码
 - Auth：JWT + Casbin
 - Config：Viper
+- Storage：`pkg/storage` 统一接口 + local/阿里云 OSS/腾讯云 COS/AWS S3/S3 兼容 provider
 
 ## 常用命令
 
@@ -94,6 +95,7 @@ internal/module/<module>/
 - 面向标准项目模板：示例项目只能依赖可复用 Go package `pkg/*`，不能 import 根仓库 `internal/`。
 - 面向标准项目模板和可复用 Go package：包名简短、清晰、全小写，一个模块一个 package。
 - 面向 Redis 能力：统一优先使用 `pkg/redisx` 的 client、Key Builder、缓存、Lua registry、SCAN+UNLINK 和 redislock 短锁；禁止生产使用 `KEYS`，禁止记录密码、token、验证码、session value。
+- 面向文件与对象存储能力：统一优先使用 `pkg/storage` 和 `pkg/storage/provider`，业务模块只依赖统一接口，不直接依赖云厂商 SDK。
 
 ### 错误处理
 
@@ -106,6 +108,7 @@ internal/module/<module>/
 - 面向标准项目模板：所有 `/api/` 接口必须通过 `registry.Register` 登记 `RouteSecurity`，否则鉴权中间件按 **fail-closed** 拒绝请求。
 - 面向标准项目模板：公开接口设置 `Public: true`。
 - 面向标准项目模板：`RouteSecurity` 的 Resource/Action 需与 Casbin policy 文件中定义的一致。
+- 面向标准项目模板：file 示例模块默认使用 `storage.provider: local`，提供上传、下载、元信息查询和删除；切换云厂商应通过 `storage` 配置完成。
 
 ### 配置
 

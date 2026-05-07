@@ -9,16 +9,18 @@ import (
 	"github.com/samber/do"
 	"github.com/stretchr/testify/require"
 	authmodule "{{ .ModulePath }}/internal/module/auth"
+	filemodule "{{ .ModulePath }}/internal/module/file"
 	usermodule "{{ .ModulePath }}/internal/module/user"
 )
 
-// TestModuleProvideDoesNotCollide 验证 auth 和 user 模块使用具名依赖后不会在 DI 容器中冲突。
+// TestModuleProvideDoesNotCollide 验证 auth、user 和 file 模块使用具名依赖后不会在 DI 容器中冲突。
 func TestModuleProvideDoesNotCollide(t *testing.T) {
 	injector := do.New()
 
 	require.NotPanics(t, func() {
 		usermodule.Provide(injector)
 		authmodule.Provide(injector)
+		filemodule.Provide(injector)
 	})
 }
 
@@ -91,6 +93,17 @@ cache:
   local_ttl: 1m
   remote_ttl: 10m
 
+storage:
+  enabled: true
+  provider: local
+  presign_default_ttl: 15m
+  local:
+    root_dir: ./var/uploads
+    temp_dir: .multipart
+    generate_date_path: true
+    allowed_extensions: ["txt", "md", "png", "jpg", "jpeg", "gif", "pdf"]
+    max_size: 10485760
+
 idgen:
   node: 1
 `)
@@ -114,6 +127,9 @@ idgen:
 	require.Equal(t, "change-me", cfg.Auth.JWT.Secret)
 	require.Equal(t, []string{"password", "token", "secret", "authorization"}, cfg.Log.Mask.Fields)
 	require.True(t, cfg.Observability.Metrics.Enabled)
+	require.True(t, cfg.Storage.Enabled)
+	require.Equal(t, "./var/uploads", cfg.Storage.Local.RootDir)
+	require.Equal(t, int64(10*1024*1024), cfg.Storage.Local.MaxSize)
 
 	safe := cfg.SafeForLog()
 	auth := safe["auth"].(map[string]any)

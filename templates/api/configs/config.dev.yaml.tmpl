@@ -63,5 +63,20 @@ cache:
   local_ttl: 1m
   remote_ttl: 10m
 
+storage:
+  enabled: true
+  provider: local
+  bucket: ""
+  public_base_url: ""
+  presign_default_ttl: 15m
+  local:
+    root_dir: ./var/uploads
+    temp_dir: .multipart
+    public_base_url: ""
+    private_base_url: ""
+    generate_date_path: true
+    allowed_extensions: ["txt", "md", "png", "jpg", "jpeg", "gif", "pdf"]
+    max_size: 10485760
+
 idgen:
   node: 1

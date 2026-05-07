@@ -7,20 +7,22 @@ import (
 	"github.com/teamsillybees/initra/examples/api/internal/data"
 	platformconfig "github.com/teamsillybees/initra/pkg/config"
 	"github.com/teamsillybees/initra/pkg/logging"
+	platformstorage "github.com/teamsillybees/initra/pkg/storage"
 )
 
 // Config 是示例项目的应用配置聚合根。
 type Config struct {
-	App           AppConfig           `mapstructure:"app"`
-	Server        ServerConfig        `mapstructure:"server"`
-	Database      data.DatabaseConfig `mapstructure:"database"`
-	Redis         RedisConfig         `mapstructure:"redis"`
-	Auth          AuthConfig          `mapstructure:"auth"`
-	Log           logging.Config      `mapstructure:"log"`
-	Observability ObservabilityConfig `mapstructure:"observability"`
-	Casbin        CasbinConfig        `mapstructure:"casbin"`
-	Cache         CacheConfig         `mapstructure:"cache"`
-	IDGen         IDGenConfig         `mapstructure:"idgen"`
+	App           AppConfig              `mapstructure:"app"`
+	Server        ServerConfig           `mapstructure:"server"`
+	Database      data.DatabaseConfig    `mapstructure:"database"`
+	Redis         RedisConfig            `mapstructure:"redis"`
+	Auth          AuthConfig             `mapstructure:"auth"`
+	Log           logging.Config         `mapstructure:"log"`
+	Observability ObservabilityConfig    `mapstructure:"observability"`
+	Casbin        CasbinConfig           `mapstructure:"casbin"`
+	Cache         CacheConfig            `mapstructure:"cache"`
+	IDGen         IDGenConfig            `mapstructure:"idgen"`
+	Storage       platformstorage.Config `mapstructure:"storage"`
 }
 
 // AppConfig 描述应用基础元信息。
@@ -155,53 +157,63 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("casbin.policy_path 不能为空")
 	case c.IDGen.Node < 0 || c.IDGen.Node > 1023:
 		return fmt.Errorf("idgen.node 必须在 0 到 1023 之间")
-	default:
-		return nil
 	}
+	if err := c.Storage.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // configDefaults 统一声明示例项目配置默认值。
 func configDefaults() map[string]any {
 	return map[string]any{
-		"app.version":                   "dev",
-		"app.instance_id":               "local-1",
-		"server.addr":                   ":8080",
-		"server.read_timeout":           "10s",
-		"server.write_timeout":          "30s",
-		"server.idle_timeout":           "60s",
-		"server.shutdown_timeout":       "20s",
-		"database.host":                 "",
-		"database.port":                 5432,
-		"database.user":                 "",
-		"database.password":             "",
-		"database.dbname":               "",
-		"database.max_open_conns":       20,
-		"database.max_idle_conns":       10,
-		"database.conn_max_lifetime":    "1h",
-		"redis.enabled":                 false,
-		"redis.addr":                    "127.0.0.1:6379",
-		"redis.password":                "",
-		"redis.db":                      0,
-		"redis.pool_size":               10,
-		"auth.enabled":                  true,
-		"auth.access_token_ttl":         "15m",
-		"auth.refresh_token_ttl":        "720h",
-		"auth.allow_multiple_devices":   true,
-		"auth.jwt.issuer":               "",
-		"auth.jwt.secret":               "",
-		"log.level":                     "info",
-		"log.format":                    "json",
-		"log.output":                    "stdout",
-		"log.mask.enabled":              true,
-		"log.mask.fields":               []string{"password", "token", "secret", "authorization"},
-		"observability.metrics.enabled": true,
-		"observability.tracing.enabled": false,
-		"observability.pprof.enabled":   false,
-		"observability.health.enabled":  true,
-		"casbin.model_path":             "",
-		"casbin.policy_path":            "",
-		"cache.local_ttl":               "1m",
-		"cache.remote_ttl":              "10m",
-		"idgen.node":                    1,
+		"app.version":                      "dev",
+		"app.instance_id":                  "local-1",
+		"server.addr":                      ":8080",
+		"server.read_timeout":              "10s",
+		"server.write_timeout":             "30s",
+		"server.idle_timeout":              "60s",
+		"server.shutdown_timeout":          "20s",
+		"database.host":                    "",
+		"database.port":                    5432,
+		"database.user":                    "",
+		"database.password":                "",
+		"database.dbname":                  "",
+		"database.max_open_conns":          20,
+		"database.max_idle_conns":          10,
+		"database.conn_max_lifetime":       "1h",
+		"redis.enabled":                    false,
+		"redis.addr":                       "127.0.0.1:6379",
+		"redis.password":                   "",
+		"redis.db":                         0,
+		"redis.pool_size":                  10,
+		"auth.enabled":                     true,
+		"auth.access_token_ttl":            "15m",
+		"auth.refresh_token_ttl":           "720h",
+		"auth.allow_multiple_devices":      true,
+		"auth.jwt.issuer":                  "",
+		"auth.jwt.secret":                  "",
+		"log.level":                        "info",
+		"log.format":                       "json",
+		"log.output":                       "stdout",
+		"log.mask.enabled":                 true,
+		"log.mask.fields":                  []string{"password", "token", "secret", "authorization"},
+		"observability.metrics.enabled":    true,
+		"observability.tracing.enabled":    false,
+		"observability.pprof.enabled":      false,
+		"observability.health.enabled":     true,
+		"casbin.model_path":                "",
+		"casbin.policy_path":               "",
+		"cache.local_ttl":                  "1m",
+		"cache.remote_ttl":                 "10m",
+		"idgen.node":                       1,
+		"storage.enabled":                  true,
+		"storage.provider":                 string(platformstorage.ProviderLocal),
+		"storage.presign_default_ttl":      "15m",
+		"storage.local.root_dir":           "./var/uploads",
+		"storage.local.temp_dir":           ".multipart",
+		"storage.local.generate_date_path": true,
+		"storage.local.allowed_extensions": []string{"txt", "md", "png", "jpg", "jpeg", "gif", "pdf"},
+		"storage.local.max_size":           int64(10 * 1024 * 1024),
 	}
 }
