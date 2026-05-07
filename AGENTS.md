@@ -58,6 +58,7 @@ go run ./cmd/initra new $target --type api --module example.com/demo-api --repla
 - 共享能力放入 `pkg/*`，不要通过业务模块之间互相 import 来复用逻辑。
 - Redis 业务能力优先使用 `pkg/redisx` 的 client、Key Builder、缓存、Lua registry、SCAN+UNLINK 和 redislock 短锁；禁止生产使用 `KEYS`，禁止记录密码、token、验证码、session value。
 - 文件与对象存储业务能力优先使用 `pkg/storage` 的统一接口和 `pkg/storage/provider` 工厂；业务模块不要直接依赖云厂商 SDK。
+- 框架能力包（如 `storage`、`redisx`）应提供 `Register(injector)` 入口函数，在启动时显式调用一次完成装配；业务代码只依赖接口、不感知底层实现，禁止在业务模块中直接使用 `do.Invoke` 或滥用全局 injector。
 - 新增或修改导出 API 时，同步补齐中文注释和必要测试。
 - 禁止在业务模块中随意使用 `panic` 或吞掉错误；错误应向上返回并保留足够上下文。
 
@@ -110,7 +111,7 @@ internal/module/<module>/
 - `RouteSecurity` 的 `Resource`、`Action` 必须与 Casbin policy 文件保持一致。
 - API 模板的 file 示例模块使用 `storage.provider: local` 展示上传、下载、元信息查询和删除；切换云厂商时只调整 `storage` 配置与 provider。
 - 业务项目在自己的 `internal/boot/config.go` 定义配置结构，并通过 `pkg/config` 泛型加载。
-- `pkg/config` 只提供通用加载能力，不绑定任何具体业务配置结构。
+- `pkg/config` 只提供通用加载能力，不绑定任何具体业务配置结构；pkg 中的配置结构体应复用 `pkg/config` 的 `Sanitize`、`Validate` 公共方法，避免各自重复实现脱敏与校验；业务项目 boot config 应组合 pkg 中定义的配置结构体（如 `storage.Config`、`redisx.Config`），而非从头定义。
 - 配置规范使用结构体定义，必须支持默认值、环境变量覆盖配置文件、启动校验和敏感配置脱敏打印。
 - 运行环境统一使用 `app.env` 或无前缀环境变量 `APP_ENV` 表示；其他配置环境变量默认使用 `INITRA_` 前缀。
 - 密码、Token、Secret、Access Key、Authorization、带密码的 DSN 禁止明文输出到日志。

@@ -96,6 +96,7 @@ internal/module/<module>/
 - 面向标准项目模板和可复用 Go package：包名简短、清晰、全小写，一个模块一个 package。
 - 面向 Redis 能力：统一优先使用 `pkg/redisx` 的 client、Key Builder、缓存、Lua registry、SCAN+UNLINK 和 redislock 短锁；禁止生产使用 `KEYS`，禁止记录密码、token、验证码、session value。
 - 面向文件与对象存储能力：统一优先使用 `pkg/storage` 和 `pkg/storage/provider`，业务模块只依赖统一接口，不直接依赖云厂商 SDK。
+- 面向依赖注入：框架能力包（如 `storage`、`redisx`）应提供 `Register(injector)` 入口函数，在启动时显式调用一次完成装配；业务代码只依赖接口、不感知底层实现，禁止在业务模块中直接使用 `do.Invoke` 或滥用全局 injector。
 
 ### 错误处理
 
@@ -113,7 +114,7 @@ internal/module/<module>/
 ### 配置
 
 - 面向标准项目模板：业务项目在 `internal/boot/config.go` 中定义自己的配置结构，使用 `pkg/config` 泛型加载。
-- 面向可复用 Go package：`pkg/config` 只提供泛型加载能力，不绑定具体业务配置结构。
+- 面向可复用 Go package：`pkg/config` 只提供泛型加载能力，不绑定具体业务配置结构；pkg 中的配置结构体应复用 `pkg/config` 的 `Sanitize`、`Validate` 公共方法，避免各自重复实现脱敏与校验；业务项目 boot config 应组合 pkg 中定义的配置结构体（如 `storage.Config`、`redisx.Config`），而非从头定义。
 - 面向工程化 CLI 和标准项目模板：模板文件中的模块路径使用 `{{ .ModulePath }}`，禁止硬编码 `github.com/teamsillybees/initra/examples/api`。
 - 配置规范使用结构体定义，必须支持默认值、环境变量覆盖配置文件、启动校验和敏感配置脱敏打印。
 - 运行环境统一使用 `app.env` 或无前缀环境变量 `APP_ENV` 表示；其他配置环境变量默认使用 `INITRA_` 前缀。

@@ -26,7 +26,8 @@ redis:
   addr: "127.0.0.1:6379"
   password: ""
   db: 1
-  pool_size: 10
+  pool:
+    size: 10
 
 auth:
   enabled: true

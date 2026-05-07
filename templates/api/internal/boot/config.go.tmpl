@@ -7,6 +7,7 @@ import (
 	"{{ .ModulePath }}/internal/data"
 	platformconfig "github.com/teamsillybees/initra/pkg/config"
 	"github.com/teamsillybees/initra/pkg/logging"
+	"github.com/teamsillybees/initra/pkg/redisx"
 	platformstorage "github.com/teamsillybees/initra/pkg/storage"
 )
 
@@ -15,7 +16,7 @@ type Config struct {
 	App           AppConfig           `mapstructure:"app"`
 	Server        ServerConfig        `mapstructure:"server"`
 	Database      data.DatabaseConfig `mapstructure:"database"`
-	Redis         RedisConfig         `mapstructure:"redis"`
+	Redis         redisx.Config       `mapstructure:"redis"`
 	Auth          AuthConfig          `mapstructure:"auth"`
 	Log           logging.Config      `mapstructure:"log"`
 	Observability ObservabilityConfig `mapstructure:"observability"`
@@ -40,15 +41,6 @@ type ServerConfig struct {
 	WriteTimeout    time.Duration `mapstructure:"write_timeout"`
 	IdleTimeout     time.Duration `mapstructure:"idle_timeout"`
 	ShutdownTimeout time.Duration `mapstructure:"shutdown_timeout"`
-}
-
-// RedisConfig 描述 Redis 连接配置。
-type RedisConfig struct {
-	Enabled  bool   `mapstructure:"enabled"`
-	Addr     string `mapstructure:"addr"`
-	Password string `mapstructure:"password"`
-	DB       int    `mapstructure:"db"`
-	PoolSize int    `mapstructure:"pool_size"`
 }
 
 // AuthConfig 描述认证与令牌配置。
@@ -112,6 +104,9 @@ func (c *Config) SafeForLog() map[string]any {
 
 // Validate 对启动所需关键配置进行兜底校验。
 func (c *Config) Validate() error {
+	if err := c.Redis.Validate(); err != nil {
+		return err
+	}
 	switch {
 	case c.App.Name == "":
 		return fmt.Errorf("app.name 不能为空")
@@ -135,10 +130,6 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("database.user 不能为空")
 	case c.Database.DBName == "":
 		return fmt.Errorf("database.dbname 不能为空")
-	case c.Redis.Enabled && c.Redis.Addr == "":
-		return fmt.Errorf("redis.addr 不能为空")
-	case c.Redis.Enabled && c.Redis.PoolSize <= 0:
-		return fmt.Errorf("redis.pool_size 必须大于 0")
 	case !c.Auth.Enabled:
 		return fmt.Errorf("auth.enabled 当前必须为 true")
 	case c.Auth.JWT.Issuer == "":
@@ -186,7 +177,9 @@ func configDefaults() map[string]any {
 		"redis.addr":                    "127.0.0.1:6379",
 		"redis.password":                "",
 		"redis.db":                      0,
-		"redis.pool_size":               10,
+		"redis.pool.size":                          10,
+		"redis.observability.metrics_enabled":     true,
+		"redis.observability.tracing_enabled":     false,
 		"auth.enabled":                  true,
 		"auth.access_token_ttl":         "15m",
 		"auth.refresh_token_ttl":        "720h",

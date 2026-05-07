@@ -7,6 +7,7 @@ import (
 	"github.com/teamsillybees/initra/examples/api/internal/data"
 	platformconfig "github.com/teamsillybees/initra/pkg/config"
 	"github.com/teamsillybees/initra/pkg/logging"
+	"github.com/teamsillybees/initra/pkg/redisx"
 	platformstorage "github.com/teamsillybees/initra/pkg/storage"
 )
 
@@ -15,7 +16,7 @@ type Config struct {
 	App           AppConfig              `mapstructure:"app"`
 	Server        ServerConfig           `mapstructure:"server"`
 	Database      data.DatabaseConfig    `mapstructure:"database"`
-	Redis         RedisConfig            `mapstructure:"redis"`
+	Redis         redisx.Config          `mapstructure:"redis"`
 	Auth          AuthConfig             `mapstructure:"auth"`
 	Log           logging.Config         `mapstructure:"log"`
 	Observability ObservabilityConfig    `mapstructure:"observability"`
@@ -40,15 +41,6 @@ type ServerConfig struct {
 	WriteTimeout    time.Duration `mapstructure:"write_timeout"`
 	IdleTimeout     time.Duration `mapstructure:"idle_timeout"`
 	ShutdownTimeout time.Duration `mapstructure:"shutdown_timeout"`
-}
-
-// RedisConfig 描述 Redis 连接配置。
-type RedisConfig struct {
-	Enabled  bool   `mapstructure:"enabled"`
-	Addr     string `mapstructure:"addr"`
-	Password string `mapstructure:"password"`
-	DB       int    `mapstructure:"db"`
-	PoolSize int    `mapstructure:"pool_size"`
 }
 
 // AuthConfig 描述认证与令牌配置。
@@ -112,6 +104,9 @@ func (c *Config) SafeForLog() map[string]any {
 
 // Validate 对启动所需关键配置进行兜底校验。
 func (c *Config) Validate() error {
+	if err := c.Redis.Validate(); err != nil {
+		return err
+	}
 	switch {
 	case c.App.Name == "":
 		return fmt.Errorf("app.name 不能为空")
@@ -135,10 +130,6 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("database.user 不能为空")
 	case c.Database.DBName == "":
 		return fmt.Errorf("database.dbname 不能为空")
-	case c.Redis.Enabled && c.Redis.Addr == "":
-		return fmt.Errorf("redis.addr 不能为空")
-	case c.Redis.Enabled && c.Redis.PoolSize <= 0:
-		return fmt.Errorf("redis.pool_size 必须大于 0")
 	case !c.Auth.Enabled:
 		return fmt.Errorf("auth.enabled 当前必须为 true")
 	case c.Auth.JWT.Issuer == "":
@@ -167,53 +158,55 @@ func (c *Config) Validate() error {
 // configDefaults 统一声明示例项目配置默认值。
 func configDefaults() map[string]any {
 	return map[string]any{
-		"app.version":                      "dev",
-		"app.instance_id":                  "local-1",
-		"server.addr":                      ":8080",
-		"server.read_timeout":              "10s",
-		"server.write_timeout":             "30s",
-		"server.idle_timeout":              "60s",
-		"server.shutdown_timeout":          "20s",
-		"database.host":                    "",
-		"database.port":                    5432,
-		"database.user":                    "",
-		"database.password":                "",
-		"database.dbname":                  "",
-		"database.max_open_conns":          20,
-		"database.max_idle_conns":          10,
-		"database.conn_max_lifetime":       "1h",
-		"redis.enabled":                    false,
-		"redis.addr":                       "127.0.0.1:6379",
-		"redis.password":                   "",
-		"redis.db":                         0,
-		"redis.pool_size":                  10,
-		"auth.enabled":                     true,
-		"auth.access_token_ttl":            "15m",
-		"auth.refresh_token_ttl":           "720h",
-		"auth.allow_multiple_devices":      true,
-		"auth.jwt.issuer":                  "",
-		"auth.jwt.secret":                  "",
-		"log.level":                        "info",
-		"log.format":                       "json",
-		"log.output":                       "stdout",
-		"log.mask.enabled":                 true,
-		"log.mask.fields":                  []string{"password", "token", "secret", "authorization"},
-		"observability.metrics.enabled":    true,
-		"observability.tracing.enabled":    false,
-		"observability.pprof.enabled":      false,
-		"observability.health.enabled":     true,
-		"casbin.model_path":                "",
-		"casbin.policy_path":               "",
-		"cache.local_ttl":                  "1m",
-		"cache.remote_ttl":                 "10m",
-		"idgen.node":                       1,
-		"storage.enabled":                  true,
-		"storage.provider":                 string(platformstorage.ProviderLocal),
-		"storage.presign_default_ttl":      "15m",
-		"storage.local.root_dir":           "./var/uploads",
-		"storage.local.temp_dir":           ".multipart",
-		"storage.local.generate_date_path": true,
-		"storage.local.allowed_extensions": []string{"txt", "md", "png", "jpg", "jpeg", "gif", "pdf"},
-		"storage.local.max_size":           int64(10 * 1024 * 1024),
+		"app.version":                         "dev",
+		"app.instance_id":                     "local-1",
+		"server.addr":                         ":8080",
+		"server.read_timeout":                 "10s",
+		"server.write_timeout":                "30s",
+		"server.idle_timeout":                 "60s",
+		"server.shutdown_timeout":             "20s",
+		"database.host":                       "",
+		"database.port":                       5432,
+		"database.user":                       "",
+		"database.password":                   "",
+		"database.dbname":                     "",
+		"database.max_open_conns":             20,
+		"database.max_idle_conns":             10,
+		"database.conn_max_lifetime":          "1h",
+		"redis.enabled":                       false,
+		"redis.addr":                          "127.0.0.1:6379",
+		"redis.password":                      "",
+		"redis.db":                            0,
+		"redis.pool.size":                     10,
+		"redis.observability.metrics_enabled": true,
+		"redis.observability.tracing_enabled": false,
+		"auth.enabled":                        true,
+		"auth.access_token_ttl":               "15m",
+		"auth.refresh_token_ttl":              "720h",
+		"auth.allow_multiple_devices":         true,
+		"auth.jwt.issuer":                     "",
+		"auth.jwt.secret":                     "",
+		"log.level":                           "info",
+		"log.format":                          "json",
+		"log.output":                          "stdout",
+		"log.mask.enabled":                    true,
+		"log.mask.fields":                     []string{"password", "token", "secret", "authorization"},
+		"observability.metrics.enabled":       true,
+		"observability.tracing.enabled":       false,
+		"observability.pprof.enabled":         false,
+		"observability.health.enabled":        true,
+		"casbin.model_path":                   "",
+		"casbin.policy_path":                  "",
+		"cache.local_ttl":                     "1m",
+		"cache.remote_ttl":                    "10m",
+		"idgen.node":                          1,
+		"storage.enabled":                     true,
+		"storage.provider":                    string(platformstorage.ProviderLocal),
+		"storage.presign_default_ttl":         "15m",
+		"storage.local.root_dir":              "./var/uploads",
+		"storage.local.temp_dir":              ".multipart",
+		"storage.local.generate_date_path":    true,
+		"storage.local.allowed_extensions":    []string{"txt", "md", "png", "jpg", "jpeg", "gif", "pdf"},
+		"storage.local.max_size":              int64(10 * 1024 * 1024),
 	}
 }

@@ -17,7 +17,6 @@ import (
 	"github.com/teamsillybees/initra/pkg/observability"
 	"github.com/teamsillybees/initra/pkg/redisx"
 	"github.com/teamsillybees/initra/pkg/server"
-	platformstorage "github.com/teamsillybees/initra/pkg/storage"
 	storageprovider "github.com/teamsillybees/initra/pkg/storage/provider"
 	"go.uber.org/zap"
 )
@@ -28,20 +27,7 @@ func registerProviders(ctx context.Context, injector *do.Injector, cfg *Config, 
 	})
 	do.Provide(injector, func(i *do.Injector) (redisx.UniversalClient, error) {
 		logger := do.MustInvoke[*zap.Logger](i)
-		return redisx.NewClient(ctx, redisx.Config{
-			Enabled:  cfg.Redis.Enabled,
-			Mode:     redisx.ModeStandalone,
-			Addr:     cfg.Redis.Addr,
-			Password: cfg.Redis.Password,
-			DB:       cfg.Redis.DB,
-			Pool: redisx.PoolConfig{
-				Size: cfg.Redis.PoolSize,
-			},
-			Observability: redisx.ObservabilityConfig{
-				MetricsEnabled: cfg.Observability.Metrics.Enabled,
-				TracingEnabled: cfg.Observability.Tracing.Enabled,
-			},
-		}, logger)
+		return redisx.NewClient(ctx, cfg.Redis, logger)
 	})
 	do.Provide(injector, func(i *do.Injector) (*platformcache.Manager, error) {
 		var client redisx.UniversalClient
@@ -57,9 +43,7 @@ func registerProviders(ctx context.Context, injector *do.Injector, cfg *Config, 
 	do.Provide(injector, func(i *do.Injector) (*idgen.Generator, error) {
 		return idgen.NewGenerator(cfg.IDGen.Node)
 	})
-	do.Provide(injector, func(i *do.Injector) (platformstorage.Service, error) {
-		return storageprovider.New(ctx, cfg.Storage)
-	})
+	storageprovider.Register(injector, cfg.Storage)
 	do.Provide(injector, func(i *do.Injector) (*ent.Client, error) {
 		generator := do.MustInvoke[*idgen.Generator](i)
 		return data.NewEntClient(cfg.Database, generator)

@@ -56,7 +56,8 @@ redis:
   addr: "127.0.0.1:6379"
   password: ""
   db: 0
-  pool_size: 10
+  pool:
+    size: 10
 
 auth:
   enabled: true
@@ -119,7 +120,7 @@ idgen:
 	require.Equal(t, 20*time.Second, cfg.Server.ShutdownTimeout)
 	require.Equal(t, time.Hour, cfg.Database.ConnMaxLifetime)
 	require.False(t, cfg.Redis.Enabled)
-	require.Equal(t, 10, cfg.Redis.PoolSize)
+	require.Equal(t, 10, cfg.Redis.Pool.Size)
 	require.True(t, cfg.Auth.Enabled)
 	require.Equal(t, 720*time.Hour, cfg.Auth.RefreshTokenTTL)
 	require.True(t, cfg.Auth.AllowMultipleDevices)
