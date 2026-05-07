@@ -669,11 +669,10 @@ func (s *STS) GenerateToken(_ context.Context, input storage.STSTokenInput) (*st
 		}
 	}
 	request := tencentsts.NewAssumeRoleRequest()
-	request.RoleArn = stringPtr(roleARN)
-	request.RoleSessionName = stringPtr(firstNonEmpty(input.RoleSessionName, s.cfg.STS.RoleSessionName))
-	seconds := uint64(duration.Seconds())
-	request.DurationSeconds = &seconds
-	request.Policy = stringPtr(policy)
+	request.RoleArn = new(roleARN)
+	request.RoleSessionName = new(firstNonEmpty(input.RoleSessionName, s.cfg.STS.RoleSessionName))
+	request.DurationSeconds = new(uint64(duration.Seconds()))
+	request.Policy = new(policy)
 	response, err := s.client.AssumeRole(request)
 	if err != nil {
 		return nil, err

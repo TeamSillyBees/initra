@@ -562,12 +562,10 @@ func normalizeS3Error(err error) error {
 	if err == nil {
 		return nil
 	}
-	var noSuchKey *s3types.NoSuchKey
-	if errors.As(err, &noSuchKey) {
+	if _, ok := errors.AsType[*s3types.NoSuchKey](err); ok {
 		return fmt.Errorf("%w: %w", storage.ErrNotFound, err)
 	}
-	var apiErr smithy.APIError
-	if errors.As(err, &apiErr) {
+	if apiErr, ok := errors.AsType[smithy.APIError](err); ok {
 		switch apiErr.ErrorCode() {
 		case "NotFound", "NoSuchKey", "NoSuchBucket":
 			return fmt.Errorf("%w: %w", storage.ErrNotFound, err)

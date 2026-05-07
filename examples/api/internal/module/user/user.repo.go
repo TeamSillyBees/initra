@@ -470,8 +470,7 @@ func cloneTimePtr(value *time.Time) *time.Time {
 	if value == nil {
 		return nil
 	}
-	cloned := *value
-	return &cloned
+	return new(*value)
 }
 
 func mapEntWriteError(err error, message string) error {

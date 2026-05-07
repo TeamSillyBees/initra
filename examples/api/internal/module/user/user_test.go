@@ -34,8 +34,7 @@ func (f *fakeUserRepository) Create(ctx context.Context, user *User) error {
 
 func (f *fakeUserRepository) FindByID(_ context.Context, id int64) (*User, error) {
 	if user, ok := f.byID[id]; ok {
-		cloned := *user
-		return &cloned, nil
+		return new(*user), nil
 	}
 	return nil, nil
 }
@@ -43,8 +42,7 @@ func (f *fakeUserRepository) FindByID(_ context.Context, id int64) (*User, error
 func (f *fakeUserRepository) FindByUsername(_ context.Context, username string) (*User, error) {
 	for _, user := range f.byID {
 		if user.Username == username {
-			cloned := *user
-			return &cloned, nil
+			return new(*user), nil
 		}
 	}
 	return nil, nil
@@ -54,8 +52,7 @@ func (f *fakeUserRepository) Page(_ context.Context, input PageUsersDTO) ([]*Use
 	f.lastPage = input
 	items := make([]*User, 0, len(f.byID))
 	for _, user := range f.byID {
-		cloned := *user
-		items = append(items, &cloned)
+		items = append(items, new(*user))
 	}
 	total := int64(len(items))
 	if f.pageTotal > 0 {
@@ -65,9 +62,8 @@ func (f *fakeUserRepository) Page(_ context.Context, input PageUsersDTO) ([]*Use
 }
 
 func (f *fakeUserRepository) Update(ctx context.Context, user *User) error {
-	cloned := *user
 	f.updateCtx = ctx
-	f.byID[user.ID] = &cloned
+	f.byID[user.ID] = new(*user)
 	return nil
 }
 
@@ -84,13 +80,11 @@ func (f *fakeUserCache) Get(_ context.Context, _ int64) (*User, bool, error) {
 	if f.stored == nil {
 		return nil, false, nil
 	}
-	cloned := *f.stored
-	return &cloned, true, nil
+	return new(*f.stored), true, nil
 }
 
 func (f *fakeUserCache) Set(_ context.Context, user *User) error {
-	cloned := *user
-	f.stored = &cloned
+	f.stored = new(*user)
 	return nil
 }
 
@@ -203,11 +197,9 @@ func TestServiceUpdatePassesOperatorInContextWithoutSettingAuditFields(t *testin
 		},
 	}
 	service := NewService(repo, &fakeUserCache{}, fakePasswordManager{})
-	nickname := " Alice Updated "
-
 	user, err := service.Update(context.Background(), UpdateUserDTO{
 		ID:         1001,
-		Nickname:   &nickname,
+		Nickname:   new(" Alice Updated "),
 		RoleCodes:  &[]string{"admin"},
 		OperatorID: 9002,
 	})

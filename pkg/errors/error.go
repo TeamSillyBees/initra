@@ -95,8 +95,7 @@ func From(err error) *AppError {
 	if err == nil {
 		return nil
 	}
-	var appErr *AppError
-	if errors.As(err, &appErr) {
+	if appErr, ok := errors.AsType[*AppError](err); ok {
 		return appErr
 	}
 	return nil

@@ -199,8 +199,7 @@ func cloneUser(user *User) *User {
 	cloned := *user
 	cloned.RoleCodes = append([]string(nil), user.RoleCodes...)
 	if user.DeletedAt != nil {
-		deletedAt := *user.DeletedAt
-		cloned.DeletedAt = &deletedAt
+		cloned.DeletedAt = new(*user.DeletedAt)
 	}
 	return &cloned
 }
