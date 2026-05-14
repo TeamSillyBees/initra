@@ -19,6 +19,9 @@ type testConfig struct {
 	HTTP struct {
 		ReadTimeout time.Duration `mapstructure:"read_timeout"`
 	} `mapstructure:"http"`
+	Database struct {
+		Host string `mapstructure:"host"`
+	} `mapstructure:"database"`
 }
 
 func (c *testConfig) Validate() error {
@@ -32,15 +35,18 @@ var errMissingAppName = os.ErrInvalid
 
 // TestLoadIntoAppliesDefaultsAndEnvironmentOverrides 验证泛型加载器不绑定具体应用配置结构。
 func TestLoadIntoAppliesDefaultsAndEnvironmentOverrides(t *testing.T) {
+	t.Setenv("APP_ENV", "prod")
 	t.Setenv("INITRA_APP_PORT", "9091")
 
 	configDir := t.TempDir()
-	configPath := filepath.Join(configDir, "config.local.yaml")
-	content := []byte(`
+	writeConfigYAML(t, configDir, "config.yaml", `
 app:
   name: initra
 `)
-	require.NoError(t, os.WriteFile(configPath, content, 0o600))
+	writeConfigYAML(t, configDir, "config.local.yaml", `
+app:
+  name: initra-local
+`)
 
 	cfg, err := LoadInto[testConfig](LoaderOptions{
 		Env:       "local",
@@ -52,38 +58,72 @@ app:
 	})
 
 	require.NoError(t, err)
-	require.Equal(t, "initra", cfg.App.Name)
+	require.Equal(t, "initra-local", cfg.App.Name)
+	require.Equal(t, "local", cfg.App.Env)
 	require.Equal(t, 9091, cfg.App.Port)
 	require.Equal(t, 5*time.Second, cfg.HTTP.ReadTimeout)
 }
 
-// TestLoadIntoAllowsAPPENVToOverrideAppEnv 验证运行环境可以用无前缀 APP_ENV 覆盖配置文件中的 app.env。
-func TestLoadIntoAllowsAPPENVToOverrideAppEnv(t *testing.T) {
+// TestLoadIntoDefaultsToDevEnv 验证未指定运行环境时默认读取 dev 配置。
+func TestLoadIntoDefaultsToDevEnv(t *testing.T) {
+	t.Setenv("APP_ENV", "")
+
+	configDir := t.TempDir()
+	writeConfigYAML(t, configDir, "config.yaml", `
+app:
+  name: initra
+  port: 8080
+`)
+	writeConfigYAML(t, configDir, "config.dev.yaml", `
+app:
+  port: 8081
+`)
+
+	cfg, err := LoadInto[testConfig](LoaderOptions{
+		ConfigDir: configDir,
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, "dev", cfg.App.Env)
+	require.Equal(t, 8081, cfg.App.Port)
+}
+
+// TestLoadIntoUsesAPPENVToSelectEnvironment 验证运行环境由无前缀 APP_ENV 选择，且不接受 YAML 中的 app.env。
+func TestLoadIntoUsesAPPENVToSelectEnvironment(t *testing.T) {
 	t.Setenv("APP_ENV", "prod")
 
 	configDir := t.TempDir()
-	configPath := filepath.Join(configDir, "config.local.yaml")
-	content := []byte(`
+	writeConfigYAML(t, configDir, "config.yaml", `
 app:
   name: initra
-  env: local
+  env: file-local
+  port: 8080
+database:
+  host: "127.0.0.1"
 `)
-	require.NoError(t, os.WriteFile(configPath, content, 0o600))
+	writeConfigYAML(t, configDir, "config.prod.yaml", `
+app:
+  env: file-prod
+  port: 9090
+database:
+  host: ""
+`)
 
 	cfg, err := LoadInto[testConfig](LoaderOptions{
-		Env:       "local",
 		ConfigDir: configDir,
 	})
 
 	require.NoError(t, err)
 	require.Equal(t, "prod", cfg.App.Env)
+	require.Equal(t, 9090, cfg.App.Port)
+	require.Empty(t, cfg.Database.Host)
 }
 
 // TestLoadIntoRunsCustomValidator 验证业务项目可以在自己的配置结构上定义启动校验。
 func TestLoadIntoRunsCustomValidator(t *testing.T) {
 	configDir := t.TempDir()
-	configPath := filepath.Join(configDir, "config.local.yaml")
-	require.NoError(t, os.WriteFile(configPath, []byte("app:\n  port: 8080\n"), 0o600))
+	writeConfigYAML(t, configDir, "config.yaml", "app:\n  port: 8080\n")
+	writeConfigYAML(t, configDir, "config.local.yaml", "{}\n")
 
 	_, err := LoadInto[testConfig](LoaderOptions{
 		Env:       "local",
@@ -130,4 +170,9 @@ func TestSanitizeMasksSensitiveConfig(t *testing.T) {
 	jwt := auth["jwt"].(map[string]any)
 	require.Equal(t, "***", jwt["secret"])
 	require.Equal(t, 15*time.Minute, jwt["access_token_ttl"])
+}
+
+func writeConfigYAML(t *testing.T, dir string, name string, content string) {
+	t.Helper()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, name), []byte(content), 0o600))
 }

@@ -28,28 +28,31 @@ type Validator interface {
 	Validate() error
 }
 
-// LoadInto 从 YAML 配置文件、默认值和环境变量中加载业务自定义配置结构。
+// LoadInto 从默认值、基础 YAML、环境 YAML 和环境变量中加载业务自定义配置结构。
 func LoadInto[T any](opts LoaderOptions) (*T, error) {
 	normalized := normalizeOptions(opts)
 
 	v := viper.New()
-	v.SetConfigName(normalized.ConfigName)
 	v.SetConfigType("yaml")
 	v.AddConfigPath(normalized.ConfigDir)
 	v.SetEnvPrefix(normalized.EnvPrefix)
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	if err := v.BindEnv("app.env", "APP_ENV"); err != nil {
-		return nil, fmt.Errorf("绑定运行环境变量失败: %w", err)
-	}
 	v.AutomaticEnv()
 
-	v.SetDefault("app.env", normalized.Env)
 	for key, value := range normalized.Defaults {
 		v.SetDefault(key, value)
 	}
+	v.Set("app.env", normalized.Env)
 
+	v.SetConfigName(normalized.ConfigName)
 	if err := v.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("读取配置文件失败: %w", err)
+		return nil, fmt.Errorf("读取基础配置文件 %s.yaml 失败: %w", normalized.ConfigName, err)
+	}
+
+	envConfigName := fmt.Sprintf("%s.%s", normalized.ConfigName, normalized.Env)
+	v.SetConfigName(envConfigName)
+	if err := v.MergeInConfig(); err != nil {
+		return nil, fmt.Errorf("读取环境配置文件 %s.yaml 失败: %w", envConfigName, err)
 	}
 
 	var cfg T
@@ -89,7 +92,7 @@ func normalizeOptions(opts LoaderOptions) LoaderOptions {
 		opts.ConfigDir = filepath.Join(".", "configs")
 	}
 	if opts.ConfigName == "" {
-		opts.ConfigName = fmt.Sprintf("config.%s", opts.Env)
+		opts.ConfigName = "config"
 	}
 	if opts.EnvPrefix == "" {
 		opts.EnvPrefix = "INITRA"

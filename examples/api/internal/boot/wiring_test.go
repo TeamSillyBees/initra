@@ -32,12 +32,11 @@ func TestLoadConfigUsesRecommendedConfigShape(t *testing.T) {
 	content := []byte(`
 app:
   name: example-api
-  env: local
   version: 0.1.0
-  instance_id: local-1
+  instance_id: base-1
 
 server:
-  addr: ":18080"
+  addr: ":8080"
   read_timeout: 10s
   write_timeout: 30s
   idle_timeout: 60s
@@ -68,7 +67,7 @@ auth:
   allow_multiple_devices: true
   jwt:
     issuer: example-api
-    secret: "change-me"
+    secret: "base-secret"
 
 log:
   level: info
@@ -130,12 +129,25 @@ http_client:
 idgen:
   node: 1
 `)
-	require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.local.yaml"), content, 0o600))
+	override := []byte(`
+app:
+  instance_id: local-1
+
+server:
+  addr: ":18080"
+
+auth:
+  jwt:
+    secret: "change-me"
+`)
+	require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.yaml"), content, 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.local.yaml"), override, 0o600))
 
 	cfg, err := LoadConfig("local", configDir)
 
 	require.NoError(t, err)
 	require.Equal(t, "example-api", cfg.App.Name)
+	require.Equal(t, "local", cfg.App.Env)
 	require.Equal(t, "0.1.0", cfg.App.Version)
 	require.Equal(t, "local-1", cfg.App.InstanceID)
 	require.Equal(t, ":18080", cfg.Server.Addr)

@@ -19,7 +19,7 @@ go run ./cmd/server
 
 ## 配置
 
-配置文件位于 `configs/config.<env>.yaml`。运行环境使用 `app.env` 或 `APP_ENV` 表示；除 `APP_ENV` 外，环境变量覆盖默认使用 `INITRA_` 前缀，例如 `INITRA_AUTH_JWT_SECRET`、`INITRA_DATABASE_DSN`。
+配置文件先读取 `configs/config.yaml` 作为初始值，再读取 `configs/config.<env>.yaml` 覆盖。运行环境由 `--env`、`APP_ENV` 或默认值 `dev` 决定，不在 YAML 中配置 `app.env`；除 `APP_ENV` 外，环境变量覆盖默认使用 `INITRA_` 前缀，例如 `INITRA_AUTH_JWT_SECRET`、`INITRA_DATABASE_DSN`。
 
 标准分组为 `app`、`server`、`database`、`redis`、`auth`、`log`、`observability`。当前模板额外保留 `casbin`、`cache`、`idgen`、`storage`，分别用于权限策略、缓存 TTL、雪花 ID 节点和文件/对象存储。配置打印前使用 `Config.SafeForLog()` 脱敏，密码、Token、Secret、Access Key、Authorization 和带密码的 DSN 不应明文进入日志。
 
@@ -38,7 +38,7 @@ go run ./cmd/server
 - `GET /api/v1/files/local/meta?key=<object-key>`：按 key 查询元信息。
 - `DELETE /api/v1/files/local?key=<object-key>`：按 key 删除文件。
 
-需要切换阿里云 OSS、腾讯云 COS、AWS S3 或 S3 兼容服务时，保持业务代码不变，只调整 `configs/config.<env>.yaml` 的 `storage` 分组。
+需要切换阿里云 OSS、腾讯云 COS、AWS S3 或 S3 兼容服务时，保持业务代码不变，只调整 `configs/config.yaml` 或 `configs/config.<env>.yaml` 的 `storage` 分组。
 
 ## 模型命名约定
 
@@ -55,4 +55,4 @@ go vet ./...
 .\scripts\atlas.ps1 migrate diff <name>
 ```
 
-`internal/ent/schema` 是数据库结构主源；`db/migrations` 是版本化迁移历史；`db/seeds` 保存种子数据。迁移 diff 必须使用 `.\scripts\atlas.ps1 migrate diff <name>` 或 `initra migrate diff <name>` 生成的脚本；这些入口通过 `internal/ent/migratediff/main.go` 调用 Ent `migrate.WithForeignKeys(false)`，只生成索引和唯一约束，不生成物理外键约束。默认从 `configs/config.<env>.yaml` 读取数据库连接，`env` 优先使用 `--env` 或 `APP_ENV`，也可以通过 `--dev-url` 显式覆盖。`db/schema/*.sql` 仅作为历史参考或 DBA 阅读材料，不再作为 Atlas diff 的 schema source。
+`internal/ent/schema` 是数据库结构主源；`db/migrations` 是版本化迁移历史；`db/seeds` 保存种子数据。迁移 diff 必须使用 `.\scripts\atlas.ps1 migrate diff <name>` 或 `initra migrate diff <name>` 生成的脚本；这些入口通过 `internal/ent/migratediff/main.go` 调用 Ent `migrate.WithForeignKeys(false)`，只生成索引和唯一约束，不生成物理外键约束。默认从 `configs/config.yaml` 和 `configs/config.<env>.yaml` 读取数据库连接，`env` 优先使用 `--env` 或 `APP_ENV`，未设置时为 `dev`，也可以通过 `--dev-url` 显式覆盖。`db/schema/*.sql` 仅作为历史参考或 DBA 阅读材料，不再作为 Atlas diff 的 schema source。
