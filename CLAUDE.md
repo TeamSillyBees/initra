@@ -96,7 +96,10 @@ internal/module/<module>/
 - 面向标准项目模板和可复用 Go package：包名简短、清晰、全小写，一个模块一个 package。
 - 面向 Redis 能力：统一优先使用 `pkg/redisx` 的 client、Key Builder、缓存、Lua registry、SCAN+UNLINK 和 redislock 短锁；禁止生产使用 `KEYS`，禁止记录密码、token、验证码、session value。
 - 面向文件与对象存储能力：统一优先使用 `pkg/storage` 和 `pkg/storage/provider`，业务模块只依赖统一接口，不直接依赖云厂商 SDK。
-- 面向依赖注入：框架能力包（如 `storage`、`redisx`）应提供 `Register(injector)` 入口函数，在启动时显式调用一次完成装配；业务代码只依赖接口、不感知底层实现，禁止在业务模块中直接使用 `do.Invoke` 或滥用全局 injector。
+- 面向依赖注入：框架能力包（如 `logging`、`httpclient`、`redisx`、`cache`、`idgen`、`storage`、`auth`、`server`）应提供 `Register(injector, cfg)` 或 `Register(injector, options)` 风格入口函数，在启动时显式调用一次完成装配；业务代码只依赖接口、不感知底层实现，禁止在业务模块中直接使用 `do.Invoke` 或滥用全局 injector。
+- 面向启动装配：`internal/boot/providers.go` 应优先调用各 `pkg/*` 的 `Register` 入口，例如 `storageprovider.Register(injector, cfg.Storage)`、`httpclient.Register(injector, cfg.HTTPClient)`、`redisx.Register(injector, cfg.Redis)`；只有项目自身能力（如 examples 的 `data.NewEntClient`）才保留本地 `do.Provide`。
+- 面向启动装配：禁止为 package 装配做两阶段传参，例如先 `do.ProvideValue(injector, cfg.HTTPClient)` 再 `httpclient.Register(injector)`；配置应作为 `Register` 参数显式传入，依赖的公共组件（如 `*zap.Logger`）可由 `Register` 内部从 injector 解析。
+- 面向 HTTP Client：`httpclient.Register(injector, cfg.HTTPClient)` 统一注册 Factory 和各服务命名 Client，业务模块通过 `httpclient.ClientName("service")` 注入命名 `*httpclient.Client` 或定义最小接口，避免在业务模块中手写 `Factory.Get` provider。
 
 ### 错误处理
 

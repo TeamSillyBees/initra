@@ -58,7 +58,10 @@ go run ./cmd/initra new $target --type api --module example.com/demo-api --repla
 - 共享能力放入 `pkg/*`，不要通过业务模块之间互相 import 来复用逻辑。
 - Redis 业务能力优先使用 `pkg/redisx` 的 client、Key Builder、缓存、Lua registry、SCAN+UNLINK 和 redislock 短锁；禁止生产使用 `KEYS`，禁止记录密码、token、验证码、session value。
 - 文件与对象存储业务能力优先使用 `pkg/storage` 的统一接口和 `pkg/storage/provider` 工厂；业务模块不要直接依赖云厂商 SDK。
-- 框架能力包（如 `storage`、`redisx`）应提供 `Register(injector)` 入口函数，在启动时显式调用一次完成装配；业务代码只依赖接口、不感知底层实现，禁止在业务模块中直接使用 `do.Invoke` 或滥用全局 injector。
+- 框架能力包（如 `logging`、`httpclient`、`redisx`、`cache`、`idgen`、`storage`、`auth`、`server`）应提供 `Register(injector, cfg)` 或 `Register(injector, options)` 风格入口函数，在启动时显式调用一次完成装配；业务代码只依赖接口、不感知底层实现，禁止在业务模块中直接使用 `do.Invoke` 或滥用全局 injector。
+- `internal/boot/providers.go` 应优先调用各 `pkg/*` 的 `Register` 入口，例如 `storageprovider.Register(injector, cfg.Storage)`、`httpclient.Register(injector, cfg.HTTPClient)`、`redisx.Register(injector, cfg.Redis)`；只有项目自身能力（如 examples 的 `data.NewEntClient`）才保留本地 `do.Provide`。
+- 禁止为 package 装配做两阶段传参，例如先 `do.ProvideValue(injector, cfg.HTTPClient)` 再 `httpclient.Register(injector)`；配置应作为 `Register` 参数显式传入，依赖的公共组件（如 `*zap.Logger`）可由 `Register` 内部从 injector 解析。
+- HTTP Client 装配由 `httpclient.Register(injector, cfg.HTTPClient)` 统一完成，业务模块通过 `httpclient.ClientName("service")` 注入命名 `*httpclient.Client` 或定义最小接口，不要在业务模块中手写 `Factory.Get` provider。
 - 新增或修改导出 API 时，同步补齐中文注释和必要测试。
 - 禁止在业务模块中随意使用 `panic` 或吞掉错误；错误应向上返回并保留足够上下文。
 

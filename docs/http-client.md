@@ -13,7 +13,7 @@
 * 统一错误处理。
 * 统一日志、超时、重试、下载等能力。
 
-业务代码不直接使用 `resty.Client`，而是通过 `httpclient.Factory` 获取指定服务的客户端。
+业务代码不直接使用 `resty.Client`，也不在业务模块里自行创建客户端；启动时通过 `httpclient.Register(injector, cfg.HTTPClient)` 统一装配，业务模块按服务名注入命名 `*httpclient.Client`。
 
 ---
 
@@ -330,29 +330,39 @@ type FileMetadata struct {
 提供 `providers.go`：
 
 ```go
-func ProvideHTTPClient(i *do.Injector, cfg Config, logger *zap.Logger) {
-    do.Provide(i, func(i *do.Injector) (*httpclient.Factory, error) {
-        return httpclient.NewFactory(cfg.HTTPClient, logger)
-    })
-}
+httpclient.Register(injector, cfg.HTTPClient)
 ```
+
+`Register` 会从容器中读取 `*zap.Logger`，并注册：
+
+* `httpclient.Factory`，用于按服务名延迟创建和缓存客户端。
+* 每个 `http_client.services` 配置项对应的命名 `*httpclient.Client`。
 
 业务模块使用：
 
 ```go
-type UserCenterClient struct {
-    client *httpclient.Client
+func Provide(injector *do.Injector) {
+    do.ProvideNamed(injector, userCenterServiceName, func(i *do.Injector) (*UserCenterService, error) {
+        client := do.MustInvokeNamed[*httpclient.Client](i, httpclient.ClientName("user_center"))
+        return NewUserCenterService(client), nil
+    })
+}
+```
+
+业务服务只依赖最小接口：
+
+```go
+type remoteHTTPClient interface {
+    Get(ctx context.Context, path string, opts ...httpclient.RequestOption) (*httpclient.Response, error)
+    Post(ctx context.Context, path string, opts ...httpclient.RequestOption) (*httpclient.Response, error)
 }
 
-func NewUserCenterClient(factory *httpclient.Factory) (*UserCenterClient, error) {
-    c, err := factory.Get("user_center")
-    if err != nil {
-        return nil, err
-    }
+type UserCenterService struct {
+    client remoteHTTPClient
+}
 
-    return &UserCenterClient{
-        client: c,
-    }, nil
+func NewUserCenterService(client remoteHTTPClient) *UserCenterService {
+    return &UserCenterService{client: client}
 }
 ```
 

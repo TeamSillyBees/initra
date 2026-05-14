@@ -12,9 +12,10 @@ import (
 
 // Config 描述缓存管理器所需的最小输入。
 type Config struct {
-	AppName   string
-	LocalTTL  time.Duration
-	RemoteTTL time.Duration
+	AppName       string
+	LocalTTL      time.Duration
+	RemoteTTL     time.Duration
+	RemoteEnabled bool
 }
 
 // Manager 负责统一缓存实例构造和缓存 Key 规范。

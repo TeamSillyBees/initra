@@ -41,7 +41,7 @@ func Bootstrap(ctx context.Context, options Options) (*Application, error) {
 	injector := do.New()
 	do.ProvideValue(injector, cfg)
 
-	registerProviders(ctx, injector, cfg, options.BuildInfo)
+	registerProviders(injector, cfg, options.BuildInfo)
 	registerModules(injector)
 
 	logger := do.MustInvoke[*zap.Logger](injector)

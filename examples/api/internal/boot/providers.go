@@ -1,9 +1,6 @@
 package boot
 
 import (
-	"context"
-
-	"github.com/casbin/casbin/v2"
 	"github.com/samber/do"
 	"github.com/teamsillybees/initra/examples/api/internal/data"
 	"github.com/teamsillybees/initra/examples/api/internal/ent"
@@ -20,69 +17,41 @@ import (
 	"github.com/teamsillybees/initra/pkg/redisx"
 	"github.com/teamsillybees/initra/pkg/server"
 	storageprovider "github.com/teamsillybees/initra/pkg/storage/provider"
-	"go.uber.org/zap"
 )
 
-func registerProviders(ctx context.Context, injector *do.Injector, cfg *Config, buildInfo observability.BuildInfoVO) {
-	do.Provide(injector, func(i *do.Injector) (*zap.Logger, error) {
-		return logging.NewLogger(cfg.Log)
+func registerProviders(injector *do.Injector, cfg *Config, buildInfo observability.BuildInfoVO) {
+	logging.Register(injector, cfg.Log)
+	httpclient.Register(injector, cfg.HTTPClient)
+	redisx.Register(injector, cfg.Redis)
+	platformcache.Register(injector, platformcache.Config{
+		AppName:       cfg.App.Name,
+		LocalTTL:      cfg.Cache.LocalTTL,
+		RemoteTTL:     cfg.Cache.RemoteTTL,
+		RemoteEnabled: cfg.Redis.Enabled,
 	})
-	do.Provide(injector, func(i *do.Injector) (httpclient.Factory, error) {
-		logger := do.MustInvoke[*zap.Logger](i)
-		return httpclient.NewFactory(cfg.HTTPClient, logger)
-	})
-	do.Provide(injector, func(i *do.Injector) (redisx.UniversalClient, error) {
-		logger := do.MustInvoke[*zap.Logger](i)
-		return redisx.NewClient(ctx, cfg.Redis, logger)
-	})
-	do.Provide(injector, func(i *do.Injector) (*platformcache.Manager, error) {
-		var client redisx.UniversalClient
-		if cfg.Redis.Enabled {
-			client = do.MustInvoke[redisx.UniversalClient](i)
-		}
-		return platformcache.NewManager(platformcache.Config{
-			AppName:   cfg.App.Name,
-			LocalTTL:  cfg.Cache.LocalTTL,
-			RemoteTTL: cfg.Cache.RemoteTTL,
-		}, client), nil
-	})
-	do.Provide(injector, func(i *do.Injector) (*idgen.Generator, error) {
-		return idgen.NewGenerator(cfg.IDGen.Node)
-	})
+	idgen.Register(injector, cfg.IDGen.Node)
 	storageprovider.Register(injector, cfg.Storage)
 	do.Provide(injector, func(i *do.Injector) (*ent.Client, error) {
 		generator := do.MustInvoke[*idgen.Generator](i)
 		return data.NewEntClient(cfg.Database, generator)
 	})
-	do.Provide(injector, func(i *do.Injector) (*auth.BcryptPasswordManager, error) {
-		return auth.NewBcryptPasswordManager(0), nil
-	})
-	do.Provide(injector, func(i *do.Injector) (*auth.JWTManager, error) {
-		var store auth.TokenStore = auth.NewMemoryTokenStore()
-		if cfg.Redis.Enabled {
-			client := do.MustInvoke[redisx.UniversalClient](i)
-			store = auth.NewRedisTokenStoreWithEnv(cfg.App.Name, cfg.App.Env, client)
-		}
-		return auth.NewJWTManager(auth.JWTConfig{
+	auth.Register(injector, auth.RegisterOptions{
+		AppName:      cfg.App.Name,
+		Env:          cfg.App.Env,
+		RedisEnabled: cfg.Redis.Enabled,
+		JWT: auth.JWTConfig{
 			Issuer:          cfg.Auth.JWT.Issuer,
 			Secret:          cfg.Auth.JWT.Secret,
 			AccessTokenTTL:  cfg.Auth.AccessTokenTTL,
 			RefreshTokenTTL: cfg.Auth.RefreshTokenTTL,
-			Store:           store,
-		})
+		},
+		CasbinModelPath:  cfg.Casbin.ModelPath,
+		CasbinPolicyPath: cfg.Casbin.PolicyPath,
 	})
-	do.Provide(injector, func(i *do.Injector) (*casbin.Enforcer, error) {
-		return auth.NewEnforcer(cfg.Casbin.ModelPath, cfg.Casbin.PolicyPath)
-	})
-	do.Provide(injector, func(i *do.Injector) (*server.App, error) {
-		logger := do.MustInvoke[*zap.Logger](i)
-		jwtManager := do.MustInvoke[*auth.JWTManager](i)
-		enforcer := do.MustInvoke[*casbin.Enforcer](i)
-		return server.NewApp(server.Options{
-			Title:   cfg.App.Name,
-			Version: buildInfo.Version,
-			Env:     cfg.App.Env,
-		}, logger, jwtManager, enforcer)
+	server.Register(injector, server.Options{
+		Title:   cfg.App.Name,
+		Version: buildInfo.Version,
+		Env:     cfg.App.Env,
 	})
 }
 
