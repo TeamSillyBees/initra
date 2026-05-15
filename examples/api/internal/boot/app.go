@@ -3,6 +3,7 @@ package boot
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -45,10 +46,21 @@ func Bootstrap(ctx context.Context, options Options) (*Application, error) {
 	registerModules(injector)
 
 	logger := do.MustInvoke[*zap.Logger](injector)
-	db := do.MustInvoke[*sql.DB](injector)
+	db, err := do.Invoke[*sql.DB](injector)
+	if err != nil {
+		return nil, fmt.Errorf("resolve database client: %w", err)
+	}
 	var redisClient redisx.UniversalClient
 	if cfg.Redis.Enabled {
-		redisClient = do.MustInvoke[redisx.UniversalClient](injector)
+		redisClient, err = do.Invoke[redisx.UniversalClient](injector)
+		if err != nil {
+			_ = db.Close()
+			return nil, fmt.Errorf("resolve redis client: %w", err)
+		}
+	}
+	if err := checkStartupConnectivity(ctx, db, cfg.Redis.Enabled, redisClient); err != nil {
+		closeStartupResources(db, redisClient)
+		return nil, err
 	}
 	webApp := do.MustInvoke[*server.App](injector)
 
@@ -72,4 +84,28 @@ func Bootstrap(ctx context.Context, options Options) (*Application, error) {
 		DB:        db,
 		Redis:     redisClient,
 	}, nil
+}
+
+func checkStartupConnectivity(ctx context.Context, db *sql.DB, redisEnabled bool, redisClient redisx.UniversalClient) error {
+	if db == nil {
+		return fmt.Errorf("database client 不能为空")
+	}
+	if err := db.PingContext(ctx); err != nil {
+		return fmt.Errorf("database startup ping failed: %w", err)
+	}
+	if redisEnabled {
+		if err := redisx.Ping(ctx, redisClient); err != nil {
+			return fmt.Errorf("redis startup ping failed: %w", err)
+		}
+	}
+	return nil
+}
+
+func closeStartupResources(db *sql.DB, redisClient redisx.UniversalClient) {
+	if redisClient != nil {
+		_ = redisClient.Close()
+	}
+	if db != nil {
+		_ = db.Close()
+	}
 }

@@ -1,6 +1,8 @@
 package boot
 
 import (
+	"database/sql"
+
 	"github.com/samber/do"
 	"github.com/teamsillybees/initra/examples/api/internal/data"
 	"github.com/teamsillybees/initra/examples/api/internal/ent"
@@ -31,9 +33,13 @@ func registerProviders(injector *do.Injector, cfg *Config, buildInfo observabili
 	})
 	idgen.Register(injector, cfg.IDGen.Node)
 	storageprovider.Register(injector, cfg.Storage)
+	do.Provide(injector, func(i *do.Injector) (*sql.DB, error) {
+		return data.NewSQLDB(cfg.Database)
+	})
 	do.Provide(injector, func(i *do.Injector) (*ent.Client, error) {
 		generator := do.MustInvoke[*idgen.Generator](i)
-		return data.NewEntClient(cfg.Database, generator)
+		db := do.MustInvoke[*sql.DB](i)
+		return data.NewEntClientFromDB(db, generator), nil
 	})
 	auth.Register(injector, auth.RegisterOptions{
 		AppName:      cfg.App.Name,

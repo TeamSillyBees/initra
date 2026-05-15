@@ -1,17 +1,24 @@
 package boot
 
 import (
+	"context"
+	"database/sql"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/samber/do"
 	"github.com/stretchr/testify/require"
+	"github.com/teamsillybees/initra/examples/api/internal/data"
+	"github.com/teamsillybees/initra/examples/api/internal/ent"
 	authmodule "github.com/teamsillybees/initra/examples/api/internal/module/auth"
 	filemodule "github.com/teamsillybees/initra/examples/api/internal/module/file"
 	httpdemomodule "github.com/teamsillybees/initra/examples/api/internal/module/httpdemo"
 	usermodule "github.com/teamsillybees/initra/examples/api/internal/module/user"
+	"github.com/teamsillybees/initra/pkg/observability"
 )
 
 // TestModuleProvideDoesNotCollide 验证 auth、user 和 file 模块使用具名依赖后不会在 DI 容器中冲突。
@@ -24,6 +31,92 @@ func TestModuleProvideDoesNotCollide(t *testing.T) {
 		filemodule.Provide(injector)
 		httpdemomodule.Provide(injector)
 	})
+}
+
+// TestRegisterProvidersExposesDatabaseDependencies 验证启动聚合根需要的数据库依赖会被注册到 DI 容器。
+func TestRegisterProvidersExposesDatabaseDependencies(t *testing.T) {
+	injector := do.New()
+	cfg := &Config{
+		App: AppConfig{
+			Name: "example-api",
+			Env:  "test",
+		},
+		Database: data.DatabaseConfig{
+			Host:            "127.0.0.1",
+			Port:            5432,
+			User:            "postgres",
+			Password:        "postgres",
+			DBName:          "example",
+			MaxOpenConns:    2,
+			MaxIdleConns:    1,
+			ConnMaxLifetime: time.Minute,
+		},
+		Auth: AuthConfig{
+			AccessTokenTTL:  time.Minute,
+			RefreshTokenTTL: time.Hour,
+			JWT: JWTConfig{
+				Issuer: "example-api",
+				Secret: "secret",
+			},
+		},
+		IDGen: IDGenConfig{Node: 1},
+	}
+
+	registerProviders(injector, cfg, observability.BuildInfoVO{Version: "test"})
+
+	db := do.MustInvoke[*sql.DB](injector)
+	require.NotNil(t, db)
+	t.Cleanup(func() {
+		require.NoError(t, db.Close())
+	})
+
+	client := do.MustInvoke[*ent.Client](injector)
+	require.NotNil(t, client)
+}
+
+// TestCheckStartupConnectivityPingsDatabase 验证启动连通性检查会 Ping 数据库连接池。
+func TestCheckStartupConnectivityPingsDatabase(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+	mock.ExpectPing()
+
+	err = checkStartupConnectivity(context.Background(), db, false, nil)
+
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// TestCheckStartupConnectivityReturnsDatabasePingError 验证数据库不可连接时启动会失败。
+func TestCheckStartupConnectivityReturnsDatabasePingError(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+	mock.ExpectPing().WillReturnError(errors.New("database unavailable"))
+
+	err = checkStartupConnectivity(context.Background(), db, false, nil)
+
+	require.ErrorContains(t, err, "database startup ping failed")
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// TestCheckStartupConnectivityReturnsRedisPingError 验证启用 Redis 但客户端不可用时启动会失败。
+func TestCheckStartupConnectivityReturnsRedisPingError(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+	mock.ExpectPing()
+
+	err = checkStartupConnectivity(context.Background(), db, true, nil)
+
+	require.ErrorContains(t, err, "redis startup ping failed")
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 // TestLoadConfigUsesRecommendedConfigShape 验证示例项目使用新的分组配置规范。

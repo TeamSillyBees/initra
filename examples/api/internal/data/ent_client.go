@@ -30,6 +30,15 @@ type DatabaseConfig struct {
 
 // NewEntClient 创建 Ent Client，配置连接池并注册统一运行时 Hook。
 func NewEntClient(cfg DatabaseConfig, generator *idgen.Generator) (*ent.Client, error) {
+	sqlDB, err := NewSQLDB(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return NewEntClientFromDB(sqlDB, generator), nil
+}
+
+// NewSQLDB 创建并配置 PostgreSQL 连接池。
+func NewSQLDB(cfg DatabaseConfig) (*sql.DB, error) {
 	connStr := fmt.Sprintf(
 		"host=%s port=%d user=%s dbname=%s password=%s sslmode=disable",
 		cfg.Host, cfg.Port, cfg.User, cfg.DBName, cfg.Password,
@@ -43,26 +52,7 @@ func NewEntClient(cfg DatabaseConfig, generator *idgen.Generator) (*ent.Client, 
 	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
 	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 
-	drv := entsql.OpenDB(dialect.Postgres, sqlDB)
-	client := ent.NewClient(ent.Driver(drv))
-
-	client.Use(entx.AuditHook(entx.AuditHookOptions{
-		IDGen: generator,
-		Now:   time.Now,
-		Operator: func(ctx context.Context) (int64, bool) {
-			if id, ok := entx.OperatorIDFromContext(ctx); ok {
-				return id, true
-			}
-			principal, ok := auth.PrincipalFromContext(ctx)
-			if !ok {
-				return 0, false
-			}
-			return principal.UserID, true
-		},
-	}))
-	client.Use(entx.RejectDeleteHook())
-
-	return client, nil
+	return sqlDB, nil
 }
 
 // NewEntClientFromDB 基于已有 *sql.DB 创建 Ent Client 并注册 Hook，用于 sqlmock 等测试场景。

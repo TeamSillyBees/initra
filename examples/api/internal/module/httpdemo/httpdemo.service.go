@@ -87,8 +87,7 @@ func mapHTTPClientError(err error, message string) error {
 	if err == nil {
 		return nil
 	}
-	var clientErr *httpclient.Error
-	if errors.As(err, &clientErr) {
+	if clientErr, ok := errors.AsType[*httpclient.Error](err); ok {
 		return apperrors.Wrap(err, apperrors.CodeInternalError, message,
 			apperrors.WithDetail("service", clientErr.Service),
 			apperrors.WithDetail("kind", string(clientErr.Kind)),

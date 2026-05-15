@@ -1,12 +1,8 @@
 package boot
 
 import (
-	"{{ .ModulePath }}/internal/data"
-	"{{ .ModulePath }}/internal/ent"
-	authmodule "{{ .ModulePath }}/internal/module/auth"
-	filemodule "{{ .ModulePath }}/internal/module/file"
-	httpdemomodule "{{ .ModulePath }}/internal/module/httpdemo"
-	usermodule "{{ .ModulePath }}/internal/module/user"
+	"database/sql"
+
 	"github.com/samber/do"
 	"github.com/teamsillybees/initra/pkg/auth"
 	platformcache "github.com/teamsillybees/initra/pkg/cache"
@@ -17,6 +13,12 @@ import (
 	"github.com/teamsillybees/initra/pkg/redisx"
 	"github.com/teamsillybees/initra/pkg/server"
 	storageprovider "github.com/teamsillybees/initra/pkg/storage/provider"
+	"{{ .ModulePath }}/internal/data"
+	"{{ .ModulePath }}/internal/ent"
+	authmodule "{{ .ModulePath }}/internal/module/auth"
+	filemodule "{{ .ModulePath }}/internal/module/file"
+	httpdemomodule "{{ .ModulePath }}/internal/module/httpdemo"
+	usermodule "{{ .ModulePath }}/internal/module/user"
 )
 
 func registerProviders(injector *do.Injector, cfg *Config, buildInfo observability.BuildInfoVO) {
@@ -31,9 +33,13 @@ func registerProviders(injector *do.Injector, cfg *Config, buildInfo observabili
 	})
 	idgen.Register(injector, cfg.IDGen.Node)
 	storageprovider.Register(injector, cfg.Storage)
+	do.Provide(injector, func(i *do.Injector) (*sql.DB, error) {
+		return data.NewSQLDB(cfg.Database)
+	})
 	do.Provide(injector, func(i *do.Injector) (*ent.Client, error) {
 		generator := do.MustInvoke[*idgen.Generator](i)
-		return data.NewEntClient(cfg.Database, generator)
+		db := do.MustInvoke[*sql.DB](i)
+		return data.NewEntClientFromDB(db, generator), nil
 	})
 	auth.Register(injector, auth.RegisterOptions{
 		AppName:      cfg.App.Name,
