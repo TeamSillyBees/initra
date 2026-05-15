@@ -3,6 +3,7 @@ package aliyunoss
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,7 +32,7 @@ func New(_ context.Context, cfg storage.Config) (*Service, error) {
 	if cfg.Provider != storage.ProviderAliyunOSS {
 		return nil, fmt.Errorf("%w: aliyunoss provider 需要 storage.provider=aliyun_oss", storage.ErrInvalidConfig)
 	}
-	options := []oss.ClientOption{}
+	var options []oss.ClientOption
 	if cfg.Aliyun.SecurityToken != "" {
 		options = append(options, oss.SecurityToken(cfg.Aliyun.SecurityToken))
 	}
@@ -227,7 +228,7 @@ func (s *Service) Copy(_ context.Context, input storage.CopyInput) (*storage.Obj
 	if err != nil {
 		return nil, err
 	}
-	options := []oss.Option{}
+	var options []oss.Option
 	if !input.Overwrite {
 		options = append(options, oss.ForbidOverWrite(true))
 	}
@@ -409,7 +410,7 @@ func (s *Service) presign(input storage.PresignInput, method oss.HTTPMethod, met
 	if expires == 0 {
 		expires = s.cfg.PresignDefaultTTL
 	}
-	options := []oss.Option{}
+	var options []oss.Option
 	if input.ContentType != "" {
 		options = append(options, oss.ContentType(input.ContentType))
 	}
@@ -440,7 +441,7 @@ func (s *Service) publicURL(bucket string, key string) string {
 }
 
 func uploadOptions(input storage.UploadInput) []oss.Option {
-	options := []oss.Option{}
+	var options []oss.Option
 	if input.ContentType != "" {
 		options = append(options, oss.ContentType(input.ContentType))
 	}
@@ -460,7 +461,7 @@ func uploadOptions(input storage.UploadInput) []oss.Option {
 }
 
 func multipartOptions(input storage.MultipartUploadInput) []oss.Option {
-	options := []oss.Option{}
+	var options []oss.Option
 	if input.ContentType != "" {
 		options = append(options, oss.ContentType(input.ContentType))
 	}
@@ -545,7 +546,7 @@ func normalizeAliyunError(err error) error {
 func errorAs(err error, target any) bool {
 	switch typed := target.(type) {
 	case *oss.ServiceError:
-		if value, ok := err.(oss.ServiceError); ok {
+		if value, ok := errors.AsType[oss.ServiceError](err); ok {
 			*typed = value
 			return true
 		}
