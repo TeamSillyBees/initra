@@ -10,6 +10,7 @@ import (
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/teamsillybees/initra/examples/api/internal/ent"
 	"github.com/teamsillybees/initra/pkg/auth"
+	platformdatabase "github.com/teamsillybees/initra/pkg/database"
 	"github.com/teamsillybees/initra/pkg/entx"
 	"github.com/teamsillybees/initra/pkg/idgen"
 
@@ -28,31 +29,19 @@ type DatabaseConfig struct {
 	ConnMaxLifetime time.Duration `mapstructure:"conn_max_lifetime"`
 }
 
-// NewEntClient 创建 Ent Client，配置连接池并注册统一运行时 Hook。
-func NewEntClient(cfg DatabaseConfig, generator *idgen.Generator) (*ent.Client, error) {
-	sqlDB, err := NewSQLDB(cfg)
-	if err != nil {
-		return nil, err
-	}
-	return NewEntClientFromDB(sqlDB, generator), nil
-}
-
-// NewSQLDB 创建并配置 PostgreSQL 连接池。
-func NewSQLDB(cfg DatabaseConfig) (*sql.DB, error) {
+// SQLDBConfig 将业务数据库配置转换为通用 SQL 连接池配置。
+func SQLDBConfig(cfg DatabaseConfig) platformdatabase.Config {
 	connStr := fmt.Sprintf(
 		"host=%s port=%d user=%s dbname=%s password=%s sslmode=disable",
 		cfg.Host, cfg.Port, cfg.User, cfg.DBName, cfg.Password,
 	)
-
-	sqlDB, err := sql.Open("postgres", connStr)
-	if err != nil {
-		return nil, err
+	return platformdatabase.Config{
+		DriverName:      "postgres",
+		DataSourceName:  connStr,
+		MaxOpenConns:    cfg.MaxOpenConns,
+		MaxIdleConns:    cfg.MaxIdleConns,
+		ConnMaxLifetime: cfg.ConnMaxLifetime,
 	}
-	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
-	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
-	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
-
-	return sqlDB, nil
 }
 
 // NewEntClientFromDB 基于已有 *sql.DB 创建 Ent Client 并注册 Hook，用于 sqlmock 等测试场景。

@@ -6,6 +6,7 @@ import (
 	"github.com/samber/do"
 	"github.com/teamsillybees/initra/pkg/auth"
 	platformcache "github.com/teamsillybees/initra/pkg/cache"
+	platformdatabase "github.com/teamsillybees/initra/pkg/database"
 	"github.com/teamsillybees/initra/pkg/httpclient"
 	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/logging"
@@ -33,9 +34,7 @@ func registerProviders(injector *do.Injector, cfg *Config, buildInfo observabili
 	})
 	idgen.Register(injector, cfg.IDGen.Node)
 	storageprovider.Register(injector, cfg.Storage)
-	do.Provide(injector, func(i *do.Injector) (*sql.DB, error) {
-		return data.NewSQLDB(cfg.Database)
-	})
+	platformdatabase.Register(injector, data.SQLDBConfig(cfg.Database))
 	do.Provide(injector, func(i *do.Injector) (*ent.Client, error) {
 		generator := do.MustInvoke[*idgen.Generator](i)
 		db := do.MustInvoke[*sql.DB](i)
