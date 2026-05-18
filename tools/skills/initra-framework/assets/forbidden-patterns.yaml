@@ -1,0 +1,72 @@
+schema: initra.skill.forbidden-patterns/v1
+
+rules:
+  - id: redis-client-in-business
+    severity: error
+    message: 使用 boot 层的 redisx.Register，并注入 redisx/redis 接口；不要在业务代码中创建 Redis client。
+    patterns:
+      - redis.NewClient(
+      - redis.NewUniversalClient(
+      - redis.NewFailoverClient(
+      - redis.NewClusterClient(
+
+  - id: redis-keys
+    severity: error
+    message: 生产 Redis 逻辑禁止使用 KEYS；优先使用 redisx scanner helper 或 SCAN+UNLINK。
+    regex:
+      - \.Keys\s*\(
+      - \bKEYS\b
+
+  - id: adhoc-http-client
+    severity: warning
+    message: 远程服务调用使用 httpclient.Register 和命名 httpclient.Client 依赖。
+    patterns:
+      - http.DefaultClient
+      - http.Client{
+      - '&http.Client{'
+
+  - id: direct-storage-provider
+    severity: error
+    message: 业务代码应依赖 storage.Service，不应依赖 provider-specific storage package 或云厂商 SDK。
+    patterns:
+      - github.com/teamsillybees/initra/pkg/storage/aliyunoss
+      - github.com/teamsillybees/initra/pkg/storage/awss3
+      - github.com/teamsillybees/initra/pkg/storage/tencentcos
+      - github.com/aliyun/aliyun-oss-go-sdk
+      - github.com/aws/aws-sdk-go-v2/service/s3
+      - github.com/tencentyun/cos-go-sdk-v5
+
+  - id: custom-config-loader
+    severity: warning
+    message: 使用 pkg/config LoadInto 和业务 Config.Validate，不要重复实现 Viper loader。
+    patterns:
+      - viper.New(
+      - viper.SetConfig
+      - viper.ReadInConfig
+
+  - id: custom-logger
+    severity: warning
+    message: 使用 logging.Register 和注入的 *zap.Logger，不要初始化第二套全局 logger。
+    patterns:
+      - zap.NewProduction(
+      - zap.NewDevelopment(
+      - zap.Config{
+
+  - id: root-internal-import
+    severity: error
+    message: 业务项目和模板不得 import initra 根仓库 internal package。
+    patterns:
+      - github.com/teamsillybees/initra/internal/
+
+  - id: injector-in-business-logic
+    severity: warning
+    message: 在 boot/provider 文件中解析依赖；service 和 handler 应通过构造函数接收依赖。
+    patterns:
+      - do.MustInvoke
+      - do.Invoke
+
+  - id: two-stage-config-registration
+    severity: warning
+    message: 配置应直接传给 Register(injector, cfg)，不要用 do.ProvideValue 做两阶段配置注册。
+    patterns:
+      - do.ProvideValue

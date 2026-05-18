@@ -1,0 +1,180 @@
+schema: initra.skill.capabilities/v1
+
+framework:
+  module: github.com/teamsillybees/initra
+  version: dev
+
+capabilities:
+  - id: redisx
+    title: Redis 统一能力
+    package: github.com/teamsillybees/initra/pkg/redisx
+    reference: references/redisx.md
+    triggers:
+      - Redis
+      - 缓存
+      - 分布式锁
+      - 验证码
+      - session
+      - token 存储
+      - 幂等 key
+    entrypoints:
+      - "redisx.Register(injector, cfg.Redis)"
+      - "redisx.NewKeyBuilder(redisx.KeyConfig{App: cfg.App.Name, Env: cfg.App.Env})"
+      - "redisx.NewCache[T](redisx.CacheOptions{...})"
+      - "redisx.NewLocker(client)"
+    forbidden_patterns:
+      - redis.NewClient
+      - redis.NewClusterClient
+      - 生产环境使用 KEYS
+
+  - id: httpclient
+    title: HTTP Client 统一能力
+    package: github.com/teamsillybees/initra/pkg/httpclient
+    reference: references/httpclient.md
+    triggers:
+      - 远程 HTTP API
+      - 第三方服务
+      - webhook
+      - 内部服务调用
+    entrypoints:
+      - "httpclient.Register(injector, cfg.HTTPClient)"
+      - "httpclient.ClientName(\"service\")"
+      - "httpclient.WithQuery(\"key\", \"value\")"
+      - "httpclient.WithResult(&result)"
+    forbidden_patterns:
+      - service 代码中使用 http.Client{}
+      - http.DefaultClient
+      - 业务代码硬编码远程 base URL
+
+  - id: storage
+    title: 文件与对象存储统一能力
+    package: github.com/teamsillybees/initra/pkg/storage
+    reference: references/storage.md
+    triggers:
+      - 文件上传
+      - 文件下载
+      - 对象存储
+      - 本地存储
+      - OSS
+      - COS
+      - S3
+      - 预签名 URL
+      - STS
+    entrypoints:
+      - "storageprovider.Register(injector, cfg.Storage)"
+      - "storage.Service"
+    forbidden_patterns:
+      - 业务模块直接使用云厂商 SDK
+      - 业务模块 import provider-specific storage package
+
+  - id: cache
+    title: 业务缓存管理器
+    package: github.com/teamsillybees/initra/pkg/cache
+    reference: references/cache.md
+    triggers:
+      - 本地缓存
+      - 远端缓存
+      - 多级缓存
+      - 详情缓存
+      - 列表缓存
+    entrypoints:
+      - "platformcache.Register(injector, platformcache.Config{...})"
+      - "manager.New(\"cache-name\")"
+      - "manager.BuildKey(\"module\", \"domain\", id)"
+    forbidden_patterns:
+      - 模块缓存适配器外自定义缓存 key 格式
+      - service 中重复实现 Redis 缓存逻辑
+
+  - id: errors
+    title: 统一应用错误
+    package: github.com/teamsillybees/initra/pkg/errors
+    reference: references/errors.md
+    triggers:
+      - 错误码
+      - 业务错误
+      - HTTP 错误响应
+      - 错误映射
+    entrypoints:
+      - "apperrors.New(code, message)"
+      - "apperrors.Wrap(err, code, message)"
+      - "apperrors.WithDetail(\"key\", value)"
+    forbidden_patterns:
+      - 自定义全局错误响应结构
+      - 使用 sentinel error 表达业务语义
+      - handler 手写错误 JSON
+
+  - id: logging
+    title: 结构化日志与脱敏
+    package: github.com/teamsillybees/initra/pkg/logging
+    reference: references/logging.md
+    triggers:
+      - logger
+      - 结构化日志
+      - 敏感信息脱敏
+      - trace id
+      - request id
+    entrypoints:
+      - "logging.Register(injector, cfg.Log)"
+      - "do.MustInvoke[*zap.Logger](injector)"
+      - "cfg.SafeForLog()"
+    forbidden_patterns:
+      - 业务代码中 zap.NewProduction
+      - 记录 secret 或 token
+
+  - id: config
+    title: 配置加载、默认值、校验与脱敏
+    package: github.com/teamsillybees/initra/pkg/config
+    reference: references/config.md
+    triggers:
+      - 配置结构
+      - 环境变量
+      - 配置默认值
+      - 配置校验
+      - 安全日志输出
+    entrypoints:
+      - "platformconfig.LoadInto[Config](platformconfig.LoaderOptions{...})"
+      - "platformconfig.Sanitize(cfg, fields)"
+    forbidden_patterns:
+      - 业务项目直接实现 Viper loader
+      - 打印包含 secret 的原始配置
+
+  - id: auth
+    title: 认证、JWT、Casbin 与路由安全
+    package: github.com/teamsillybees/initra/pkg/auth
+    reference: references/auth.md
+    triggers:
+      - 登录
+      - JWT
+      - refresh token
+      - 密码哈希
+      - 权限
+      - Casbin
+      - 路由安全
+    entrypoints:
+      - "auth.Register(injector, auth.RegisterOptions{...})"
+      - "registry.Register(method, path, platformauth.RouteSecurity{...})"
+      - "auth.BcryptPasswordManager"
+      - "auth.JWTManager"
+    forbidden_patterns:
+      - 未注册的 /api 路由
+      - 公开路由未设置 Public true
+      - handler 层自定义鉴权绕过
+
+  - id: di
+    title: 依赖注入与 provider 装配
+    package: github.com/samber/do
+    reference: references/di.md
+    triggers:
+      - provider
+      - Register
+      - 依赖注入
+      - boot wiring
+      - module wiring
+    entrypoints:
+      - "package.Register(injector, cfg)"
+      - "module.Provide(injector)"
+      - "do.ProvideNamed(injector, name, constructor)"
+    forbidden_patterns:
+      - service 中 do.Invoke
+      - 业务逻辑访问全局 injector
+      - 两阶段配置注册

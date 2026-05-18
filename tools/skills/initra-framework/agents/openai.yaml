@@ -1,0 +1,4 @@
+interface:
+  display_name: "initra 框架"
+  short_description: "指导 Go 业务项目复用 initra 框架能力"
+  default_prompt: "使用 $initra-framework 按 initra 框架能力优先的方式实现这个业务需求。"
