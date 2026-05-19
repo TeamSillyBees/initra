@@ -7,7 +7,6 @@ import (
 
 	"github.com/teamsillybees/initra/examples/api/internal/module/bizerrors"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
-	apperrors "github.com/teamsillybees/initra/pkg/errors"
 )
 
 // identityRepo 定义 auth 模块读取身份信息所需的最小能力。
@@ -46,7 +45,7 @@ func NewService(repo identityRepo, passwords passwordVerifier, tokens tokenManag
 // Login 校验账号密码并签发 access JWT 与 opaque refresh token。
 func (s *Service) Login(ctx context.Context, input LoginDTO) (*Identity, platformauth.TokenPair, error) {
 	if strings.TrimSpace(input.Username) == "" || strings.TrimSpace(input.Password) == "" {
-		return nil, platformauth.TokenPair{}, apperrors.New(apperrors.CodeBadRequest, "username and password are required")
+		return nil, platformauth.TokenPair{}, bizerrors.BadRequest("username and password are required")
 	}
 
 	identity, err := s.repo.FindByUsername(ctx, strings.TrimSpace(input.Username))
@@ -65,7 +64,7 @@ func (s *Service) Login(ctx context.Context, input LoginDTO) (*Identity, platfor
 		Roles:  append([]string(nil), identity.RoleCodes...),
 	})
 	if err != nil {
-		return nil, platformauth.TokenPair{}, apperrors.Wrap(err, apperrors.CodeInternalError, "issue token failed")
+		return nil, platformauth.TokenPair{}, bizerrors.WrapInternal(err, "issue token failed")
 	}
 
 	return cloneIdentity(identity), tokenPair, nil
@@ -74,15 +73,15 @@ func (s *Service) Login(ctx context.Context, input LoginDTO) (*Identity, platfor
 // Refresh 校验 opaque refresh token 并轮转新的 token pair。
 func (s *Service) Refresh(ctx context.Context, refreshToken string) (platformauth.TokenPair, error) {
 	if strings.TrimSpace(refreshToken) == "" {
-		return platformauth.TokenPair{}, apperrors.New(apperrors.CodeBadRequest, "refresh token is required")
+		return platformauth.TokenPair{}, bizerrors.BadRequest("refresh token is required")
 	}
 
 	record, err := s.tokens.ConsumeRefreshToken(ctx, refreshToken)
 	if err != nil {
 		if errors.Is(err, platformauth.ErrTokenStoreFailure) {
-			return platformauth.TokenPair{}, apperrors.Wrap(err, apperrors.CodeInternalError, "consume refresh token failed")
+			return platformauth.TokenPair{}, bizerrors.WrapInternal(err, "consume refresh token failed")
 		}
-		return platformauth.TokenPair{}, apperrors.New(apperrors.CodeUnauthorized, "refresh token is invalid")
+		return platformauth.TokenPair{}, bizerrors.Unauthorized("refresh token is invalid")
 	}
 
 	identity, err := s.repo.FindByID(ctx, record.UserID)
@@ -90,7 +89,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (platformaut
 		return platformauth.TokenPair{}, err
 	}
 	if identity == nil || !identity.IsEnable {
-		return platformauth.TokenPair{}, apperrors.New(apperrors.CodeUnauthorized, "refresh token is invalid")
+		return platformauth.TokenPair{}, bizerrors.Unauthorized("refresh token is invalid")
 	}
 
 	tokenPair, err := s.tokens.IssueTokenPair(ctx, platformauth.Principal{
@@ -98,7 +97,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (platformaut
 		Roles:  append([]string(nil), identity.RoleCodes...),
 	})
 	if err != nil {
-		return platformauth.TokenPair{}, apperrors.Wrap(err, apperrors.CodeInternalError, "issue token failed")
+		return platformauth.TokenPair{}, bizerrors.WrapInternal(err, "issue token failed")
 	}
 
 	return tokenPair, nil

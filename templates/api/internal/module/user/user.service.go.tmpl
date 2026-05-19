@@ -4,10 +4,9 @@ import (
 	"context"
 	"strings"
 
-	"{{ .ModulePath }}/internal/module/bizerrors"
 	"github.com/teamsillybees/initra/pkg/entx"
-	apperrors "github.com/teamsillybees/initra/pkg/errors"
 	"github.com/teamsillybees/initra/pkg/pagination"
+	"{{ .ModulePath }}/internal/module/bizerrors"
 )
 
 // userRepo 定义 user 模块访问持久化层的最小能力。
@@ -56,15 +55,15 @@ func NewService(
 // Create 创建用户。
 func (s *Service) Create(ctx context.Context, input CreateUserDTO) (*User, error) {
 	if strings.TrimSpace(input.Username) == "" {
-		return nil, apperrors.New(apperrors.CodeBadRequest, "username is required")
+		return nil, bizerrors.BadRequest("username is required")
 	}
 	if strings.TrimSpace(input.Password) == "" {
-		return nil, apperrors.New(apperrors.CodeBadRequest, "password is required")
+		return nil, bizerrors.BadRequest("password is required")
 	}
 
 	passwordHash, err := s.passwords.Hash(input.Password)
 	if err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeInternalError, "hash password failed")
+		return nil, bizerrors.WrapInternal(err, "hash password failed")
 	}
 
 	isEnable := true
@@ -96,7 +95,7 @@ func (s *Service) Create(ctx context.Context, input CreateUserDTO) (*User, error
 // Get 获取用户详情，缓存未命中时自动回填。
 func (s *Service) Get(ctx context.Context, id int64) (*User, error) {
 	if cached, found, err := s.cache.Get(ctx, id); err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeCacheError, "load user from cache failed")
+		return nil, bizerrors.WrapCache(err, "load user from cache failed")
 	} else if found {
 		return cloneUser(cached), nil
 	}
@@ -110,7 +109,7 @@ func (s *Service) Get(ctx context.Context, id int64) (*User, error) {
 	}
 
 	if err := s.cache.Set(ctx, user); err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeCacheError, "set user cache failed")
+		return nil, bizerrors.WrapCache(err, "set user cache failed")
 	}
 
 	return cloneUser(user), nil
@@ -175,7 +174,7 @@ func (s *Service) Update(ctx context.Context, input UpdateUserDTO) (*User, error
 		return nil, err
 	}
 	if err := s.cache.Delete(ctx, user.ID); err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeCacheError, "delete user cache failed")
+		return nil, bizerrors.WrapCache(err, "delete user cache failed")
 	}
 
 	return cloneUser(user), nil
@@ -187,7 +186,7 @@ func (s *Service) Delete(ctx context.Context, id int64, operatorID int64) error 
 		return err
 	}
 	if err := s.cache.Delete(ctx, id); err != nil {
-		return apperrors.Wrap(err, apperrors.CodeCacheError, "delete user cache failed")
+		return bizerrors.WrapCache(err, "delete user cache failed")
 	}
 	return nil
 }

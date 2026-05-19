@@ -3,8 +3,8 @@ package auth
 import (
 	"context"
 
+	"github.com/teamsillybees/initra/examples/api/internal/module/bizerrors"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
-	apperrors "github.com/teamsillybees/initra/pkg/errors"
 	"github.com/teamsillybees/initra/pkg/requestctx"
 	"github.com/teamsillybees/initra/pkg/response"
 )
@@ -54,7 +54,7 @@ func (h *Handler) refresh(ctx context.Context, input *refreshRequest) (*refreshR
 func (h *Handler) me(ctx context.Context, _ *meRequest) (*meResponse, error) {
 	principal, ok := platformauth.PrincipalFromContext(ctx)
 	if !ok {
-		return nil, apperrors.New(apperrors.CodeUnauthorized, "user principal is missing")
+		return nil, bizerrors.Unauthorized("user principal is missing")
 	}
 
 	user, err := h.service.Me(ctx, principal.UserID)

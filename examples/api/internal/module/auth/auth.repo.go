@@ -8,7 +8,7 @@ import (
 	"github.com/teamsillybees/initra/examples/api/internal/ent/sysrole"
 	"github.com/teamsillybees/initra/examples/api/internal/ent/sysuser"
 	"github.com/teamsillybees/initra/examples/api/internal/ent/sysuserrole"
-	apperrors "github.com/teamsillybees/initra/pkg/errors"
+	"github.com/teamsillybees/initra/examples/api/internal/module/bizerrors"
 )
 
 // Repository 使用 Ent Client 实现 auth 模块身份仓储。
@@ -33,7 +33,7 @@ func (r *Repository) FindByUsername(ctx context.Context, username string) (*Iden
 		return nil, nil
 	}
 	if err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "query identity failed")
+		return nil, bizerrors.WrapDB(err, "query identity failed")
 	}
 	return r.toIdentity(ctx, record)
 }
@@ -50,7 +50,7 @@ func (r *Repository) FindByID(ctx context.Context, id int64) (*Identity, error) 
 		return nil, nil
 	}
 	if err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "query identity failed")
+		return nil, bizerrors.WrapDB(err, "query identity failed")
 	}
 	return r.toIdentity(ctx, record)
 }
@@ -88,7 +88,7 @@ func (r *Repository) loadRoleCodes(ctx context.Context, userID int64) ([]string,
 		Select(sysrole.FieldCode).
 		Scan(ctx, &rows)
 	if err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "query identity roles failed")
+		return nil, bizerrors.WrapDB(err, "query identity roles failed")
 	}
 
 	roleCodes := make([]string, 0, len(rows))

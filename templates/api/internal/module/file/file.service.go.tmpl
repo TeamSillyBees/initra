@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	apperrors "github.com/teamsillybees/initra/pkg/errors"
 	"github.com/teamsillybees/initra/pkg/storage"
+	"{{ .ModulePath }}/internal/module/bizerrors"
 )
 
 // fileStorage 定义 file 示例模块依赖的最小存储能力。
@@ -34,10 +34,10 @@ func (s *Service) UploadLocal(ctx context.Context, input UploadLocalFileDTO) (*L
 	}
 	fileName := strings.TrimSpace(input.FileName)
 	if fileName == "" {
-		return nil, apperrors.New(apperrors.CodeBadRequest, "file name is required")
+		return nil, bizerrors.BadRequest("file name is required")
 	}
 	if input.Body == nil {
-		return nil, apperrors.New(apperrors.CodeBadRequest, "file body is required")
+		return nil, bizerrors.BadRequest("file body is required")
 	}
 
 	object, err := s.storage.Upload(ctx, storage.UploadInput{
@@ -59,7 +59,7 @@ func (s *Service) DownloadLocal(ctx context.Context, key string) (*DownloadLocal
 	}
 	key = strings.TrimSpace(key)
 	if key == "" {
-		return nil, apperrors.New(apperrors.CodeBadRequest, "key is required")
+		return nil, bizerrors.BadRequest("key is required")
 	}
 
 	object, err := s.storage.Stat(ctx, storage.ObjectInput{Key: key})
@@ -83,7 +83,7 @@ func (s *Service) StatLocal(ctx context.Context, key string) (*LocalFile, error)
 	}
 	key = strings.TrimSpace(key)
 	if key == "" {
-		return nil, apperrors.New(apperrors.CodeBadRequest, "key is required")
+		return nil, bizerrors.BadRequest("key is required")
 	}
 
 	object, err := s.storage.Stat(ctx, storage.ObjectInput{Key: key})
@@ -100,7 +100,7 @@ func (s *Service) DeleteLocal(ctx context.Context, key string) error {
 	}
 	key = strings.TrimSpace(key)
 	if key == "" {
-		return apperrors.New(apperrors.CodeBadRequest, "key is required")
+		return bizerrors.BadRequest("key is required")
 	}
 	if err := s.storage.Delete(ctx, storage.DeleteInput{Key: key}); err != nil {
 		return mapStorageError(err, "delete local file failed")
@@ -110,7 +110,7 @@ func (s *Service) DeleteLocal(ctx context.Context, key string) error {
 
 func (s *Service) ensureStorage() error {
 	if s == nil || s.storage == nil {
-		return apperrors.New(apperrors.CodeInternalError, "storage service is not configured")
+		return bizerrors.Internal("storage service is not configured")
 	}
 	return nil
 }
@@ -142,12 +142,12 @@ func mapStorageError(err error, message string) error {
 	case err == nil:
 		return nil
 	case storage.IsNotFound(err):
-		return apperrors.Wrap(err, apperrors.CodeNotFound, "file not found")
+		return bizerrors.WrapNotFound(err, "file not found")
 	case errors.Is(err, storage.ErrInvalidKey),
 		errors.Is(err, storage.ErrInvalidConfig),
 		errors.Is(err, storage.ErrObjectExists):
-		return apperrors.Wrap(err, apperrors.CodeBadRequest, message)
+		return bizerrors.WrapBadRequest(err, message)
 	default:
-		return apperrors.Wrap(err, apperrors.CodeInternalError, message)
+		return bizerrors.WrapInternal(err, message)
 	}
 }

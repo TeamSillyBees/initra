@@ -4,9 +4,9 @@ import (
 	"context"
 	"mime"
 
-	apperrors "github.com/teamsillybees/initra/pkg/errors"
 	"github.com/teamsillybees/initra/pkg/requestctx"
 	"github.com/teamsillybees/initra/pkg/response"
+	"{{ .ModulePath }}/internal/module/bizerrors"
 )
 
 // Handler 封装 file 示例模块的 HTTP 适配逻辑。
@@ -25,7 +25,7 @@ func (h *Handler) upload(ctx context.Context, input *uploadLocalFileRequest) (*u
 	}
 	data := input.RawBody.Data()
 	if data == nil || !data.File.IsSet {
-		return nil, apperrors.New(apperrors.CodeBadRequest, "file is required")
+		return nil, bizerrors.BadRequest("file is required")
 	}
 	defer data.File.Close()
 

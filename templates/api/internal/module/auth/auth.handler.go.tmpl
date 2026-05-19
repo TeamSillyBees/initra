@@ -4,9 +4,9 @@ import (
 	"context"
 
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
-	apperrors "github.com/teamsillybees/initra/pkg/errors"
 	"github.com/teamsillybees/initra/pkg/requestctx"
 	"github.com/teamsillybees/initra/pkg/response"
+	"{{ .ModulePath }}/internal/module/bizerrors"
 )
 
 // Handler 封装 auth 模块的 HTTP 适配逻辑。
@@ -54,7 +54,7 @@ func (h *Handler) refresh(ctx context.Context, input *refreshRequest) (*refreshR
 func (h *Handler) me(ctx context.Context, _ *meRequest) (*meResponse, error) {
 	principal, ok := platformauth.PrincipalFromContext(ctx)
 	if !ok {
-		return nil, apperrors.New(apperrors.CodeUnauthorized, "user principal is missing")
+		return nil, bizerrors.Unauthorized("user principal is missing")
 	}
 
 	user, err := h.service.Me(ctx, principal.UserID)

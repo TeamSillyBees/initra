@@ -5,13 +5,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/teamsillybees/initra/pkg/entx"
 	"{{ .ModulePath }}/internal/data"
 	appent "{{ .ModulePath }}/internal/ent"
 	"{{ .ModulePath }}/internal/ent/sysrole"
 	"{{ .ModulePath }}/internal/ent/sysuser"
 	"{{ .ModulePath }}/internal/ent/sysuserrole"
-	"github.com/teamsillybees/initra/pkg/entx"
-	apperrors "github.com/teamsillybees/initra/pkg/errors"
+	"{{ .ModulePath }}/internal/module/bizerrors"
 )
 
 // Repository 使用 Ent Client 实现 user 模块仓储。
@@ -68,7 +68,7 @@ func (r *Repository) FindByID(ctx context.Context, id int64) (*User, error) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "query user failed")
+		return nil, bizerrors.WrapDB(err, "query user failed")
 	}
 	return r.toDomain(ctx, record)
 }
@@ -85,7 +85,7 @@ func (r *Repository) FindByUsername(ctx context.Context, username string) (*User
 		return nil, nil
 	}
 	if err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "query user failed")
+		return nil, bizerrors.WrapDB(err, "query user failed")
 	}
 	return r.toDomain(ctx, record)
 }
@@ -105,7 +105,7 @@ func (r *Repository) Page(ctx context.Context, input PageUsersDTO) ([]*User, int
 
 	total, err := query.Clone().Count(ctx)
 	if err != nil {
-		return nil, 0, apperrors.Wrap(err, apperrors.CodeDBError, "count users failed")
+		return nil, 0, bizerrors.WrapDB(err, "count users failed")
 	}
 
 	records, err := query.
@@ -114,7 +114,7 @@ func (r *Repository) Page(ctx context.Context, input PageUsersDTO) ([]*User, int
 		Offset(int(pageDTO.Offset())).
 		All(ctx)
 	if err != nil {
-		return nil, 0, apperrors.Wrap(err, apperrors.CodeDBError, "list users failed")
+		return nil, 0, bizerrors.WrapDB(err, "list users failed")
 	}
 
 	userIDs := make([]int64, 0, len(records))
@@ -215,7 +215,7 @@ func (r *Repository) findByIDWithClient(ctx context.Context, client *appent.Clie
 		return nil, nil
 	}
 	if err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "query user failed")
+		return nil, bizerrors.WrapDB(err, "query user failed")
 	}
 	return r.toDomainWithClient(ctx, client, record)
 }
@@ -279,7 +279,7 @@ func (r *Repository) resolveRoleIDs(ctx context.Context, client *appent.Client, 
 		Select(sysrole.FieldID, sysrole.FieldCode).
 		Scan(ctx, &rows)
 	if err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "query roles failed")
+		return nil, bizerrors.WrapDB(err, "query roles failed")
 	}
 
 	roleIDsByCode := make(map[string]int64, len(rows))
@@ -293,10 +293,9 @@ func (r *Repository) resolveRoleIDs(ctx context.Context, client *appent.Client, 
 				missingCodes = append(missingCodes, roleCode)
 			}
 		}
-		return nil, apperrors.New(
-			apperrors.CodeBadRequest,
+		return nil, bizerrors.BadRequest(
 			"role code is invalid",
-			apperrors.WithDetail("missing_role_codes", missingCodes),
+			bizerrors.WithDetail("missing_role_codes", missingCodes),
 		)
 	}
 
@@ -335,7 +334,7 @@ func (r *Repository) replaceUserRoles(ctx context.Context, client *appent.Client
 				return mapEntWriteError(err, "insert user roles failed")
 			}
 		case err != nil:
-			return apperrors.Wrap(err, apperrors.CodeDBError, "query user role relation failed")
+			return bizerrors.WrapDB(err, "query user role relation failed")
 		default:
 			if _, err := client.SysUserRole.UpdateOne(relation).
 				ClearDeletedAt().
@@ -364,7 +363,7 @@ func (r *Repository) loadRoleCodes(ctx context.Context, client *appent.Client, u
 		Select(sysrole.FieldCode).
 		Scan(ctx, &rows)
 	if err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "query user roles failed")
+		return nil, bizerrors.WrapDB(err, "query user roles failed")
 	}
 
 	roleCodes := make([]string, 0, len(rows))
@@ -398,7 +397,7 @@ func (r *Repository) loadRoleCodesByUserIDs(ctx context.Context, userIDs []int64
 		Order(appent.Asc(sysrole.FieldSortID), appent.Asc(sysrole.FieldID)).
 		All(ctx)
 	if err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeDBError, "query users roles failed")
+		return nil, bizerrors.WrapDB(err, "query users roles failed")
 	}
 
 	for _, role := range roles {
@@ -476,7 +475,7 @@ func cloneTimePtr(value *time.Time) *time.Time {
 
 func mapEntWriteError(err error, message string) error {
 	if appent.IsConstraintError(err) {
-		return apperrors.Wrap(err, apperrors.CodeBadRequest, message)
+		return bizerrors.WrapBadRequest(err, message)
 	}
-	return apperrors.Wrap(err, apperrors.CodeDBError, message)
+	return bizerrors.WrapDB(err, message)
 }

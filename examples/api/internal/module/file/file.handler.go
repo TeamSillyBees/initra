@@ -4,7 +4,7 @@ import (
 	"context"
 	"mime"
 
-	apperrors "github.com/teamsillybees/initra/pkg/errors"
+	"github.com/teamsillybees/initra/examples/api/internal/module/bizerrors"
 	"github.com/teamsillybees/initra/pkg/requestctx"
 	"github.com/teamsillybees/initra/pkg/response"
 )
@@ -25,7 +25,7 @@ func (h *Handler) upload(ctx context.Context, input *uploadLocalFileRequest) (*u
 	}
 	data := input.RawBody.Data()
 	if data == nil || !data.File.IsSet {
-		return nil, apperrors.New(apperrors.CodeBadRequest, "file is required")
+		return nil, bizerrors.BadRequest("file is required")
 	}
 	defer data.File.Close()
 

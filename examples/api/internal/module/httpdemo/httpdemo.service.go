@@ -5,9 +5,8 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/teamsillybees/initra/examples/api/internal/module/bizerrors"
 	"github.com/teamsillybees/initra/pkg/httpclient"
-
-	apperrors "github.com/teamsillybees/initra/pkg/errors"
 )
 
 const defaultMessage = "hello from initra"
@@ -68,7 +67,7 @@ func (s *Service) GetHTTPBingoFormPage(ctx context.Context, input GetHTTPBingoFo
 
 func (s *Service) ensureClient() error {
 	if s == nil || s.client == nil {
-		return apperrors.New(apperrors.CodeInternalError, "httpbingo client is not configured")
+		return bizerrors.Internal("httpbingo client is not configured")
 	}
 	return nil
 }
@@ -88,11 +87,11 @@ func mapHTTPClientError(err error, message string) error {
 		return nil
 	}
 	if clientErr, ok := errors.AsType[*httpclient.Error](err); ok {
-		return apperrors.Wrap(err, apperrors.CodeInternalError, message,
-			apperrors.WithDetail("service", clientErr.Service),
-			apperrors.WithDetail("kind", string(clientErr.Kind)),
-			apperrors.WithDetail("status_code", clientErr.StatusCode),
+		return bizerrors.WrapInternal(err, message,
+			bizerrors.WithDetail("service", clientErr.Service),
+			bizerrors.WithDetail("kind", string(clientErr.Kind)),
+			bizerrors.WithDetail("status_code", clientErr.StatusCode),
 		)
 	}
-	return apperrors.Wrap(err, apperrors.CodeInternalError, message)
+	return bizerrors.WrapInternal(err, message)
 }
