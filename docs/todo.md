@@ -1,2 +1,1 @@
-- vibe coding 开发指南，添加命令自动添加 skill
-- 删除 scripts，更新 readme
+- 暂无

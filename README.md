@@ -16,7 +16,6 @@ templates/api       RESTful API 项目模板
 templates/worker    worker 项目占位模板
 examples/api        API 模板的可运行示例
 docs/               架构与工程规范文档
-scripts/            根仓库测试、检查、构建入口
 ```
 
 ## 项目模板
@@ -93,8 +92,13 @@ initra crud add <module> --table <table>
 initra config add <capability>
 initra migrate new <name>
 initra migrate diff <name>
+initra skill init
 initra doctor
 ```
+
+`initra migrate diff <name>` 直接执行当前项目的 `go run ./internal/ent/migratediff/main.go <name>`，可追加 `--env`、`--config-dir` 和 `--dev-url`。
+
+在业务项目根目录执行 `initra skill init` 会写入 `.agents/skills/initra-framework`，用于让 Codex 在该项目内优先复用 initra 框架能力。
 
 发布版 CLI 会用自身构建版本写入生成项目 `go.mod`。开发版 CLI 必须传 `--framework-version` 或 `--replace`，避免生成不可复现的 `initra` 依赖。
 

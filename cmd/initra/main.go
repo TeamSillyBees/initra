@@ -18,6 +18,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/teamsillybees/initra/templates"
+	skillassets "github.com/teamsillybees/initra/tools/skills"
 )
 
 const frameworkModule = "github.com/teamsillybees/initra"
@@ -40,6 +41,12 @@ type newOptions struct {
 
 type crudAddOptions struct {
 	tableName string
+}
+
+type migrateDiffOptions struct {
+	env       string
+	configDir string
+	devURL    string
 }
 
 type templateData struct {
@@ -105,6 +112,7 @@ func newRootCommand(stdout io.Writer, cliVersion string) *cobra.Command {
 		newCRUDCommand(stdout),
 		newConfigCommand(stdout),
 		newMigrateCommand(stdout),
+		newSkillCommand(stdout),
 		newDoctorCommand(stdout),
 	)
 	return cmd
@@ -299,9 +307,10 @@ func newMigrateNewCommand(stdout io.Writer) *cobra.Command {
 }
 
 func newMigrateDiffCommand(stdout io.Writer) *cobra.Command {
+	opts := migrateDiffOptions{}
 	cmd := &cobra.Command{
 		Use:           "diff <name>",
-		Short:         "创建 Atlas diff 脚本",
+		Short:         "执行 Ent/Atlas 迁移 diff",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Args: func(cmd *cobra.Command, args []string) error {
@@ -311,7 +320,46 @@ func newMigrateDiffCommand(stdout io.Writer) *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return createMigrationArtifact("diff", args[0], cmd.OutOrStdout())
+			return runMigrationDiff(args[0], opts, cmd.OutOrStdout())
+		},
+	}
+	configureCommand(cmd, stdout)
+	flags := cmd.Flags()
+	flags.StringVar(&opts.env, "env", "", "运行环境，传递给 migratediff")
+	flags.StringVar(&opts.configDir, "config-dir", "", "配置目录，传递给 migratediff")
+	flags.StringVar(&opts.devURL, "dev-url", "", "Atlas dev database URL，传递给 migratediff")
+	return cmd
+}
+
+func newSkillCommand(stdout io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "skill",
+		Short:         "管理 initra 相关 Codex skill 文档",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return fmt.Errorf("用法: initra skill init")
+		},
+	}
+	configureCommand(cmd, stdout)
+	cmd.AddCommand(newSkillInitCommand(stdout))
+	return cmd
+}
+
+func newSkillInitCommand(stdout io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "init",
+		Short:         "添加 initra-framework skill 文档",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 0 {
+				return fmt.Errorf("用法: initra skill init")
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return initFrameworkSkill(cmd.OutOrStdout())
 		},
 	}
 	configureCommand(cmd, stdout)
@@ -560,48 +608,76 @@ func createMigrationArtifact(kind string, name string, stdout io.Writer) error {
 			_, _ = fmt.Fprintf(stdout, "created migration %s\n", path)
 		}
 		return nil
-	case "diff":
-		if err := os.MkdirAll("scripts", 0o755); err != nil {
-			return err
-		}
-		path := filepath.Join("scripts", "migrate-diff-"+name+".ps1")
-		content := migrateDiffScript(name)
-		if err := writeNewFile(path, content); err != nil {
-			return err
-		}
-		if stdout != nil {
-			_, _ = fmt.Fprintf(stdout, "created migrate diff script %s\n", path)
-		}
-		return nil
 	default:
 		return fmt.Errorf("未知 migrate 子命令 %q", kind)
 	}
 }
 
-func migrateDiffScript(name string) string {
-	return fmt.Sprintf(`param(
-    [string]$Env = "",
-    [string]$ConfigDir = "configs",
-    [string]$DevURL = ""
-)
+func runMigrationDiff(name string, opts migrateDiffOptions, stdout io.Writer) error {
+	name, err := normalizeSafeName(name)
+	if err != nil {
+		return err
+	}
+	command := exec.Command("go", buildMigrateDiffArgs(name, opts)...)
+	output, err := command.CombinedOutput()
+	if err != nil {
+		message := strings.TrimSpace(string(output))
+		if message == "" {
+			return fmt.Errorf("生成迁移 diff 失败: %w", err)
+		}
+		return fmt.Errorf("生成迁移 diff 失败: %w: %s", err, message)
+	}
+	if stdout != nil {
+		_, _ = fmt.Fprintf(stdout, "generated migration diff %s\n", name)
+	}
+	return nil
+}
 
-$ErrorActionPreference = "Stop"
-$repoRoot = Split-Path -Parent $PSScriptRoot
-Push-Location $repoRoot
-try {
-    $optionalArgs = @()
-    if (![string]::IsNullOrWhiteSpace($Env)) {
-        $optionalArgs += @("-env", $Env)
-    }
-    if (![string]::IsNullOrWhiteSpace($DevURL)) {
-        $optionalArgs += @("-dev-url", $DevURL)
-    }
-    go run ./internal/ent/migratediff/main.go %s -config-dir $ConfigDir @optionalArgs
+func buildMigrateDiffArgs(name string, opts migrateDiffOptions) []string {
+	args := []string{"run", "./internal/ent/migratediff/main.go", name}
+	if configDir := strings.TrimSpace(opts.configDir); configDir != "" {
+		args = append(args, "-config-dir", configDir)
+	}
+	if env := strings.TrimSpace(opts.env); env != "" {
+		args = append(args, "-env", env)
+	}
+	if devURL := strings.TrimSpace(opts.devURL); devURL != "" {
+		args = append(args, "-dev-url", devURL)
+	}
+	return args
 }
-finally {
-    Pop-Location
-}
-`, name)
+
+func initFrameworkSkill(stdout io.Writer) error {
+	const sourceRoot = "initra-framework"
+	targetRoot := filepath.Join(".agents", "skills", "initra-framework")
+	err := fs.WalkDir(skillassets.FS, sourceRoot, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		relativePath, err := filepath.Rel(sourceRoot, filepath.ToSlash(path))
+		if err != nil {
+			return err
+		}
+		if relativePath == "." {
+			return os.MkdirAll(targetRoot, 0o755)
+		}
+		outputPath := filepath.Join(targetRoot, filepath.FromSlash(relativePath))
+		if entry.IsDir() {
+			return os.MkdirAll(outputPath, 0o755)
+		}
+		content, err := skillassets.FS.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return writeNewFile(outputPath, string(content))
+	})
+	if err != nil {
+		return err
+	}
+	if stdout != nil {
+		_, _ = fmt.Fprintf(stdout, "created skill %s\n", targetRoot)
+	}
+	return nil
 }
 
 func runDoctor(args []string, stdout io.Writer) error {

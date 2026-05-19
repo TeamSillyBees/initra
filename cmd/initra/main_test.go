@@ -57,10 +57,9 @@ func TestNewGeneratesAPIProjectWithFrameworkRequireAndNoPkgCopy(t *testing.T) {
 	require.FileExists(t, filepath.Join(target, "configs", "config.dev.yaml"))
 	require.NotContains(t, readFile(t, filepath.Join(target, "configs", "config.yaml")), "env:")
 	require.NotContains(t, readFile(t, filepath.Join(target, "configs", "config.dev.yaml")), "env:")
-	require.FileExists(t, filepath.Join(target, "scripts", "ent.ps1"))
+	require.NoDirExists(t, filepath.Join(target, "scripts"))
 	require.NoDirExists(t, filepath.Join(target, "internal", "gen", "jet"))
 	require.NoDirExists(t, filepath.Join(target, "tools", "jetgen"))
-	require.NoFileExists(t, filepath.Join(target, "scripts", "jet"+".ps1"))
 	require.NoDirExists(t, filepath.Join(target, "internal", "app"))
 	require.DirExists(t, filepath.Join(target, ".git"))
 	require.Contains(t, stdout.String(), "created")
@@ -115,10 +114,7 @@ func TestNewGeneratesAPIMigrationsWithoutPhysicalForeignKeys(t *testing.T) {
 	require.Contains(t, migrateSchema, `"系统后台用户表，用于后台登录、审计和权限归属。"`)
 	require.Contains(t, migrateSchema, `Comment: "登录用户名，全局唯一。"`)
 
-	atlasScript := readFile(t, filepath.Join(target, "scripts", "atlas.ps1"))
-	require.Contains(t, atlasScript, "go run ./internal/ent/migratediff/main.go")
-	require.Contains(t, atlasScript, "-config-dir")
-	require.NotContains(t, atlasScript, "docker://postgres/16/dev")
+	require.NoDirExists(t, filepath.Join(target, "scripts"))
 }
 
 func TestNewGeneratesWorkerPlaceholderProject(t *testing.T) {
@@ -160,6 +156,22 @@ func TestRootHelpListsCobraCommands(t *testing.T) {
 	require.Contains(t, stdout.String(), "Usage:")
 	require.Contains(t, stdout.String(), "new")
 	require.Contains(t, stdout.String(), "doctor")
+}
+
+func TestSkillInitCopiesInitraFrameworkSkill(t *testing.T) {
+	target := t.TempDir()
+	t.Chdir(target)
+
+	var stdout bytes.Buffer
+	err := run([]string{"skill", "init"}, &stdout, "dev")
+
+	require.NoError(t, err)
+	skillDir := filepath.Join(target, ".agents", "skills", "initra-framework")
+	require.FileExists(t, filepath.Join(skillDir, "SKILL.md"))
+	require.FileExists(t, filepath.Join(skillDir, "assets", "capabilities.yaml"))
+	require.FileExists(t, filepath.Join(skillDir, "references", "redisx.md"))
+	require.FileExists(t, filepath.Join(skillDir, "scripts", "check_initra_usage.go"))
+	require.Contains(t, stdout.String(), "created skill")
 }
 
 func TestRootRejectsMissingCommand(t *testing.T) {
@@ -320,13 +332,26 @@ func TestMigrateCommandsGenerateFiles(t *testing.T) {
 	migrations, err := filepath.Glob(filepath.Join(target, "db", "migrations", "*_create_order.sql"))
 	require.NoError(t, err)
 	require.Len(t, migrations, 1)
+}
 
-	require.NoError(t, run([]string{"migrate", "diff", "add_order"}, ioDiscard{}, "dev"))
-	diffScript := readFile(t, filepath.Join(target, "scripts", "migrate-diff-add_order.ps1"))
-	require.Contains(t, diffScript, "go run ./internal/ent/migratediff/main.go add_order")
-	require.Contains(t, diffScript, "-config-dir $ConfigDir")
-	require.Contains(t, diffScript, `"-dev-url", $DevURL`)
-	require.NotContains(t, diffScript, "docker://postgres/16/dev")
+func TestBuildMigrateDiffArgs(t *testing.T) {
+	actual := buildMigrateDiffArgs("add_order", migrateDiffOptions{
+		env:       "local",
+		configDir: "configs",
+		devURL:    "postgres://dev",
+	})
+
+	require.Equal(t, []string{
+		"run",
+		"./internal/ent/migratediff/main.go",
+		"add_order",
+		"-config-dir",
+		"configs",
+		"-env",
+		"local",
+		"-dev-url",
+		"postgres://dev",
+	}, actual)
 }
 
 func TestDoctorReportsEnvironmentChecks(t *testing.T) {

@@ -58,7 +58,7 @@ func TestExampleUsesAPIFoundationLayout(t *testing.T) {
 	require.FileExists(t, filepath.Join(root, "db", "seeds", "001_seed_admin.sql"))
 	require.NoDirExists(t, filepath.Join(root, "internal", "gen", "jet"))
 	require.NoDirExists(t, filepath.Join(root, "tools", "jetgen"))
-	require.NoFileExists(t, filepath.Join(root, "scripts", "jet"+".ps1"))
+	require.NoDirExists(t, filepath.Join(root, "scripts"))
 	require.DirExists(t, filepath.Join(root, "internal", "ent", "schema"))
 	require.FileExists(t, filepath.Join(root, "internal", "ent", "client.go"))
 	require.FileExists(t, filepath.Join(root, "internal", "data", "tx.go"))
