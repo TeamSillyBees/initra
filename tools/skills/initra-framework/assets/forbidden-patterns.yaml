@@ -36,6 +36,12 @@ rules:
       - github.com/aws/aws-sdk-go-v2/service/s3
       - github.com/tencentyun/cos-go-sdk-v5
 
+  - id: direct-asynq-in-business
+    severity: error
+    message: 业务代码应依赖 pkg/task，不要直接 import Asynq；Asynq 类型只允许在 pkg/task/asynqadapter 内出现。
+    patterns:
+      - github.com/hibiken/asynq
+
   - id: custom-config-loader
     severity: warning
     message: 使用 pkg/config LoadInto 和业务 Config.Validate，不要重复实现 Viper loader。

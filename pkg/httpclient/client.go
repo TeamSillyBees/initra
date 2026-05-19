@@ -222,8 +222,7 @@ func (c *Client) errorFromExecution(err error, resp *resty.Response, method stri
 }
 
 func (c *Client) enrichError(err error, kind ErrorKind, method string, path string, statusCode int) *Error {
-	var httpErr *Error
-	if errors.As(err, &httpErr) {
+	if httpErr, ok := errors.AsType[*Error](err); ok {
 		if httpErr.Service == "" {
 			httpErr.Service = c.name
 		}

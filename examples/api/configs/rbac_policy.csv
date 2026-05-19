@@ -9,5 +9,6 @@ p, admin, httpdemo, read
 p, viewer, auth, read
 p, viewer, user, read
 p, viewer, httpdemo, read
+p, admin, taskdemo, create
 g, admin, admin
 g, viewer, viewer

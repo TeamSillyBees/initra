@@ -10,6 +10,7 @@ import (
 	"github.com/teamsillybees/initra/pkg/logging"
 	"github.com/teamsillybees/initra/pkg/redisx"
 	platformstorage "github.com/teamsillybees/initra/pkg/storage"
+	"github.com/teamsillybees/initra/pkg/task"
 )
 
 // Config 是示例项目的应用配置聚合根。
@@ -26,6 +27,7 @@ type Config struct {
 	IDGen         IDGenConfig            `mapstructure:"idgen"`
 	Storage       platformstorage.Config `mapstructure:"storage"`
 	HTTPClient    httpclient.Config      `mapstructure:"http_client"`
+	Task          task.Config            `mapstructure:"task"`
 }
 
 // AppConfig 描述应用基础元信息。
@@ -157,6 +159,9 @@ func (c *Config) Validate() error {
 	if err := c.HTTPClient.Validate(); err != nil {
 		return err
 	}
+	if err := c.Task.Validate(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -227,5 +232,36 @@ func configDefaults() map[string]any {
 		"http_client.services.httpbingo.retry.count":         2,
 		"http_client.services.httpbingo.retry.wait_time":     "200ms",
 		"http_client.services.httpbingo.retry.max_wait_time": "2s",
+		"task.enabled":                                       true,
+		"task.backend":                                       string(task.BackendAsynq),
+		"task.redis.enabled":                                 true,
+		"task.redis.mode":                                    string(redisx.ModeStandalone),
+		"task.redis.addr":                                    "127.0.0.1:6379",
+		"task.redis.db":                                      2,
+		"task.redis.pool.size":                               10,
+		"task.publisher.default_queue":                       task.QueueDefault,
+		"task.publisher.default_max_retry":                   3,
+		"task.publisher.default_timeout":                     "5m",
+		"task.publisher.default_retention":                   "24h",
+		"task.publisher.enforce_biz_key":                     true,
+		"task.worker.enabled":                                false,
+		"task.worker.concurrency":                            10,
+		"task.worker.shutdown_timeout":                       "30s",
+		"task.worker.health_check_interval":                  "15s",
+		"task.worker.delayed_task_check_interval":            "5s",
+		"task.worker.task_check_interval":                    "1s",
+		"task.worker.strict_priority":                        false,
+		"task.worker.queues.critical":                        6,
+		"task.worker.queues.default":                         3,
+		"task.worker.queues.low":                             1,
+		"task.worker.retry.strategy":                         string(task.RetryStrategyOfficial),
+		"task.scheduler.enabled":                             false,
+		"task.scheduler.sync_interval":                       "3m",
+		"task.scheduler.timezone":                            "Asia/Shanghai",
+		"task.observability.logging":                         true,
+		"task.observability.metrics":                         true,
+		"task.observability.tracing":                         true,
+		"task.observability.include_payload_in_log":          false,
+		"task.observability.include_payload_in_trace":        false,
 	}
 }

@@ -9,6 +9,7 @@ import (
 	authmodule "github.com/teamsillybees/initra/examples/api/internal/module/auth"
 	filemodule "github.com/teamsillybees/initra/examples/api/internal/module/file"
 	httpdemomodule "github.com/teamsillybees/initra/examples/api/internal/module/httpdemo"
+	taskdemomodule "github.com/teamsillybees/initra/examples/api/internal/module/taskdemo"
 	usermodule "github.com/teamsillybees/initra/examples/api/internal/module/user"
 	"github.com/teamsillybees/initra/pkg/auth"
 	platformcache "github.com/teamsillybees/initra/pkg/cache"
@@ -20,12 +21,14 @@ import (
 	"github.com/teamsillybees/initra/pkg/redisx"
 	"github.com/teamsillybees/initra/pkg/server"
 	storageprovider "github.com/teamsillybees/initra/pkg/storage/provider"
+	"github.com/teamsillybees/initra/pkg/task/asynqadapter"
 )
 
 func registerProviders(injector *do.Injector, cfg *Config, buildInfo observability.BuildInfoVO) {
 	logging.Register(injector, cfg.Log)
 	httpclient.Register(injector, cfg.HTTPClient)
 	redisx.Register(injector, cfg.Redis)
+	asynqadapter.Register(injector, cfg.Task)
 	platformcache.Register(injector, platformcache.Config{
 		AppName:       cfg.App.Name,
 		LocalTTL:      cfg.Cache.LocalTTL,
@@ -67,6 +70,7 @@ func registerModules(injector *do.Injector) {
 	authmodule.Provide(injector)
 	filemodule.Provide(injector)
 	httpdemomodule.Provide(injector)
+	taskdemomodule.Provide(injector)
 }
 
 func registerRoutes(injector *do.Injector, webApp *server.App, buildInfo observability.BuildInfoVO) {
@@ -81,4 +85,5 @@ func registerRoutes(injector *do.Injector, webApp *server.App, buildInfo observa
 	do.MustInvoke[*authmodule.Module](injector).Register(webApp.API, webApp.Registry)
 	do.MustInvoke[*filemodule.Module](injector).Register(webApp.API, webApp.Registry)
 	do.MustInvoke[*httpdemomodule.Module](injector).Register(webApp.API, webApp.Registry)
+	do.MustInvoke[*taskdemomodule.Module](injector).Register(webApp.API, webApp.Registry)
 }

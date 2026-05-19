@@ -1,13 +1,13 @@
 ---
 name: initra-framework
-description: 当 Codex 在基于 initra 的 Go 业务项目中开发、修改、审查或验证代码时使用，尤其适用于 Redis、缓存、分布式锁、HTTP Client、文件与对象存储、统一错误与响应、日志、配置、认证、JWT、Casbin、路由安全、依赖注入、boot providers、业务模块结构或 Agent 操作流程相关任务。该 skill 指导 Codex 在业务模块新增基础设施代码前，优先复用 initra 框架能力。
+description: 当 Codex 在基于 initra 的 Go 业务项目中开发、修改、审查或验证代码时使用，尤其适用于 Redis、缓存、分布式锁、HTTP Client、文件与对象存储、任务队列、统一错误与响应、日志、配置、认证、JWT、Casbin、路由安全、依赖注入、boot providers、业务模块结构或 Agent 操作流程相关任务。该 skill 指导 Codex 在业务模块新增基础设施代码前，优先复用 initra 框架能力。
 ---
 
 # initra-framework
 
 ## 核心规则
 
-将 initra 视为业务项目的框架能力源。编写 Redis、缓存、HTTP Client、存储、错误处理、日志、配置、认证、路由安全或依赖注入代码前，先确认 `github.com/teamsillybees/initra/pkg/*` 是否已经提供对应能力。
+将 initra 视为业务项目的框架能力源。编写 Redis、缓存、HTTP Client、存储、任务队列、错误处理、日志、配置、认证、路由安全或依赖注入代码前，先确认 `github.com/teamsillybees/initra/pkg/*` 是否已经提供对应能力。
 
 每个任务先读取 `assets/capabilities.yaml`，再只加载匹配的 `references/` 文件。
 
@@ -26,6 +26,7 @@ description: 当 Codex 在基于 initra 的 Go 业务项目中开发、修改、
 - Redis、Key、TTL、验证码、token/session 存储、分布式锁、Redis 缓存：`references/redisx.md`
 - 远程 HTTP API、第三方服务、webhook、内部服务调用：`references/httpclient.md`
 - 上传、下载、对象存储、本地存储、OSS、COS、S3、预签名 URL、STS：`references/storage.md`
+- 异步任务、延迟任务、指定时间任务、Worker、任务处理器、周期任务、biz_key：`references/task.md`
 - 本地/远端业务缓存、用户/资料/详情缓存：`references/cache.md`
 - 错误码、业务错误、HTTP 错误响应、错误映射：`references/errors.md`
 - Logger、结构化日志、脱敏、trace/request id 日志：`references/logging.md`
@@ -61,6 +62,7 @@ internal/module/<module>/
 ## 装配规则
 
 - 框架 package 使用一步式注册，例如 `logging.Register(injector, cfg.Log)` 或 `httpclient.Register(injector, cfg.HTTPClient)`。
+- 任务队列使用 `asynqadapter.Register(injector, cfg.Task)` 注册，业务模块只注入 `task.Publisher` 或在 worker 侧注册 `task.Registry` handler。
 - 配置作为参数直接传入 `Register`；不要先 `do.ProvideValue` 暂存配置，再调用无参注册函数。
 - Boot 代码负责应用级 providers。模块 `providers.go` 负责模块内构造函数和命名依赖。
 - 业务 service 和 handler 不应调用 `do.Invoke` 或 `do.MustInvoke`。
@@ -74,6 +76,8 @@ internal/module/<module>/
 - 生产环境 `KEYS` 扫描。
 - 临时 `http.Client{}` 或 `http.DefaultClient` 远程服务调用。
 - 直接使用云厂商 SDK 的存储代码。
+- 业务代码直接 import `github.com/hibiken/asynq`。
+- 把 Asynq `TaskID` 或 `Unique` 当作长期业务幂等机制。
 - 自定义全局错误响应结构。
 - 重复实现基于 Viper 的配置加载器。
 - 自定义 logger 初始化。
@@ -96,5 +100,5 @@ go run .codex/skills/initra-framework/scripts/check_initra_usage.go --root .
 - `assets/forbidden-patterns.yaml`：静态检查禁用模式。
 - `assets/version.json`：skill 与框架来源版本元数据。
 - `references/*.md`：每项能力的详细使用规则。
-- `examples/*.go`：boot provider、Redis 用法、HTTP Client adapter 的可改写示例。
+- `examples/*.go`：boot provider、Redis 用法、HTTP Client adapter、任务队列发布的可改写示例。
 - `scripts/check_initra_usage.go`：无额外依赖的常见违规静态扫描脚本。

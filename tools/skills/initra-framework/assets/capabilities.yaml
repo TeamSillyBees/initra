@@ -67,6 +67,28 @@ capabilities:
       - 业务模块直接使用云厂商 SDK
       - 业务模块 import provider-specific storage package
 
+  - id: task
+    title: 任务队列统一能力
+    package: github.com/teamsillybees/initra/pkg/task
+    reference: references/task.md
+    triggers:
+      - 异步任务
+      - 延迟任务
+      - 定时任务
+      - 周期任务
+      - 任务队列
+      - worker
+      - biz_key
+    entrypoints:
+      - "asynqadapter.Register(injector, cfg.Task)"
+      - "task.Publisher.Publish(ctx, task.Task{...})"
+      - "task.Registry.Register(\"demo:send_email\", task.HandlerFunc(...))"
+      - "task.Scheduler.Register(\"*/5 * * * *\", task.Task{...})"
+    forbidden_patterns:
+      - 业务代码直接 import github.com/hibiken/asynq
+      - 使用 Asynq TaskID 或 Unique 作为长期业务幂等机制
+      - 外部副作用任务缺少 biz_key
+
   - id: cache
     title: 业务缓存管理器
     package: github.com/teamsillybees/initra/pkg/cache

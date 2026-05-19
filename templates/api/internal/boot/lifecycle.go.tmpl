@@ -41,6 +41,11 @@ func (a *Application) Shutdown(ctx context.Context) error {
 	if err := a.DB.Close(); err != nil && firstErr == nil {
 		firstErr = err
 	}
+	if a.Publisher != nil {
+		if err := a.Publisher.Close(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
 	if a.Redis != nil {
 		if err := a.Redis.Close(); err != nil && firstErr == nil {
 			firstErr = err

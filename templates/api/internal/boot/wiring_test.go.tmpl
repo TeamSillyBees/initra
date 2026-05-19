@@ -12,6 +12,7 @@ import (
 	authmodule "{{ .ModulePath }}/internal/module/auth"
 	filemodule "{{ .ModulePath }}/internal/module/file"
 	httpdemomodule "{{ .ModulePath }}/internal/module/httpdemo"
+	taskdemomodule "{{ .ModulePath }}/internal/module/taskdemo"
 	usermodule "{{ .ModulePath }}/internal/module/user"
 )
 
@@ -24,6 +25,7 @@ func TestModuleProvideDoesNotCollide(t *testing.T) {
 		authmodule.Provide(injector)
 		filemodule.Provide(injector)
 		httpdemomodule.Provide(injector)
+		taskdemomodule.Provide(injector)
 	})
 }
 

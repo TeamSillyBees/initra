@@ -153,6 +153,13 @@ func defaultRules() []rule {
 			allowed: allowFrameworkOrBoot,
 		},
 		{
+			id:       "direct-asynq-in-business",
+			severity: "error",
+			message:  "业务代码应依赖 pkg/task，不要直接 import Asynq；Asynq 类型只允许在 pkg/task/asynqadapter 内出现",
+			patterns: []string{"github.com/hibiken/asynq"},
+			allowed:  allowFrameworkOrBoot,
+		},
+		{
 			id:       "custom-config-loader",
 			severity: "warning",
 			message:  "使用 pkg/config LoadInto 和 Config.Validate，不要重复实现 Viper loader",

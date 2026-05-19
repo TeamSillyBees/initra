@@ -10,6 +10,7 @@ import (
 	"github.com/teamsillybees/initra/pkg/observability"
 	"github.com/teamsillybees/initra/pkg/redisx"
 	"github.com/teamsillybees/initra/pkg/server"
+	"github.com/teamsillybees/initra/pkg/task"
 	"go.uber.org/zap"
 )
 
@@ -29,6 +30,7 @@ type Application struct {
 	Server    *http.Server
 	DB        *sql.DB
 	Redis     redisx.UniversalClient
+	Publisher task.Publisher
 }
 
 // Bootstrap 完成配置加载、依赖注入、模块注册与 HTTP Server 组装。
@@ -58,6 +60,7 @@ func Bootstrap(options Options) (*Application, error) {
 		}
 	}
 	webApp := do.MustInvoke[*server.App](injector)
+	publisher := do.MustInvoke[task.Publisher](injector)
 
 	registerRoutes(injector, webApp, options.BuildInfo)
 
@@ -78,5 +81,6 @@ func Bootstrap(options Options) (*Application, error) {
 		Server:    s,
 		DB:        db,
 		Redis:     redisClient,
+		Publisher: publisher,
 	}, nil
 }

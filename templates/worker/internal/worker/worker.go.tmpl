@@ -1,9 +1,189 @@
 package worker
 
-import "context"
+import (
+	"context"
+	"fmt"
+	"os"
+	"strconv"
+	"time"
 
-// Run 是 worker 模板的占位运行入口。
+	"github.com/teamsillybees/initra/pkg/redisx"
+	"github.com/teamsillybees/initra/pkg/task"
+	"github.com/teamsillybees/initra/pkg/task/asynqadapter"
+	"go.uber.org/zap"
+)
+
+type sendEmailPayload struct {
+	UserID string `json:"user_id"`
+	Email  string `json:"email"`
+}
+
+// Run 启动任务消费端并注册示例任务处理器和周期任务。
 func Run(ctx context.Context) error {
-	_ = ctx
+	logger, err := zap.NewProduction()
+	if err != nil {
+		return err
+	}
+	defer logger.Sync() //nolint:errcheck // 进程退出阶段只尽力 flush 日志。
+
+	cfg := configFromEnv()
+	registry := task.NewRegistry(
+		task.RecoverMiddleware(logger),
+		task.LoggingMiddleware(logger),
+		task.BizKeyValidationMiddleware(),
+	)
+	if err := registry.Register("demo:send_email",
+		task.HandlerFunc(func(ctx context.Context, item task.Task) error {
+			return handleSendEmail(ctx, item, logger)
+		}),
+		task.WithRegisterModule("demo"),
+		task.WithRegisterOwner("platform"),
+		task.WithRegisterBizKeyRequired(true),
+		task.WithRegisterSideEffect(true),
+	); err != nil {
+		return err
+	}
+	if err := registry.Register("demo:cleanup_expired_sessions",
+		task.HandlerFunc(func(ctx context.Context, item task.Task) error {
+			return handleCleanupExpiredSessions(ctx, item, logger)
+		}),
+		task.WithRegisterModule("demo"),
+		task.WithRegisterOwner("platform"),
+	); err != nil {
+		return err
+	}
+
+	worker, err := asynqadapter.NewWorker(cfg, registry, logger)
+	if err != nil {
+		return err
+	}
+	scheduler, err := asynqadapter.NewScheduler(cfg, logger)
+	if err != nil {
+		return err
+	}
+	if err := scheduler.Register("*/5 * * * *", task.Task{
+		Type:    "demo:cleanup_expired_sessions",
+		Payload: map[string]string{"source": "worker-template"},
+		Meta: task.TaskMeta{
+			Name:        "清理过期会话",
+			Module:      "demo",
+			Owner:       "platform",
+			Scenario:    "scheduler",
+			Idempotent:  true,
+			CostLevel:   task.CostLevelLow,
+			Description: "演示周期任务静态注册",
+		},
+	}, task.WithQueue(task.QueueLow), task.WithMaxRetry(1)); err != nil {
+		return err
+	}
+	if err := scheduler.Start(ctx); err != nil {
+		return err
+	}
+	if err := worker.Start(ctx); err != nil {
+		return err
+	}
+
+	<-ctx.Done()
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.Worker.ShutdownTimeout+5*time.Second)
+	defer cancel()
+	if err := scheduler.Shutdown(shutdownCtx); err != nil {
+		return err
+	}
+	return worker.Shutdown(shutdownCtx)
+}
+
+func handleSendEmail(ctx context.Context, item task.Task, logger *zap.Logger) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	payload, err := task.DecodePayload[sendEmailPayload](item)
+	if err != nil {
+		return fmt.Errorf("%w: %v", task.ErrSkipRetry, err)
+	}
+	logger.Info("send email task handled",
+		zap.String("user_id", payload.UserID),
+		zap.String("email", payload.Email),
+		zap.String("biz_key", item.Meta.BizKey),
+	)
 	return nil
+}
+
+func handleCleanupExpiredSessions(ctx context.Context, item task.Task, logger *zap.Logger) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	logger.Info("cleanup expired sessions task handled",
+		zap.String("task_type", item.Type),
+		zap.String("owner", item.Meta.Owner),
+	)
+	return nil
+}
+
+func configFromEnv() task.Config {
+	return task.Config{
+		Enabled: true,
+		Backend: task.BackendAsynq,
+		Redis: redisx.Config{
+			Enabled:  true,
+			Mode:     redisx.ModeStandalone,
+			Addr:     envString("INITRA_TASK_REDIS_ADDR", "127.0.0.1:6379"),
+			Password: os.Getenv("INITRA_TASK_REDIS_PASSWORD"),
+			DB:       envInt("INITRA_TASK_REDIS_DB", 2),
+			Pool: redisx.PoolConfig{
+				Size: envInt("INITRA_TASK_REDIS_POOL_SIZE", 10),
+			},
+		},
+		Publisher: task.PublisherConfig{
+			DefaultQueue:     task.QueueDefault,
+			DefaultMaxRetry:  3,
+			DefaultTimeout:   5 * time.Minute,
+			DefaultRetention: 24 * time.Hour,
+			EnforceBizKey:    true,
+		},
+		Worker: task.WorkerConfig{
+			Enabled:                  true,
+			Concurrency:              envInt("INITRA_TASK_WORKER_CONCURRENCY", 10),
+			ShutdownTimeout:          30 * time.Second,
+			HealthCheckInterval:      15 * time.Second,
+			DelayedTaskCheckInterval: 5 * time.Second,
+			TaskCheckInterval:        time.Second,
+			Queues: map[string]int{
+				task.QueueCritical: 6,
+				task.QueueDefault:  3,
+				task.QueueLow:      1,
+			},
+			Retry: task.RetryDelayConfig{
+				Strategy: task.RetryStrategyOfficial,
+			},
+		},
+		Scheduler: task.SchedulerConfig{
+			Enabled:      true,
+			SyncInterval: 3 * time.Minute,
+			Timezone:     "Asia/Shanghai",
+		},
+	}
+}
+
+func envString(key string, fallback string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+func envInt(key string, fallback int) int {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return n
 }

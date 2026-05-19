@@ -11,6 +11,7 @@ import (
 	authmodule "github.com/teamsillybees/initra/examples/api/internal/module/auth"
 	filemodule "github.com/teamsillybees/initra/examples/api/internal/module/file"
 	httpdemomodule "github.com/teamsillybees/initra/examples/api/internal/module/httpdemo"
+	taskdemomodule "github.com/teamsillybees/initra/examples/api/internal/module/taskdemo"
 	usermodule "github.com/teamsillybees/initra/examples/api/internal/module/user"
 	"github.com/teamsillybees/initra/pkg/observability"
 )
@@ -24,6 +25,7 @@ func TestModuleProvideDoesNotCollide(t *testing.T) {
 		authmodule.Provide(injector)
 		filemodule.Provide(injector)
 		httpdemomodule.Provide(injector)
+		taskdemomodule.Provide(injector)
 	})
 }
 

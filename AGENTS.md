@@ -16,7 +16,7 @@
 `initra` 是面向企业内部 Go 服务的快速开发脚手架。理解和描述本仓库时必须区分三类内容：
 
 - **标准项目模板**：`templates/api` 提供包含 auth/user/file 示例模块、Ent schema 与生成代码、seed 和 Atlas migrations 的 RESTful API 服务模板，`templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。
-- **可复用 Go package**：根模块 `github.com/teamsillybees/initra` 的 `pkg/*`，沉淀 Web、配置、错误、日志、认证、数据库、Redis、缓存、文件与对象存储、HTTP Client、任务调度等通用能力；其中 Redis 基础能力统一放在 `pkg/redisx`，支持 standalone/sentinel，不支持 cluster。
+- **可复用 Go package**：根模块 `github.com/teamsillybees/initra` 的 `pkg/*`，沉淀 Web、配置、错误、日志、认证、数据库、Redis、缓存、文件与对象存储、HTTP Client、任务队列、任务调度等通用能力；其中 Redis 基础能力统一放在 `pkg/redisx`，支持 standalone/sentinel，不支持 cluster；任务队列能力统一放在 `pkg/task`，默认底层适配 Asynq。
 - **工程化 CLI**：`cmd/initra`，负责生成项目、业务模块、CRUD 样例、迁移文件、配置样例、接口骨架、测试骨架和代码生成命令。
 
 重要边界：
@@ -59,8 +59,10 @@ go run ./cmd/initra new $target --type api --module example.com/demo-api --repla
 - 共享能力放入 `pkg/*`，不要通过业务模块之间互相 import 来复用逻辑。
 - Redis 业务能力优先使用 `pkg/redisx` 的 client、Key Builder、缓存、Lua registry、SCAN+UNLINK 和 redislock 短锁；禁止生产使用 `KEYS`，禁止记录密码、token、验证码、session value。
 - 文件与对象存储业务能力优先使用 `pkg/storage` 的统一接口和 `pkg/storage/provider` 工厂；业务模块不要直接依赖云厂商 SDK。
-- 框架能力包（如 `logging`、`httpclient`、`redisx`、`cache`、`idgen`、`storage`、`auth`、`server`）应提供 `Register(injector, cfg)` 或 `Register(injector, options)` 风格入口函数，在启动时显式调用一次完成装配；业务代码只依赖接口、不感知底层实现，禁止在业务模块中直接使用 `do.Invoke` 或滥用全局 injector。
-- `internal/boot/providers.go` 应优先调用各 `pkg/*` 的 `Register` 入口，例如 `storageprovider.Register(injector, cfg.Storage)`、`httpclient.Register(injector, cfg.HTTPClient)`、`redisx.Register(injector, cfg.Redis)`；只有项目自身能力（如 examples 的 `data.NewEntClient`）才保留本地 `do.Provide`。
+- 任务队列业务能力优先使用 `pkg/task` 的 `Publisher`、`Worker`、`Registry`、`Scheduler`、`Task` 和 `TaskMeta`；业务代码不得直接 import `github.com/hibiken/asynq`，Asynq 类型只允许出现在 `pkg/task/asynqadapter`。
+- `pkg/task` 按 at-least-once 模型设计，不承诺 exactly-once；`biz_key` 是业务幂等键，不是 Asynq `TaskID`，也不是 Asynq `Unique`，外部副作用任务必须由业务侧保证幂等。
+- 框架能力包（如 `logging`、`httpclient`、`redisx`、`cache`、`idgen`、`storage`、`auth`、`server`、`task/asynqadapter`）应提供 `Register(injector, cfg)` 或 `Register(injector, options)` 风格入口函数，在启动时显式调用一次完成装配；业务代码只依赖接口、不感知底层实现，禁止在业务模块中直接使用 `do.Invoke` 或滥用全局 injector。
+- `internal/boot/providers.go` 应优先调用各 `pkg/*` 的 `Register` 入口，例如 `storageprovider.Register(injector, cfg.Storage)`、`httpclient.Register(injector, cfg.HTTPClient)`、`redisx.Register(injector, cfg.Redis)`、`asynqadapter.Register(injector, cfg.Task)`；只有项目自身能力（如 examples 的 `data.NewEntClient`）才保留本地 `do.Provide`。
 - 禁止为 package 装配做两阶段传参，例如先 `do.ProvideValue(injector, cfg.HTTPClient)` 再 `httpclient.Register(injector)`；配置应作为 `Register` 参数显式传入，依赖的公共组件（如 `*zap.Logger`）可由 `Register` 内部从 injector 解析。
 - HTTP Client 装配由 `httpclient.Register(injector, cfg.HTTPClient)` 统一完成，业务模块通过 `httpclient.ClientName("service")` 注入命名 `*httpclient.Client` 或定义最小接口，不要在业务模块中手写 `Factory.Get` provider。
 - 新增或修改导出 API 时，同步补齐中文注释和必要测试。
