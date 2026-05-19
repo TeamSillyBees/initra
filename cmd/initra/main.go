@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime/debug"
 	"strings"
 	"text/template"
 	"time"
@@ -37,9 +38,34 @@ type templateData struct {
 }
 
 func main() {
-	if err := run(os.Args[1:], os.Stdout, version); err != nil {
+	if err := run(os.Args[1:], os.Stdout, currentCLIVersion()); err != nil {
 		log.Fatalf("initra: %v", err)
 	}
+}
+
+func currentCLIVersion() string {
+	return resolveCLIVersion(version, buildInfoVersion())
+}
+
+func resolveCLIVersion(injectedVersion string, buildVersion string) string {
+	if version := strings.TrimSpace(injectedVersion); version != "" && version != "dev" {
+		return version
+	}
+	if version := strings.TrimSpace(buildVersion); version != "" && version != "(devel)" {
+		return version
+	}
+	if version := strings.TrimSpace(injectedVersion); version != "" {
+		return version
+	}
+	return "dev"
+}
+
+func buildInfoVersion() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return ""
+	}
+	return info.Main.Version
 }
 
 func run(args []string, stdout io.Writer, cliVersion string) error {

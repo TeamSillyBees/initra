@@ -62,6 +62,21 @@ func TestNewGeneratesAPIProjectWithFrameworkRequireAndNoPkgCopy(t *testing.T) {
 	require.Contains(t, stdout.String(), "created")
 }
 
+func TestNewUsesReleaseCLIVersionWhenFrameworkVersionOmitted(t *testing.T) {
+	target := filepath.Join(t.TempDir(), "demo")
+
+	err := run([]string{
+		"new", target,
+		"--type", "api",
+		"--module", "example.com/demo",
+	}, ioDiscard{}, "v1.2.3")
+
+	require.NoError(t, err)
+	goMod := readFile(t, filepath.Join(target, "go.mod"))
+	require.Contains(t, goMod, "github.com/teamsillybees/initra v1.2.3")
+	require.NotContains(t, goMod, "replace github.com/teamsillybees/initra")
+}
+
 func TestNewGeneratesAPIMigrationsWithoutPhysicalForeignKeys(t *testing.T) {
 	target := filepath.Join(t.TempDir(), "demo")
 
@@ -140,6 +155,24 @@ func TestNewRejectsDevVersionWithoutFrameworkVersionOrReplace(t *testing.T) {
 
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "--framework-version")
+}
+
+func TestResolveCLIVersionPrefersInjectedReleaseVersion(t *testing.T) {
+	actual := resolveCLIVersion("v1.2.3", "v9.9.9")
+
+	require.Equal(t, "v1.2.3", actual)
+}
+
+func TestResolveCLIVersionUsesBuildInfoVersionForOnlineInstall(t *testing.T) {
+	actual := resolveCLIVersion("dev", "v1.2.3")
+
+	require.Equal(t, "v1.2.3", actual)
+}
+
+func TestResolveCLIVersionKeepsDevForLocalBuild(t *testing.T) {
+	actual := resolveCLIVersion("dev", "(devel)")
+
+	require.Equal(t, "dev", actual)
 }
 
 func TestNewRejectsUnknownProjectType(t *testing.T) {

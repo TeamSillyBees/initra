@@ -60,12 +60,24 @@ scripts/            根仓库测试、检查、构建入口
 go build -o $env:TEMP\initra.exe ./cmd/initra
 ```
 
+安装正式版 CLI：
+
+```powershell
+go install github.com/teamsillybees/initra/cmd/initra@latest
+```
+
 生成项目：
 
 ```powershell
 $framework = (Resolve-Path .).Path
 go run ./cmd/initra new $env:TEMP\demo-api --type api --module example.com/demo-api --replace $framework
 go run ./cmd/initra new $env:TEMP\demo-worker --type worker --module example.com/demo-worker --replace $framework
+```
+
+正式版 CLI 会自动使用自身版本写入生成项目 `go.mod`：
+
+```powershell
+initra new $env:TEMP\demo-api --type api --module example.com/demo-api
 ```
 
 规划中的核心命令：
