@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"io/fs"
@@ -17,6 +16,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/spf13/cobra"
 	"github.com/teamsillybees/initra/templates"
 )
 
@@ -28,6 +28,19 @@ var (
 )
 
 var version = "dev"
+
+type newOptions struct {
+	modulePath       string
+	appName          string
+	projectType      string
+	templateName     string
+	frameworkVersion string
+	localReplacePath string
+}
+
+type crudAddOptions struct {
+	tableName string
+}
 
 type templateData struct {
 	ModulePath       string
@@ -69,54 +82,274 @@ func buildInfoVersion() string {
 }
 
 func run(args []string, stdout io.Writer, cliVersion string) error {
-	if len(args) == 0 {
-		return fmt.Errorf("用法: initra <command>")
+	cmd := newRootCommand(stdout, cliVersion)
+	cmd.SetArgs(args)
+	return cmd.Execute()
+}
+
+func newRootCommand(stdout io.Writer, cliVersion string) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "initra",
+		Short:         "企业内部 Go 服务快速开发脚手架",
+		Version:       cliVersion,
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return fmt.Errorf("用法: initra <command>")
+		},
 	}
-	switch args[0] {
-	case "new":
-		return runNew(args[1:], stdout, cliVersion)
-	case "module":
-		return runModule(args[1:], stdout)
-	case "crud":
-		return runCRUD(args[1:], stdout)
-	case "config":
-		return runConfig(args[1:], stdout)
-	case "migrate":
-		return runMigrate(args[1:], stdout)
-	case "doctor":
-		return runDoctor(args[1:], stdout)
-	default:
-		return fmt.Errorf("未知命令 %q", args[0])
+	configureCommand(cmd, stdout)
+	cmd.AddCommand(
+		newNewCommand(stdout, cliVersion),
+		newModuleCommand(stdout),
+		newCRUDCommand(stdout),
+		newConfigCommand(stdout),
+		newMigrateCommand(stdout),
+		newDoctorCommand(stdout),
+	)
+	return cmd
+}
+
+func configureCommand(cmd *cobra.Command, stdout io.Writer) {
+	if stdout == nil {
+		stdout = io.Discard
 	}
+	cmd.SetOut(stdout)
+	cmd.SetErr(io.Discard)
+	cmd.DisableSuggestions = true
+}
+
+func newNewCommand(stdout io.Writer, cliVersion string) *cobra.Command {
+	opts := newOptions{projectType: "api"}
+	cmd := &cobra.Command{
+		Use:           "new <dir>",
+		Short:         "生成 API 或 worker 项目",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return fmt.Errorf("用法: initra new <dir>")
+			}
+			if len(args) > 1 {
+				return fmt.Errorf("new 命令只接受一个目标目录")
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return createProject(args[0], cmd.OutOrStdout(), cliVersion, opts)
+		},
+	}
+	configureCommand(cmd, stdout)
+	flags := cmd.Flags()
+	flags.StringVar(&opts.modulePath, "module", "", "生成项目的 Go module path")
+	flags.StringVar(&opts.appName, "app-name", "", "应用名称")
+	flags.StringVar(&opts.projectType, "type", "api", "项目类型：api 或 worker")
+	flags.StringVar(&opts.templateName, "template", "", "兼容旧参数，等同于 --type")
+	flags.StringVar(&opts.frameworkVersion, "framework-version", "", "initra 框架版本")
+	flags.StringVar(&opts.localReplacePath, "replace", "", "本地 initra 仓库路径，用于 go.mod replace")
+	return cmd
+}
+
+func newModuleCommand(stdout io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "module",
+		Short:         "管理业务模块骨架",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return fmt.Errorf("用法: initra module add <name>")
+		},
+	}
+	configureCommand(cmd, stdout)
+	cmd.AddCommand(newModuleAddCommand(stdout))
+	return cmd
+}
+
+func newModuleAddCommand(stdout io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "add <name>",
+		Short:         "生成 flat package 业务模块骨架",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return fmt.Errorf("用法: initra module add <name>")
+			}
+			if len(args) > 1 {
+				return fmt.Errorf("module add 只接受一个模块名")
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return addModule(args[0], cmd.OutOrStdout())
+		},
+	}
+	configureCommand(cmd, stdout)
+	return cmd
+}
+
+func newCRUDCommand(stdout io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "crud",
+		Short:         "管理 CRUD 示例代码",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return fmt.Errorf("用法: initra crud add <module> --table <table>")
+		},
+	}
+	configureCommand(cmd, stdout)
+	cmd.AddCommand(newCRUDAddCommand(stdout))
+	return cmd
+}
+
+func newCRUDAddCommand(stdout io.Writer) *cobra.Command {
+	opts := crudAddOptions{}
+	cmd := &cobra.Command{
+		Use:           "add <module>",
+		Short:         "为现有模块生成 CRUD 示例",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return fmt.Errorf("crud add 缺少模块名")
+			}
+			if len(args) > 1 {
+				return fmt.Errorf("crud add 只接受一个模块名")
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return addCRUDSample(args[0], opts, cmd.OutOrStdout())
+		},
+	}
+	configureCommand(cmd, stdout)
+	cmd.Flags().StringVar(&opts.tableName, "table", "", "数据表名")
+	return cmd
+}
+
+func newConfigCommand(stdout io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "config",
+		Short:         "管理配置片段",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return fmt.Errorf("用法: initra config add <capability>")
+		},
+	}
+	configureCommand(cmd, stdout)
+	cmd.AddCommand(newConfigAddCommand(stdout))
+	return cmd
+}
+
+func newConfigAddCommand(stdout io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "add <capability>",
+		Short:         "生成配置结构和 YAML 示例",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return fmt.Errorf("用法: initra config add <capability>")
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return addConfigSnippet(args[0], cmd.OutOrStdout())
+		},
+	}
+	configureCommand(cmd, stdout)
+	return cmd
+}
+
+func newMigrateCommand(stdout io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "migrate",
+		Short:         "管理迁移辅助文件",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return fmt.Errorf("用法: initra migrate <new|diff> <name>")
+		},
+	}
+	configureCommand(cmd, stdout)
+	cmd.AddCommand(newMigrateNewCommand(stdout), newMigrateDiffCommand(stdout))
+	return cmd
+}
+
+func newMigrateNewCommand(stdout io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "new <name>",
+		Short:         "创建空迁移文件",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return fmt.Errorf("用法: initra migrate new <name>")
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return createMigrationArtifact("new", args[0], cmd.OutOrStdout())
+		},
+	}
+	configureCommand(cmd, stdout)
+	return cmd
+}
+
+func newMigrateDiffCommand(stdout io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "diff <name>",
+		Short:         "创建 Atlas diff 脚本",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return fmt.Errorf("用法: initra migrate diff <name>")
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return createMigrationArtifact("diff", args[0], cmd.OutOrStdout())
+		},
+	}
+	configureCommand(cmd, stdout)
+	return cmd
+}
+
+func newDoctorCommand(stdout io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "doctor",
+		Short:         "检查本地开发环境",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 0 {
+				return fmt.Errorf("用法: initra doctor")
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runDoctorChecks(cmd.OutOrStdout())
+		},
+	}
+	configureCommand(cmd, stdout)
+	return cmd
 }
 
 func runNew(args []string, stdout io.Writer, cliVersion string) error {
-	if len(args) == 0 {
-		return fmt.Errorf("用法: initra new <dir>")
-	}
+	cmd := newNewCommand(stdout, cliVersion)
+	cmd.SetArgs(args)
+	return cmd.Execute()
+}
 
-	targetDir := args[0]
-	flags := flag.NewFlagSet("new", flag.ContinueOnError)
-	flags.SetOutput(io.Discard)
-
-	modulePath := flags.String("module", "", "生成项目的 Go module path")
-	appName := flags.String("app-name", "", "应用名称")
-	projectType := flags.String("type", "api", "项目类型：api 或 worker")
-	templateName := flags.String("template", "", "兼容旧参数，等同于 --type")
-	frameworkVersion := flags.String("framework-version", "", "initra 框架版本")
-	localReplacePath := flags.String("replace", "", "本地 initra 仓库路径，用于 go.mod replace")
-
-	if err := flags.Parse(args[1:]); err != nil {
-		return err
-	}
-	if flags.NArg() > 0 {
-		return fmt.Errorf("new 命令只接受一个目标目录")
-	}
-	resolvedType := strings.TrimSpace(*projectType)
+func createProject(targetDir string, stdout io.Writer, cliVersion string, opts newOptions) error {
+	resolvedType := strings.TrimSpace(opts.projectType)
 	if resolvedType == "" {
 		resolvedType = "api"
 	}
-	if template := strings.TrimSpace(*templateName); template != "" {
+	if template := strings.TrimSpace(opts.templateName); template != "" {
 		if resolvedType != "api" && resolvedType != template {
 			return fmt.Errorf("--type 与 --template 不能指定不同项目类型")
 		}
@@ -129,20 +362,20 @@ func runNew(args []string, stdout io.Writer, cliVersion string) error {
 		return fmt.Errorf("暂不支持项目类型 %q", resolvedType)
 	}
 
-	normalizedAppName := strings.TrimSpace(*appName)
+	normalizedAppName := strings.TrimSpace(opts.appName)
 	if normalizedAppName == "" {
 		normalizedAppName = filepath.Base(filepath.Clean(targetDir))
 	}
-	normalizedModulePath := strings.TrimSpace(*modulePath)
+	normalizedModulePath := strings.TrimSpace(opts.modulePath)
 	if normalizedModulePath == "" {
 		normalizedModulePath = normalizedAppName
 	}
 
-	resolvedReplace, err := normalizeReplacePath(*localReplacePath)
+	resolvedReplace, err := normalizeReplacePath(opts.localReplacePath)
 	if err != nil {
 		return err
 	}
-	resolvedVersion, err := resolveFrameworkVersion(*frameworkVersion, cliVersion, resolvedReplace)
+	resolvedVersion, err := resolveFrameworkVersion(opts.frameworkVersion, cliVersion, resolvedReplace)
 	if err != nil {
 		return err
 	}
@@ -161,6 +394,14 @@ func runNew(args []string, stdout io.Writer, cliVersion string) error {
 	if err := renderTemplate(resolvedType, targetDir, data); err != nil {
 		return err
 	}
+	if resolvedType == "api" {
+		if err := generateEntCode(targetDir); err != nil {
+			return err
+		}
+	}
+	if err := initGitRepository(targetDir); err != nil {
+		return err
+	}
 
 	if stdout != nil {
 		_, _ = fmt.Fprintf(stdout, "created %s\n", targetDir)
@@ -168,14 +409,40 @@ func runNew(args []string, stdout io.Writer, cliVersion string) error {
 	return nil
 }
 
+func generateEntCode(targetDir string) error {
+	command := exec.Command("go", "generate", "./internal/ent")
+	command.Dir = targetDir
+	output, err := command.CombinedOutput()
+	if err != nil {
+		message := strings.TrimSpace(string(output))
+		if message == "" {
+			return fmt.Errorf("生成 Ent 代码失败: %w", err)
+		}
+		return fmt.Errorf("生成 Ent 代码失败: %w: %s", err, message)
+	}
+	return nil
+}
+
+func initGitRepository(targetDir string) error {
+	output, err := exec.Command("git", "-C", targetDir, "init").CombinedOutput()
+	if err != nil {
+		message := strings.TrimSpace(string(output))
+		if message == "" {
+			return fmt.Errorf("初始化 git 仓库失败: %w", err)
+		}
+		return fmt.Errorf("初始化 git 仓库失败: %w: %s", err, message)
+	}
+	return nil
+}
+
 func runModule(args []string, stdout io.Writer) error {
-	if len(args) < 2 || args[0] != "add" {
-		return fmt.Errorf("用法: initra module add <name>")
-	}
-	if len(args) > 2 {
-		return fmt.Errorf("module add 只接受一个模块名")
-	}
-	name, err := normalizeGoPackageName(args[1])
+	cmd := newModuleCommand(stdout)
+	cmd.SetArgs(args)
+	return cmd.Execute()
+}
+
+func addModule(name string, stdout io.Writer) error {
+	name, err := normalizeGoPackageName(name)
 	if err != nil {
 		return err
 	}
@@ -208,27 +475,18 @@ func runModule(args []string, stdout io.Writer) error {
 }
 
 func runCRUD(args []string, stdout io.Writer) error {
-	if len(args) == 0 || args[0] != "add" {
-		return fmt.Errorf("用法: initra crud add <module> --table <table>")
-	}
-	if len(args) < 2 {
-		return fmt.Errorf("crud add 缺少模块名")
-	}
-	moduleName, err := normalizeGoPackageName(args[1])
+	cmd := newCRUDCommand(stdout)
+	cmd.SetArgs(args)
+	return cmd.Execute()
+}
+
+func addCRUDSample(moduleName string, opts crudAddOptions, stdout io.Writer) error {
+	moduleName, err := normalizeGoPackageName(moduleName)
 	if err != nil {
 		return err
 	}
 
-	flags := flag.NewFlagSet("crud add", flag.ContinueOnError)
-	flags.SetOutput(io.Discard)
-	tableName := flags.String("table", "", "数据表名")
-	if err := flags.Parse(args[2:]); err != nil {
-		return err
-	}
-	if flags.NArg() > 0 {
-		return fmt.Errorf("crud add 只接受一个模块名")
-	}
-	table := strings.TrimSpace(*tableName)
+	table := strings.TrimSpace(opts.tableName)
 	if table == "" {
 		return fmt.Errorf("crud add 必须提供 --table")
 	}
@@ -247,10 +505,13 @@ func runCRUD(args []string, stdout io.Writer) error {
 }
 
 func runConfig(args []string, stdout io.Writer) error {
-	if len(args) != 2 || args[0] != "add" {
-		return fmt.Errorf("用法: initra config add <capability>")
-	}
-	capability, err := normalizeGoPackageName(args[1])
+	cmd := newConfigCommand(stdout)
+	cmd.SetArgs(args)
+	return cmd.Execute()
+}
+
+func addConfigSnippet(capability string, stdout io.Writer) error {
+	capability, err := normalizeGoPackageName(capability)
 	if err != nil {
 		return err
 	}
@@ -274,15 +535,18 @@ func runConfig(args []string, stdout io.Writer) error {
 }
 
 func runMigrate(args []string, stdout io.Writer) error {
-	if len(args) != 2 {
-		return fmt.Errorf("用法: initra migrate <new|diff> <name>")
-	}
-	name, err := normalizeSafeName(args[1])
+	cmd := newMigrateCommand(stdout)
+	cmd.SetArgs(args)
+	return cmd.Execute()
+}
+
+func createMigrationArtifact(kind string, name string, stdout io.Writer) error {
+	name, err := normalizeSafeName(name)
 	if err != nil {
 		return err
 	}
 
-	switch args[0] {
+	switch kind {
 	case "new":
 		if err := os.MkdirAll(filepath.Join("db", "migrations"), 0o755); err != nil {
 			return err
@@ -310,7 +574,7 @@ func runMigrate(args []string, stdout io.Writer) error {
 		}
 		return nil
 	default:
-		return fmt.Errorf("未知 migrate 子命令 %q", args[0])
+		return fmt.Errorf("未知 migrate 子命令 %q", kind)
 	}
 }
 
@@ -341,9 +605,12 @@ finally {
 }
 
 func runDoctor(args []string, stdout io.Writer) error {
-	if len(args) != 0 {
-		return fmt.Errorf("用法: initra doctor")
-	}
+	cmd := newDoctorCommand(stdout)
+	cmd.SetArgs(args)
+	return cmd.Execute()
+}
+
+func runDoctorChecks(stdout io.Writer) error {
 	if stdout == nil {
 		stdout = io.Discard
 	}

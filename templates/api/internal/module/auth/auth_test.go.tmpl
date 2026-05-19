@@ -19,16 +19,14 @@ type fakeIdentityRepository struct {
 
 func (f *fakeIdentityRepository) FindByUsername(_ context.Context, username string) (*Identity, error) {
 	if identity, ok := f.byUsername[username]; ok {
-		cloned := *identity
-		return &cloned, nil
+		return new(*identity), nil
 	}
 	return nil, nil
 }
 
 func (f *fakeIdentityRepository) FindByID(_ context.Context, id int64) (*Identity, error) {
 	if identity, ok := f.byID[id]; ok {
-		cloned := *identity
-		return &cloned, nil
+		return new(*identity), nil
 	}
 	return nil, nil
 }

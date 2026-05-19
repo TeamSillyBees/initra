@@ -1,4 +1,2 @@
-- 500 时没有记录内部错误
-- pg、redis 启动时进行可连接测试
-- vibe coding 开发指南
-- 
+- vibe coding 开发指南，添加命令自动添加 skill
+- 删除 scripts，更新 readme

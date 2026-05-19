@@ -4,6 +4,13 @@ import (
 	"database/sql"
 
 	"github.com/samber/do"
+	"{{ .ModulePath }}/internal/data"
+	"{{ .ModulePath }}/internal/ent"
+	authmodule "{{ .ModulePath }}/internal/module/auth"
+	filemodule "{{ .ModulePath }}/internal/module/file"
+	httpdemomodule "{{ .ModulePath }}/internal/module/httpdemo"
+	taskdemomodule "{{ .ModulePath }}/internal/module/taskdemo"
+	usermodule "{{ .ModulePath }}/internal/module/user"
 	"github.com/teamsillybees/initra/pkg/auth"
 	platformcache "github.com/teamsillybees/initra/pkg/cache"
 	platformdatabase "github.com/teamsillybees/initra/pkg/database"
@@ -15,13 +22,6 @@ import (
 	"github.com/teamsillybees/initra/pkg/server"
 	storageprovider "github.com/teamsillybees/initra/pkg/storage/provider"
 	"github.com/teamsillybees/initra/pkg/task/asynqadapter"
-	"{{ .ModulePath }}/internal/data"
-	"{{ .ModulePath }}/internal/ent"
-	authmodule "{{ .ModulePath }}/internal/module/auth"
-	filemodule "{{ .ModulePath }}/internal/module/file"
-	httpdemomodule "{{ .ModulePath }}/internal/module/httpdemo"
-	taskdemomodule "{{ .ModulePath }}/internal/module/taskdemo"
-	usermodule "{{ .ModulePath }}/internal/module/user"
 )
 
 func registerProviders(injector *do.Injector, cfg *Config, buildInfo observability.BuildInfoVO) {

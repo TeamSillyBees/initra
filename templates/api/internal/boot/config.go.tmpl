@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"time"
 
+	"{{ .ModulePath }}/internal/data"
 	platformconfig "github.com/teamsillybees/initra/pkg/config"
 	"github.com/teamsillybees/initra/pkg/httpclient"
 	"github.com/teamsillybees/initra/pkg/logging"
 	"github.com/teamsillybees/initra/pkg/redisx"
 	platformstorage "github.com/teamsillybees/initra/pkg/storage"
 	"github.com/teamsillybees/initra/pkg/task"
-	"{{ .ModulePath }}/internal/data"
 )
 
 // Config 是示例项目的应用配置聚合根。
@@ -227,7 +227,7 @@ func configDefaults() map[string]any {
 		"http_client.max_response_body_size":                 int64(10 * 1024 * 1024),
 		"http_client.services.httpbingo.base_url":            "https://httpbingo.org",
 		"http_client.services.httpbingo.timeout":             "10s",
-		"http_client.services.httpbingo.headers.X-App-Id":    "{{ .AppName }}",
+		"http_client.services.httpbingo.headers.X-App-Id":    "initra",
 		"http_client.services.httpbingo.retry.enabled":       true,
 		"http_client.services.httpbingo.retry.count":         2,
 		"http_client.services.httpbingo.retry.wait_time":     "200ms",

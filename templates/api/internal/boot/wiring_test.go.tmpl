@@ -8,12 +8,12 @@ import (
 
 	"github.com/samber/do"
 	"github.com/stretchr/testify/require"
-	"github.com/teamsillybees/initra/pkg/observability"
 	authmodule "{{ .ModulePath }}/internal/module/auth"
 	filemodule "{{ .ModulePath }}/internal/module/file"
 	httpdemomodule "{{ .ModulePath }}/internal/module/httpdemo"
 	taskdemomodule "{{ .ModulePath }}/internal/module/taskdemo"
 	usermodule "{{ .ModulePath }}/internal/module/user"
+	"github.com/teamsillybees/initra/pkg/observability"
 )
 
 // TestModuleProvideDoesNotCollide 验证 auth、user 和 file 模块使用具名依赖后不会在 DI 容器中冲突。

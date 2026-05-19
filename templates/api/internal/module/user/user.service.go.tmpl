@@ -4,9 +4,9 @@ import (
 	"context"
 	"strings"
 
+	"{{ .ModulePath }}/internal/module/bizerrors"
 	"github.com/teamsillybees/initra/pkg/entx"
 	"github.com/teamsillybees/initra/pkg/pagination"
-	"{{ .ModulePath }}/internal/module/bizerrors"
 )
 
 // userRepo 定义 user 模块访问持久化层的最小能力。
@@ -198,8 +198,7 @@ func cloneUser(user *User) *User {
 	cloned := *user
 	cloned.RoleCodes = append([]string(nil), user.RoleCodes...)
 	if user.DeletedAt != nil {
-		deletedAt := *user.DeletedAt
-		cloned.DeletedAt = &deletedAt
+		cloned.DeletedAt = new(*user.DeletedAt)
 	}
 	return &cloned
 }

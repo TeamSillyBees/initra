@@ -1,7 +1,6 @@
 package boot
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -35,7 +34,7 @@ type Application struct {
 }
 
 // Bootstrap 完成配置加载、依赖注入、模块注册与 HTTP Server 组装。
-func Bootstrap(ctx context.Context, options Options) (*Application, error) {
+func Bootstrap(options Options) (*Application, error) {
 	cfg, err := LoadConfig(options.Env, options.ConfigDir)
 	if err != nil {
 		return nil, err
@@ -65,7 +64,7 @@ func Bootstrap(ctx context.Context, options Options) (*Application, error) {
 
 	registerRoutes(injector, webApp, options.BuildInfo)
 
-	server := &http.Server{
+	s := &http.Server{
 		Addr:              cfg.Server.Addr,
 		Handler:           webApp.Engine,
 		ReadTimeout:       cfg.Server.ReadTimeout,
@@ -79,7 +78,7 @@ func Bootstrap(ctx context.Context, options Options) (*Application, error) {
 		Config:    cfg,
 		Logger:    logger,
 		Web:       webApp,
-		Server:    server,
+		Server:    s,
 		DB:        db,
 		Redis:     redisClient,
 		Publisher: publisher,

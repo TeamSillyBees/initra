@@ -2,7 +2,7 @@
 
 `initra` 是面向企业内部 Go 服务的快速开发脚手架，项目介绍统一按三个部分理解：
 
-1. **标准项目模板**：通过 `templates/api` 提供包含 auth/user/file 示例模块、Ent schema 与生成代码、seed 和 Atlas migrations 的 RESTful API 服务模板，通过 `templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。
+1. **标准项目模板**：通过 `templates/api` 提供包含 auth/user/file 示例模块、Ent schema、seed 和 Atlas migrations 的 RESTful API 服务模板，通过 `templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。API 模板不内置 Ent 生成代码，`initra new` 会在生成项目后自动执行 Ent 代码生成。
 2. **可复用的 Go package**：通过根模块 `pkg/*` 沉淀 Web、配置、错误、日志、认证、数据访问、Redis、缓存、文件与对象存储、HTTP Client、任务队列、任务调度等通用能力，业务项目通过 `go.mod` 按需引入。
 3. **工程化 CLI**：通过 `cmd/initra` 承载生成项目、业务模块、CRUD 样例、迁移文件、配置样例、接口骨架、测试骨架和代码生成命令。
 
@@ -21,7 +21,7 @@ scripts/            根仓库测试、检查、构建入口
 
 ## 项目模板
 
-`api` 模板生成可直接运行的 Web API 基础项目，默认包含 Gin + Huma、统一响应/错误、JWT/Casbin 中间件装配、配置加载、日志、health/ready/version 接口，以及 auth/user 基础业务模块、file 本地文件示例模块、Ent schema 与生成代码、seed 数据和 Atlas 配置。API 标准模板使用 Ent 作为类型安全持久化访问层，使用 Ent Mixin + Runtime Hook 实现雪花 ID、审计字段和软删除等通用自动填充能力。业务方仍可通过后续 CLI 命令追加新的模块、CRUD 样例和配置能力。
+`api` 模板生成可直接运行的 Web API 基础项目，默认包含 Gin + Huma、统一响应/错误、JWT/Casbin 中间件装配、配置加载、日志、health/ready/version 接口，以及 auth/user 基础业务模块、file 本地文件示例模块、Ent schema、seed 数据和 Atlas 配置。API 标准模板使用 Ent 作为类型安全持久化访问层，使用 Ent Mixin + Runtime Hook 实现雪花 ID、审计字段和软删除等通用自动填充能力；模板目录只保存 schema、mixin、`generate.go` 和迁移 diff 入口，`initra new` 会在渲染 API 项目后执行 `go generate ./internal/ent` 生成缺失的 Ent 代码。业务方仍可通过后续 CLI 命令追加新的模块、CRUD 样例和配置能力。
 
 `worker` 模板面向后台任务、定时任务、消费任务、批处理任务，默认演示 `pkg/task` 的 Worker、Registry 和 Scheduler 用法。
 
@@ -74,6 +74,8 @@ $framework = (Resolve-Path .).Path
 go run ./cmd/initra new $env:TEMP\demo-api --type api --module example.com/demo-api --replace $framework
 go run ./cmd/initra new $env:TEMP\demo-worker --type worker --module example.com/demo-worker --replace $framework
 ```
+
+`initra new` 创建项目后会自动执行 `git init`。当项目类型为 `api` 时，还会在初始化 Git 仓库前执行一次 `go generate ./internal/ent`，把模板中未保存的 Ent 生成代码补齐。
 
 正式版 CLI 会自动使用自身版本写入生成项目 `go.mod`：
 

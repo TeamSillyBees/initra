@@ -26,7 +26,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	app, err := boot.Bootstrap(ctx, boot.Options{
+	app, err := boot.Bootstrap(boot.Options{
 		Env: os.Getenv("APP_ENV"),
 		BuildInfo: observability.BuildInfoVO{
 			Version:   version,

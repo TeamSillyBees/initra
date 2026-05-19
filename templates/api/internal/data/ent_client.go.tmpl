@@ -8,11 +8,11 @@ import (
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
+	"{{ .ModulePath }}/internal/ent"
 	"github.com/teamsillybees/initra/pkg/auth"
 	platformdatabase "github.com/teamsillybees/initra/pkg/database"
 	"github.com/teamsillybees/initra/pkg/entx"
 	"github.com/teamsillybees/initra/pkg/idgen"
-	"{{ .ModulePath }}/internal/ent"
 
 	_ "github.com/lib/pq"
 )
@@ -29,15 +29,6 @@ type DatabaseConfig struct {
 	ConnMaxLifetime time.Duration `mapstructure:"conn_max_lifetime"`
 }
 
-// NewEntClient 创建 Ent Client，配置连接池并注册统一运行时 Hook。
-func NewEntClient(cfg DatabaseConfig, generator *idgen.Generator) (*ent.Client, error) {
-	sqlDB, err := NewSQLDB(context.Background(), cfg)
-	if err != nil {
-		return nil, err
-	}
-	return NewEntClientFromDB(sqlDB, generator), nil
-}
-
 // SQLDBConfig 将业务数据库配置转换为通用 SQL 连接池配置。
 func SQLDBConfig(cfg DatabaseConfig) platformdatabase.Config {
 	connStr := fmt.Sprintf(
@@ -51,11 +42,6 @@ func SQLDBConfig(cfg DatabaseConfig) platformdatabase.Config {
 		MaxIdleConns:    cfg.MaxIdleConns,
 		ConnMaxLifetime: cfg.ConnMaxLifetime,
 	}
-}
-
-// NewSQLDB 创建并配置 PostgreSQL 连接池。
-func NewSQLDB(ctx context.Context, cfg DatabaseConfig) (*sql.DB, error) {
-	return platformdatabase.Open(ctx, SQLDBConfig(cfg))
 }
 
 // NewEntClientFromDB 基于已有 *sql.DB 创建 Ent Client 并注册 Hook，用于 sqlmock 等测试场景。

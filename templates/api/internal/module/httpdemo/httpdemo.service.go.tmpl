@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/teamsillybees/initra/pkg/httpclient"
 	"{{ .ModulePath }}/internal/module/bizerrors"
+	"github.com/teamsillybees/initra/pkg/httpclient"
 )
 
 const defaultMessage = "hello from initra"
@@ -86,8 +86,7 @@ func mapHTTPClientError(err error, message string) error {
 	if err == nil {
 		return nil
 	}
-	var clientErr *httpclient.Error
-	if errors.As(err, &clientErr) {
+	if clientErr, ok := errors.AsType[*httpclient.Error](err); ok {
 		return bizerrors.WrapInternal(err, message,
 			bizerrors.WithDetail("service", clientErr.Service),
 			bizerrors.WithDetail("kind", string(clientErr.Kind)),

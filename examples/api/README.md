@@ -2,7 +2,7 @@
 
 本文档面向 API 项目模板。
 
-`examples/api` 是 `initra new <app> --type api` 的可运行示例项目，包含认证、用户管理、local 文件示例、任务队列发布示例、缓存、JWT、Casbin、Ent schema 与生成代码、Atlas、seed 数据和版本化迁移。它用于验证和展示标准 API 项目模板；运行时通用能力来自根模块 `pkg/*`，项目生成入口来自 `cmd/initra`。
+`examples/api` 是 `initra new <app> --type api` 的可运行示例项目，包含认证、用户管理、local 文件示例、任务队列发布示例、缓存、JWT、Casbin、Ent schema 与生成代码、Atlas、seed 数据和版本化迁移。它用于验证和展示标准 API 项目模板；运行时通用能力来自根模块 `pkg/*`，项目生成入口来自 `cmd/initra`。`templates/api` 基于本示例同步，但不保存 Ent 生成代码；`initra new` 会在渲染 API 项目后自动执行 `go generate ./internal/ent` 补齐这些文件。
 
 ## 运行
 
@@ -58,5 +58,7 @@ go vet ./...
 .\scripts\atlas.ps1 migrate status --env local
 .\scripts\atlas.ps1 migrate diff <name>
 ```
+
+通过 `initra new` 创建的 API 项目已经自动执行过一次 Ent 代码生成；手动修改 `internal/ent/schema` 后再运行 `.\scripts\ent.ps1`。
 
 `internal/ent/schema` 是数据库结构主源；`db/migrations` 是版本化迁移历史；`db/seeds` 保存种子数据。迁移 diff 必须使用 `.\scripts\atlas.ps1 migrate diff <name>` 或 `initra migrate diff <name>` 生成的脚本；这些入口通过 `internal/ent/migratediff/main.go` 调用 Ent `migrate.WithForeignKeys(false)`，只生成索引和唯一约束，不生成物理外键约束。默认从 `configs/config.yaml` 和 `configs/config.<env>.yaml` 读取数据库连接，`env` 优先使用 `--env` 或 `APP_ENV`，未设置时为 `dev`，也可以通过 `--dev-url` 显式覆盖。`db/schema/*.sql` 仅作为历史参考或 DBA 阅读材料，不再作为 Atlas diff 的 schema source。

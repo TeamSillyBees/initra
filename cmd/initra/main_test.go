@@ -20,12 +20,14 @@ func TestNewGeneratesAPIProjectWithFrameworkRequireAndNoPkgCopy(t *testing.T) {
 		"--type", "api",
 		"--module", "example.com/demo",
 		"--framework-version", "v1.2.3",
+		"--replace", repoRoot(t),
 	}, &stdout, "dev")
 
 	require.NoError(t, err)
 	goMod := readFile(t, filepath.Join(target, "go.mod"))
 	require.Contains(t, goMod, "module example.com/demo")
 	require.Contains(t, goMod, "github.com/teamsillybees/initra v1.2.3")
+	require.FileExists(t, filepath.Join(target, ".gitignore"))
 	require.NoDirExists(t, filepath.Join(target, "pkg"))
 	require.Contains(t, readFile(t, filepath.Join(target, "cmd", "server", "main.go")), "example.com/demo/internal/boot")
 	require.FileExists(t, filepath.Join(target, "internal", "boot", "app.go"))
@@ -48,6 +50,7 @@ func TestNewGeneratesAPIProjectWithFrameworkRequireAndNoPkgCopy(t *testing.T) {
 	require.FileExists(t, filepath.Join(target, "db", "seeds", "001_seed_admin.sql"))
 	require.DirExists(t, filepath.Join(target, "internal", "ent", "schema"))
 	require.FileExists(t, filepath.Join(target, "internal", "ent", "client.go"))
+	require.FileExists(t, filepath.Join(target, "internal", "ent", "migrate", "schema.go"))
 	require.FileExists(t, filepath.Join(target, "internal", "data", "ent_client.go"))
 	require.FileExists(t, filepath.Join(target, "internal", "data", "tx.go"))
 	require.FileExists(t, filepath.Join(target, "configs", "config.yaml"))
@@ -59,6 +62,7 @@ func TestNewGeneratesAPIProjectWithFrameworkRequireAndNoPkgCopy(t *testing.T) {
 	require.NoDirExists(t, filepath.Join(target, "tools", "jetgen"))
 	require.NoFileExists(t, filepath.Join(target, "scripts", "jet"+".ps1"))
 	require.NoDirExists(t, filepath.Join(target, "internal", "app"))
+	require.DirExists(t, filepath.Join(target, ".git"))
 	require.Contains(t, stdout.String(), "created")
 }
 
@@ -67,7 +71,7 @@ func TestNewUsesReleaseCLIVersionWhenFrameworkVersionOmitted(t *testing.T) {
 
 	err := run([]string{
 		"new", target,
-		"--type", "api",
+		"--type", "worker",
 		"--module", "example.com/demo",
 	}, ioDiscard{}, "v1.2.3")
 
@@ -88,7 +92,10 @@ func TestNewGeneratesAPIMigrationsWithoutPhysicalForeignKeys(t *testing.T) {
 	}, ioDiscard{}, "dev")
 
 	require.NoError(t, err)
-	migrationContent := readFile(t, filepath.Join(target, "db", "migrations", "20260430135023_init.sql"))
+	migrations, err := filepath.Glob(filepath.Join(target, "db", "migrations", "*_init.sql"))
+	require.NoError(t, err)
+	require.Len(t, migrations, 1)
+	migrationContent := readFile(t, migrations[0])
 	require.NotContains(t, migrationContent, "FOREIGN KEY")
 	require.NotContains(t, migrationContent, "REFERENCES")
 
@@ -129,6 +136,54 @@ func TestNewGeneratesWorkerPlaceholderProject(t *testing.T) {
 	require.FileExists(t, filepath.Join(target, "cmd", "worker", "main.go"))
 	require.FileExists(t, filepath.Join(target, "internal", "worker", "worker.go"))
 	require.NoFileExists(t, filepath.Join(target, "cmd", "server", "main.go"))
+}
+
+func TestAPITemplateExcludesEntGeneratedCode(t *testing.T) {
+	root := repoRoot(t)
+	templateDir := filepath.Join(root, "templates", "api", "internal", "ent")
+
+	require.FileExists(t, filepath.Join(templateDir, "generate.go.tmpl"))
+	require.FileExists(t, filepath.Join(templateDir, "schema", "sys_user.go.tmpl"))
+	require.FileExists(t, filepath.Join(templateDir, "migratediff", "main.go.tmpl"))
+	require.NoFileExists(t, filepath.Join(templateDir, "client.go.tmpl"))
+	require.NoFileExists(t, filepath.Join(templateDir, "migrate", "schema.go.tmpl"))
+	require.NoFileExists(t, filepath.Join(templateDir, "sysuser.go.tmpl"))
+	require.NoFileExists(t, filepath.Join(templateDir, "sysuser", "where.go.tmpl"))
+}
+
+func TestRootHelpListsCobraCommands(t *testing.T) {
+	var stdout bytes.Buffer
+
+	err := run([]string{"--help"}, &stdout, "v1.2.3")
+
+	require.NoError(t, err)
+	require.Contains(t, stdout.String(), "Usage:")
+	require.Contains(t, stdout.String(), "new")
+	require.Contains(t, stdout.String(), "doctor")
+}
+
+func TestRootRejectsMissingCommand(t *testing.T) {
+	err := run(nil, ioDiscard{}, "dev")
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "用法: initra <command>")
+}
+
+func TestNewAcceptsFlagsBeforeTarget(t *testing.T) {
+	target := filepath.Join(t.TempDir(), "worker")
+
+	err := run([]string{
+		"new",
+		"--type", "worker",
+		"--module", "example.com/worker",
+		"--replace", repoRoot(t),
+		target,
+	}, ioDiscard{}, "dev")
+
+	require.NoError(t, err)
+	require.Contains(t, readFile(t, filepath.Join(target, "go.mod")), "module example.com/worker")
+	require.FileExists(t, filepath.Join(target, "cmd", "worker", "main.go"))
+	require.DirExists(t, filepath.Join(target, ".git"))
 }
 
 func TestNewWritesLocalReplaceWhenRequested(t *testing.T) {

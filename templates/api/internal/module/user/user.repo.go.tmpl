@@ -5,13 +5,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/teamsillybees/initra/pkg/entx"
 	"{{ .ModulePath }}/internal/data"
 	appent "{{ .ModulePath }}/internal/ent"
 	"{{ .ModulePath }}/internal/ent/sysrole"
 	"{{ .ModulePath }}/internal/ent/sysuser"
 	"{{ .ModulePath }}/internal/ent/sysuserrole"
 	"{{ .ModulePath }}/internal/module/bizerrors"
+	"github.com/teamsillybees/initra/pkg/entx"
 )
 
 // Repository 使用 Ent Client 实现 user 模块仓储。
@@ -469,8 +469,7 @@ func cloneTimePtr(value *time.Time) *time.Time {
 	if value == nil {
 		return nil
 	}
-	cloned := *value
-	return &cloned
+	return new(*value)
 }
 
 func mapEntWriteError(err error, message string) error {

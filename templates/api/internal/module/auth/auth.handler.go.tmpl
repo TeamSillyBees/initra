@@ -3,10 +3,10 @@ package auth
 import (
 	"context"
 
+	"{{ .ModulePath }}/internal/module/bizerrors"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/requestctx"
 	"github.com/teamsillybees/initra/pkg/response"
-	"{{ .ModulePath }}/internal/module/bizerrors"
 )
 
 // Handler 封装 auth 模块的 HTTP 适配逻辑。
