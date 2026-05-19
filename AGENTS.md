@@ -53,6 +53,7 @@ go run ./cmd/initra new $target --type api --module example.com/demo-api --repla
 ## Go 开发规范
 
 - 遵循 Go 标准风格：小接口、显式错误处理、依赖通过构造函数注入。
+- 代码注释完善，使用中文注释，符合 Go 代码风格。测试代码也要提供注释。
 - 包名保持简短、清晰、全小写；一个业务模块一个 package。
 - 不引入不必要的抽象。只有在减少真实重复、隔离复杂度或匹配现有模式时才新增抽象。
 - 共享能力放入 `pkg/*`，不要通过业务模块之间互相 import 来复用逻辑。
@@ -95,10 +96,12 @@ internal/module/<module>/
 
 ### 模板同步
 
-- 修改 `examples/api` 中的模板来源代码时，检查是否需要同步到 `templates/api/*.tmpl`。
-- 修改 `templates/api` 或 `templates/worker` 时，确认生成项目仍能通过 `go test`、`go vet` 和必要的 CLI 生成验证。
-- 模板文件中的模块路径必须使用 `{{ .ModulePath }}`，禁止硬编码 `github.com/teamsillybees/initra/examples/api`。
-- 发布版 CLI 可写入自身构建版本；开发版生成项目必须使用 `--framework-version` 或 `--replace`，避免不可复现依赖。
+- `templates` 目录下是创建项目时使用的模板代码
+- 除非明确说明要从 `examples` 来源进行同步，否则不要同步代码到 `templates` 下，避免不必要的更新
+- 当进行模板同步时，遵循下面的要求：
+  - 修改 `templates/api` 或 `templates/worker` 时，确认生成项目仍能通过 `go test`、`go vet` 和必要的 CLI 生成验证。
+  - 模板文件中的模块路径必须使用 `{{ .ModulePath }}`，禁止硬编码 `github.com/teamsillybees/initra/examples/api`。
+  - 发布版 CLI 可写入自身构建版本；开发版生成项目必须使用 `--framework-version` 或 `--replace`，避免不可复现依赖。
 
 ### 错误处理
 
@@ -116,7 +119,7 @@ internal/module/<module>/
 - 业务项目在自己的 `internal/boot/config.go` 定义配置结构，并通过 `pkg/config` 泛型加载。
 - `pkg/config` 只提供通用加载能力，不绑定任何具体业务配置结构；pkg 中的配置结构体应复用 `pkg/config` 的 `Sanitize`、`Validate` 公共方法，避免各自重复实现脱敏与校验；业务项目 boot config 应组合 pkg 中定义的配置结构体（如 `storage.Config`、`redisx.Config`），而非从头定义。
 - 配置规范使用结构体定义，必须支持默认值、环境变量覆盖配置文件、启动校验和敏感配置脱敏打印。
-- 运行环境统一使用 `app.env` 或无前缀环境变量 `APP_ENV` 表示；其他配置环境变量默认使用 `INITRA_` 前缀。
+- 运行环境统一环境变量 `APP_ENV` 表示；其他配置环境变量默认使用 `INITRA_` 前缀。
 - 密码、Token、Secret、Access Key、Authorization、带密码的 DSN 禁止明文输出到日志。
 
 ## 测试要求
@@ -134,4 +137,5 @@ internal/module/<module>/
 3. 修改前确认工作区状态，保护用户已有改动。
 4. 按最小可行范围编辑文件；手动编辑优先使用补丁方式。
 5. 运行与改动风险匹配的 `go test`、`go vet`、构建或生成验证。
-6. 最终回复简要说明改了什么、验证了什么，以及任何未完成或未验证事项。
+6. 当代码主线发生变化时，同步更新对应模块 README，避免保留已废弃入口或旧 schema 描述。
+7. 最终回复简要说明改了什么、验证了什么，以及任何未完成或未验证事项。
