@@ -155,9 +155,38 @@ func configureHumaErrors() {
 		return newHumaError(status, "", message, errs...)
 	}
 	huma.NewErrorWithContext = func(ctx huma.Context, status int, message string, errs ...error) huma.StatusError {
+		recordHumaErrors(ctx, errs...)
 		traceID := requestctx.TraceIDFromContext(ctx.Context())
 		return newHumaError(status, traceID, message, errs...)
 	}
+}
+
+// recordHumaErrors 将 Huma handler 返回的原始错误转交给 Gin 请求上下文，供统一请求日志输出。
+func recordHumaErrors(ctx huma.Context, errs ...error) {
+	if ctx == nil || len(errs) == 0 {
+		return
+	}
+
+	ginCtx, ok := unwrapGinContext(ctx)
+	if !ok {
+		return
+	}
+	for _, err := range errs {
+		if err != nil {
+			_ = ginCtx.Error(err)
+		}
+	}
+}
+
+func unwrapGinContext(ctx huma.Context) (ginCtx *gin.Context, ok bool) {
+	defer func() {
+		if recover() != nil {
+			ginCtx = nil
+			ok = false
+		}
+	}()
+	ginCtx = humagin.Unwrap(ctx)
+	return ginCtx, ginCtx != nil
 }
 
 // newHumaError 根据底层错误类型决定错误码、状态码、细节和 trace_id。

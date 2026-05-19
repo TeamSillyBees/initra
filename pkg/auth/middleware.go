@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
+	logfields "github.com/teamsillybees/initra/pkg/logging"
 	"github.com/teamsillybees/initra/pkg/requestctx"
 	"go.uber.org/zap"
 )
@@ -85,14 +86,6 @@ func JWTMiddleware(manager *JWTManager, lookup RouteSecurityLookup, logger *zap.
 		}))
 
 		c.Next()
-
-		if logger != nil && c.Writer.Status() >= http.StatusInternalServerError {
-			logger.Warn("request completed with server error",
-				zap.String("trace_id", requestctx.TraceIDFromContext(c.Request.Context())),
-				zap.Int("status", c.Writer.Status()),
-				zap.String("path", c.Request.URL.Path),
-			)
-		}
 	}
 }
 
@@ -169,6 +162,9 @@ func RequestLoggerMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			fields = append(fields, zap.Int64("user_id", principal.UserID))
 		}
 
+		if c.Writer.Status() >= http.StatusInternalServerError {
+			logger.Error("http request failed", append(fields, ginErrorFields(c)...)...)
+		}
 		logger.Info("http request completed", fields...)
 	}
 }
@@ -179,7 +175,11 @@ func RecoveryMiddleware(logger *zap.Logger) gin.HandlerFunc {
 		if logger != nil {
 			logger.Error("panic recovered",
 				zap.Any("panic", recovered),
+				zap.String("trace_id", requestctx.TraceIDFromContext(c.Request.Context())),
+				zap.String("request_id", requestctx.RequestIDFromContext(c.Request.Context())),
 				zap.String("path", c.Request.URL.Path),
+				zap.String("method", c.Request.Method),
+				zap.Stack("stacktrace"),
 			)
 		}
 		writeError(c, apperrors.New(apperrors.CodeInternalError, "internal error"))
@@ -247,9 +247,38 @@ func bearerToken(header string) (string, bool) {
 
 // writeError 将平台错误统一转换为带 trace_id 的 JSON 响应。
 func writeError(c *gin.Context, err error) {
+	if err != nil {
+		_ = c.Error(err)
+	}
 	traceID := requestctx.TraceIDFromContext(c.Request.Context())
 	status, body := apperrors.ToHTTP(err, traceID)
 	c.AbortWithStatusJSON(status, body)
+}
+
+func ginErrorFields(c *gin.Context) []zap.Field {
+	if c == nil || len(c.Errors) == 0 {
+		return nil
+	}
+
+	last := c.Errors.Last()
+	if last == nil || last.Err == nil {
+		return nil
+	}
+
+	fields := []zap.Field{
+		zap.Int("error_count", len(c.Errors)),
+	}
+	fields = append(fields, logfields.ErrorFields(last.Err)...)
+	if len(c.Errors) > 1 {
+		messages := make([]string, 0, len(c.Errors))
+		for _, item := range c.Errors {
+			if item != nil && item.Err != nil {
+				messages = append(messages, item.Err.Error())
+			}
+		}
+		fields = append(fields, zap.Strings("errors", messages))
+	}
+	return fields
 }
 
 // firstNonEmpty 返回第一个非空字符串，用于请求 ID 和 trace ID 的兜底选择。

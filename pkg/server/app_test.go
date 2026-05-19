@@ -1,7 +1,9 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -10,9 +12,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
+	apperrors "github.com/teamsillybees/initra/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
 )
@@ -73,6 +77,40 @@ func TestNewAppLogsUnauthorizedRequests(t *testing.T) {
 
 	require.Equal(t, http.StatusUnauthorized, rec.Code)
 	require.NotEmpty(t, logs.FilterMessage("http request completed").All())
+}
+
+// TestNewAppLogsHumaHandlerServerError 验证 Huma handler 返回的 5xx 错误会记录内部错误链。
+func TestNewAppLogsHumaHandlerServerError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	core, logs := observer.New(zap.DebugLevel)
+	logger := zap.New(core)
+
+	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, logger, nil, nil)
+	require.NoError(t, err)
+
+	app.Registry.Register(http.MethodGet, "/api/v1/fail", platformauth.RouteSecurity{Public: true})
+	huma.Register(app.API, huma.Operation{
+		OperationID: "fail",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/fail",
+	}, func(ctx context.Context, input *struct{}) (*struct{}, error) {
+		return nil, apperrors.Wrap(errors.New("driver: duplicate key"), apperrors.CodeDBError, "create user failed")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/fail", nil)
+	rec := httptest.NewRecorder()
+
+	app.Engine.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusInternalServerError, rec.Code)
+	entries := logs.FilterMessage("http request failed").All()
+	require.Len(t, entries, 1)
+	fields := entries[0].ContextMap()
+	require.Equal(t, "DB_ERROR", fields["error_code"])
+	require.Equal(t, "create user failed", fields["error_message"])
+	require.Equal(t, "driver: duplicate key", fields["error_cause"])
+	require.NotEmpty(t, fields["error_stacktrace"])
 }
 
 // TestNewAppAcceptsValidJWTForProtectedAPIRoute 验证受保护 /api 路由会完成 JWT 校验与 Casbin 授权。
