@@ -11,10 +11,10 @@ server:
   shutdown_timeout: 20s
 
 database:
-  host: "127.0.0.1"
+  host: "192.168.100.2"
   port: 5432
-  user: "postgres"
-  password: "postgres"
+  user: "initra"
+  password: "QRD5jmc9nex3qxw-kez"
   dbname: "initra"
   max_open_conns: 20
   max_idle_conns: 10
@@ -70,7 +70,7 @@ storage:
   public_base_url: ""
   presign_default_ttl: 15m
   local:
-    root_dir: ./var/uploads
+    root_dir: ./tmp/uploads
     temp_dir: .multipart
     public_base_url: ""
     private_base_url: ""

@@ -378,6 +378,8 @@ func TestMigrateHelpListsApplyCommand(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, stdout.String(), "apply")
 	require.Contains(t, stdout.String(), "应用 Atlas 迁移")
+	require.Contains(t, stdout.String(), "hash")
+	require.Contains(t, stdout.String(), "重算 Atlas 迁移校验和")
 }
 
 func TestBuildMigrateDiffArgs(t *testing.T) {
@@ -419,6 +421,29 @@ func TestMigrateApplyRequiresEnv(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "必须提供 --env")
 	require.Contains(t, err.Error(), "initra migrate apply --help")
+}
+
+func TestBuildMigrateHashArgs(t *testing.T) {
+	actual := buildMigrateHashArgs(migrateHashOptions{env: "local"})
+
+	require.Equal(t, []string{
+		"-c",
+		"file://db/atlas.hcl",
+		"migrate",
+		"hash",
+		"--env",
+		"local",
+	}, actual)
+}
+
+func TestMigrateHashDefaultsToLocalEnv(t *testing.T) {
+	var stdout bytes.Buffer
+
+	err := run([]string{"migrate", "hash", "--help"}, &stdout, "dev")
+
+	require.NoError(t, err)
+	require.Contains(t, stdout.String(), `--env string`)
+	require.Contains(t, stdout.String(), `(default "local")`)
 }
 
 func TestDoctorReportsEnvironmentChecks(t *testing.T) {

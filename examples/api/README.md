@@ -58,8 +58,9 @@ go generate ./internal/ent
 atlas -c file://db/atlas.hcl migrate status --env local
 initra migrate diff <name> --env local
 initra migrate apply --env local
+initra migrate hash
 ```
 
 通过 `initra new` 创建的 API 项目已经自动执行过一次 Ent 代码生成；手动修改 `internal/ent/schema` 后再运行 `go generate ./internal/ent`。
 
-`internal/ent/schema` 是数据库结构主源；`db/migrations` 是版本化迁移历史；`db/seeds` 保存种子数据。迁移 diff 必须使用 `initra migrate diff <name>` 或 `go run ./internal/ent/migratediff/main.go <name>`；这些入口通过 Ent `migrate.WithForeignKeys(false)` 只生成索引和唯一约束，不生成物理外键约束。迁移应用使用 `initra migrate apply --env <env>`，等同于执行 `atlas -c file://db/atlas.hcl migrate apply --env <env>`。默认从 `configs/config.yaml` 和 `configs/config.<env>.yaml` 读取数据库连接，`env` 优先使用 `--env` 或 `APP_ENV`，未设置时为 `dev`，也可以通过 `--dev-url` 显式覆盖。`db/schema/*.sql` 仅作为历史参考或 DBA 阅读材料，不再作为 Atlas diff 的 schema source。
+`internal/ent/schema` 是数据库结构主源；`db/migrations` 是版本化迁移历史；`db/seeds` 保存种子数据。迁移 diff 必须使用 `initra migrate diff <name>` 或 `go run ./internal/ent/migratediff/main.go <name>`；这些入口通过 Ent `migrate.WithForeignKeys(false)` 只生成索引和唯一约束，不生成物理外键约束。迁移应用使用 `initra migrate apply --env <env>`，等同于执行 `atlas -c file://db/atlas.hcl migrate apply --env <env>`；手动修改迁移文件后使用 `initra migrate hash` 重新计算 `atlas.sum`。默认从 `configs/config.yaml` 和 `configs/config.<env>.yaml` 读取数据库连接，`env` 优先使用 `--env` 或 `APP_ENV`，未设置时为 `dev`，也可以通过 `--dev-url` 显式覆盖。`db/schema/*.sql` 仅作为历史参考或 DBA 阅读材料，不再作为 Atlas diff 的 schema source。

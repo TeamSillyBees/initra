@@ -4,8 +4,8 @@ import "github.com/teamsillybees/initra/pkg/response"
 
 // LoginBody 描述登录请求体。
 type LoginBody struct {
-	Username string `json:"username" example:"alice"`
-	Password string `json:"password" example:"secret-123"`
+	Username string `json:"username" example:"admin"`
+	Password string `json:"password" example:"admin123"`
 }
 
 type loginRequest struct {

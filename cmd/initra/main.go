@@ -78,6 +78,10 @@ type migrateApplyOptions struct {
 	env string
 }
 
+type migrateHashOptions struct {
+	env string
+}
+
 type templateData struct {
 	ModulePath       string
 	AppName          string
@@ -396,8 +400,8 @@ func newMigrateCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "migrate",
 		Short:         "管理迁移辅助文件",
-		Long:          "管理 Ent/Atlas 迁移辅助文件。new 创建空迁移文件，diff 调用当前项目的 migratediff 入口生成 schema diff，apply 应用已有迁移。",
-		Example:       "  initra migrate new create_order\n  initra migrate diff add_order --env local --config-dir configs\n  initra migrate apply --env local",
+		Long:          "管理 Ent/Atlas 迁移辅助文件。new 创建空迁移文件，diff 调用当前项目的 migratediff 入口生成 schema diff，apply 应用已有迁移，hash 重算迁移目录校验和。",
+		Example:       "  initra migrate new create_order\n  initra migrate diff add_order --env local --config-dir configs\n  initra migrate apply --env local\n  initra migrate hash",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -405,7 +409,7 @@ func newMigrateCommand(stdout io.Writer) *cobra.Command {
 		},
 	}
 	configureCommand(cmd, stdout)
-	cmd.AddCommand(newMigrateNewCommand(stdout), newMigrateDiffCommand(stdout), newMigrateApplyCommand(stdout))
+	cmd.AddCommand(newMigrateNewCommand(stdout), newMigrateDiffCommand(stdout), newMigrateApplyCommand(stdout), newMigrateHashCommand(stdout))
 	return cmd
 }
 
@@ -468,6 +472,26 @@ func newMigrateApplyCommand(stdout io.Writer) *cobra.Command {
 	}
 	configureCommand(cmd, stdout)
 	cmd.Flags().StringVar(&opts.env, "env", "", "Atlas 迁移环境，例如 local、dev、prod")
+	_ = cmd.RegisterFlagCompletionFunc("env", completeValues("dev", "test", "local", "prod"))
+	return cmd
+}
+
+func newMigrateHashCommand(stdout io.Writer) *cobra.Command {
+	opts := migrateHashOptions{env: "local"}
+	cmd := &cobra.Command{
+		Use:           "hash",
+		Short:         "重算 Atlas 迁移校验和",
+		Long:          "执行 atlas -c file://db/atlas.hcl migrate hash --env <env>，用于手动修改 db/migrations 后重新计算 atlas.sum。",
+		Example:       "  initra migrate hash\n  initra migrate hash --env dev",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Args:          requireNoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runMigrationHash(opts, cmd.OutOrStdout())
+		},
+	}
+	configureCommand(cmd, stdout)
+	cmd.Flags().StringVar(&opts.env, "env", "local", "Atlas 配置环境，用于选择 migration.dir")
 	_ = cmd.RegisterFlagCompletionFunc("env", completeValues("dev", "test", "local", "prod"))
 	return cmd
 }
@@ -763,6 +787,29 @@ func runMigrationApply(opts migrateApplyOptions, stdout io.Writer) error {
 	return nil
 }
 
+func runMigrationHash(opts migrateHashOptions, stdout io.Writer) error {
+	env, err := normalizeMigrationEnv(opts.env)
+	if err != nil {
+		return err
+	}
+	command := exec.Command("atlas", buildMigrateHashArgs(migrateHashOptions{env: env})...)
+	output, err := command.CombinedOutput()
+	message := strings.TrimSpace(string(output))
+	if err != nil {
+		if message == "" {
+			return fmt.Errorf("重算迁移 hash 失败: %w", err)
+		}
+		return fmt.Errorf("重算迁移 hash 失败: %w: %s", err, message)
+	}
+	if stdout != nil {
+		if message != "" {
+			_, _ = fmt.Fprintln(stdout, message)
+		}
+		_, _ = fmt.Fprintf(stdout, "recomputed migration hash for env %s\n", env)
+	}
+	return nil
+}
+
 func buildMigrateDiffArgs(name string, opts migrateDiffOptions) []string {
 	args := []string{"run", "./internal/ent/migratediff/main.go", name}
 	if configDir := strings.TrimSpace(opts.configDir); configDir != "" {
@@ -781,10 +828,14 @@ func buildMigrateApplyArgs(opts migrateApplyOptions) []string {
 	return []string{"-c", "file://db/atlas.hcl", "migrate", "apply", "--env", strings.TrimSpace(opts.env)}
 }
 
+func buildMigrateHashArgs(opts migrateHashOptions) []string {
+	return []string{"-c", "file://db/atlas.hcl", "migrate", "hash", "--env", strings.TrimSpace(opts.env)}
+}
+
 func normalizeMigrationEnv(env string) (string, error) {
 	env = strings.TrimSpace(env)
 	if env == "" {
-		return "", fmt.Errorf("migrate apply 必须提供 --env")
+		return "", fmt.Errorf("migrate 命令必须提供 --env")
 	}
 	return normalizeSafeName(env)
 }

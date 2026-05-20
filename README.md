@@ -95,13 +95,14 @@ initra config add <capability>
 initra migrate new <name>
 initra migrate diff <name>
 initra migrate apply --env <env>
+initra migrate hash
 initra skill init
 initra doctor
 ```
 
 直接执行 `initra` 或 `initra <group>` 会展示对应帮助；`initra help <command>` 可查看任意子命令的参数、示例和说明。
 
-`initra migrate diff <name>` 直接执行当前项目的 `go run ./internal/ent/migratediff/main.go <name>`，可追加 `--env`、`--config-dir` 和 `--dev-url`。`initra migrate apply --env <env>` 会执行 `atlas -c file://db/atlas.hcl migrate apply --env <env>` 应用迁移。
+`initra migrate diff <name>` 直接执行当前项目的 `go run ./internal/ent/migratediff/main.go <name>`，可追加 `--env`、`--config-dir` 和 `--dev-url`。`initra migrate apply --env <env>` 会执行 `atlas -c file://db/atlas.hcl migrate apply --env <env>` 应用迁移。手动修改迁移文件后，可执行 `initra migrate hash` 重新计算 `atlas.sum`。
 
 在业务项目根目录执行 `initra skill init` 会写入 `.agents/skills/initra-framework`，用于让 Codex 在该项目内优先复用 initra 框架能力。
 
