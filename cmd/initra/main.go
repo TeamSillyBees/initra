@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,6 +21,32 @@ import (
 )
 
 const frameworkModule = "github.com/teamsillybees/initra"
+
+// commandHelpTemplate 是所有命令共用的中文帮助模板。
+const commandHelpTemplate = `{{with (or .Long .Short)}}{{. | trimTrailingWhitespaces}}
+
+{{end}}{{.UsageString}}`
+
+// commandUsageTemplate 是所有命令共用的中文用法模板。
+const commandUsageTemplate = `用法:
+  {{.UseLine}}{{if .HasAvailableSubCommands}}
+  {{.CommandPath}} [command]{{end}}{{if .HasAvailableSubCommands}}
+
+可用命令:
+{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}  {{rpad .Name .NamePadding }} {{.Short}}
+{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+
+选项:
+{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+全局选项:
+{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasExample}}
+
+示例:
+{{.Example}}{{end}}{{if .HasAvailableSubCommands}}
+
+运行 "{{.CommandPath}} [command] --help" 查看子命令帮助。{{end}}
+`
 
 var (
 	goPackageNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
@@ -49,6 +74,10 @@ type migrateDiffOptions struct {
 	devURL    string
 }
 
+type migrateApplyOptions struct {
+	env string
+}
+
 type templateData struct {
 	ModulePath       string
 	AppName          string
@@ -59,7 +88,8 @@ type templateData struct {
 
 func main() {
 	if err := run(os.Args[1:], os.Stdout, currentCLIVersion()); err != nil {
-		log.Fatalf("initra: %v", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
 	}
 }
 
@@ -98,14 +128,17 @@ func newRootCommand(stdout io.Writer, cliVersion string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "initra",
 		Short:         "企业内部 Go 服务快速开发脚手架",
+		Long:          "initra 用于生成和维护企业内部 Go 服务脚手架，覆盖 API/worker 项目、业务模块、CRUD 示例、配置片段和迁移辅助文件。",
+		Example:       "  initra new ./demo --type api --module example.com/demo\n  initra module add order\n  initra doctor",
 		Version:       cliVersion,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("用法: initra <command>")
+			return showCommandHelp(cmd)
 		},
 	}
 	configureCommand(cmd, stdout)
+	cmd.SetHelpCommand(newHelpCommand(stdout))
 	cmd.AddCommand(
 		newNewCommand(stdout, cliVersion),
 		newModuleCommand(stdout),
@@ -115,6 +148,7 @@ func newRootCommand(stdout io.Writer, cliVersion string) *cobra.Command {
 		newSkillCommand(stdout),
 		newDoctorCommand(stdout),
 	)
+	localizeCompletionCommand(cmd, stdout)
 	return cmd
 }
 
@@ -124,7 +158,107 @@ func configureCommand(cmd *cobra.Command, stdout io.Writer) {
 	}
 	cmd.SetOut(stdout)
 	cmd.SetErr(io.Discard)
-	cmd.DisableSuggestions = true
+	cmd.SetHelpTemplate(commandHelpTemplate)
+	cmd.SetUsageTemplate(commandUsageTemplate)
+	cmd.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
+		return commandUsageError(cmd, "参数错误：%v", err)
+	})
+	cmd.SilenceUsage = true
+	cmd.SilenceErrors = true
+	cmd.SuggestionsMinimumDistance = 2
+}
+
+// newHelpCommand 创建显式 help 命令，并复用 Cobra 的命令查找能力展示目标命令帮助。
+func newHelpCommand(stdout io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "help [command]",
+		Short:         "查看命令帮助",
+		Long:          "查看 initra 或指定子命令的帮助信息。",
+		Example:       "  initra help\n  initra help new\n  initra help migrate diff",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Args:          cobra.ArbitraryArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			root := cmd.Root()
+			if len(args) == 0 {
+				return showCommandHelp(root)
+			}
+			target, _, err := root.Find(args)
+			if err != nil || target == nil {
+				return commandUsageError(cmd, "未知命令 %q", strings.Join(args, " "))
+			}
+			return showCommandHelp(target)
+		},
+	}
+	configureCommand(cmd, stdout)
+	return cmd
+}
+
+// showCommandHelp 输出命令帮助，供根命令和分组命令的默认动作复用。
+func showCommandHelp(cmd *cobra.Command) error {
+	return cmd.Help()
+}
+
+// commandUsageError 构造包含 help 指引的命令参数错误。
+func commandUsageError(cmd *cobra.Command, format string, values ...any) error {
+	message := fmt.Sprintf(format, values...)
+	return fmt.Errorf("%s\n\n运行 %q 查看帮助", message, cmd.CommandPath()+" --help")
+}
+
+// requireExactArgs 返回中文化的固定参数数量校验器。
+func requireExactArgs(count int, noun string) cobra.PositionalArgs {
+	return func(cmd *cobra.Command, args []string) error {
+		if len(args) == count {
+			return nil
+		}
+		return commandUsageError(cmd, "参数错误：需要 %d 个%s参数，收到 %d 个", count, noun, len(args))
+	}
+}
+
+// requireNoArgs 校验命令不接受位置参数。
+func requireNoArgs(cmd *cobra.Command, args []string) error {
+	if len(args) == 0 {
+		return nil
+	}
+	return commandUsageError(cmd, "参数错误：不接受位置参数，收到 %d 个", len(args))
+}
+
+// completeValues 返回固定候选值，并禁用文件名补全。
+func completeValues(values ...string) cobra.CompletionFunc {
+	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return values, cobra.ShellCompDirectiveNoFileComp
+	}
+}
+
+// localizeCompletionCommand 初始化 Cobra 默认 completion 命令，并改成项目一致的中文帮助。
+func localizeCompletionCommand(root *cobra.Command, stdout io.Writer) {
+	root.InitDefaultCompletionCmd()
+	completion, _, err := root.Find([]string{"completion"})
+	if err != nil || completion == nil || completion.Name() != "completion" {
+		return
+	}
+	configureCommand(completion, stdout)
+	completion.Short = "生成 shell 自动补全脚本"
+	completion.Long = "生成 bash、zsh、fish 或 powershell 自动补全脚本。"
+	completion.Example = "  initra completion powershell\n  initra completion bash"
+	completion.RunE = func(cmd *cobra.Command, args []string) error {
+		return showCommandHelp(cmd)
+	}
+	for _, child := range completion.Commands() {
+		configureCommand(child, stdout)
+		child.Short = fmt.Sprintf("生成 %s 自动补全脚本", completionShellName(child.Name()))
+		child.Long = child.Short + "。"
+	}
+}
+
+// completionShellName 返回用于帮助文案展示的 shell 名称。
+func completionShellName(name string) string {
+	switch name {
+	case "powershell":
+		return "PowerShell"
+	default:
+		return name
+	}
 }
 
 func newNewCommand(stdout io.Writer, cliVersion string) *cobra.Command {
@@ -132,29 +266,25 @@ func newNewCommand(stdout io.Writer, cliVersion string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "new <dir>",
 		Short:         "生成 API 或 worker 项目",
+		Long:          "根据标准模板生成独立 Go module。api 模板会自动执行 Ent 代码生成并初始化 Git 仓库；worker 模板会生成可编译的后台任务骨架。",
+		Example:       "  initra new ./demo-api --type api --module example.com/demo-api\n  initra new ./demo-worker --type worker --module example.com/demo-worker\n  initra new $env:TEMP\\demo-api --type api --module example.com/demo-api --replace C:\\Project\\teamsillybees\\initra",
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return fmt.Errorf("用法: initra new <dir>")
-			}
-			if len(args) > 1 {
-				return fmt.Errorf("new 命令只接受一个目标目录")
-			}
-			return nil
-		},
+		Args:          requireExactArgs(1, "目标目录"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return createProject(args[0], cmd.OutOrStdout(), cliVersion, opts)
 		},
 	}
 	configureCommand(cmd, stdout)
 	flags := cmd.Flags()
-	flags.StringVar(&opts.modulePath, "module", "", "生成项目的 Go module path")
-	flags.StringVar(&opts.appName, "app-name", "", "应用名称")
-	flags.StringVar(&opts.projectType, "type", "api", "项目类型：api 或 worker")
-	flags.StringVar(&opts.templateName, "template", "", "兼容旧参数，等同于 --type")
-	flags.StringVar(&opts.frameworkVersion, "framework-version", "", "initra 框架版本")
+	flags.StringVar(&opts.modulePath, "module", "", "生成项目的 Go module path，默认使用目录名")
+	flags.StringVar(&opts.appName, "app-name", "", "应用名称，默认使用目录名")
+	flags.StringVar(&opts.projectType, "type", "api", "项目类型，可选 api 或 worker")
+	flags.StringVar(&opts.templateName, "template", "", "旧版兼容参数，等同于 --type")
+	flags.StringVar(&opts.frameworkVersion, "framework-version", "", "写入 go.mod 的 initra 框架版本")
 	flags.StringVar(&opts.localReplacePath, "replace", "", "本地 initra 仓库路径，用于 go.mod replace")
+	_ = cmd.RegisterFlagCompletionFunc("type", completeValues("api", "worker"))
+	_ = cmd.RegisterFlagCompletionFunc("template", completeValues("api", "worker"))
 	return cmd
 }
 
@@ -162,10 +292,12 @@ func newModuleCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "module",
 		Short:         "管理业务模块骨架",
+		Long:          "管理标准项目的 internal/module/<name> 业务模块骨架。模块按 flat package 组织，包含 handler、service、repo、model、dto、routes、providers 和测试文件。",
+		Example:       "  initra module add order",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("用法: initra module add <name>")
+			return showCommandHelp(cmd)
 		},
 	}
 	configureCommand(cmd, stdout)
@@ -177,17 +309,11 @@ func newModuleAddCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "add <name>",
 		Short:         "生成 flat package 业务模块骨架",
+		Long:          "在当前项目的 internal/module 下生成一个业务模块骨架，模块名必须是合法 Go package 名称。",
+		Example:       "  initra module add order",
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return fmt.Errorf("用法: initra module add <name>")
-			}
-			if len(args) > 1 {
-				return fmt.Errorf("module add 只接受一个模块名")
-			}
-			return nil
-		},
+		Args:          requireExactArgs(1, "模块名"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return addModule(args[0], cmd.OutOrStdout())
 		},
@@ -200,10 +326,12 @@ func newCRUDCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "crud",
 		Short:         "管理 CRUD 示例代码",
+		Long:          "为已存在的业务模块追加 CRUD 示例文件，用于快速展示标准模块内的简单数据访问写法。",
+		Example:       "  initra crud add order --table sys_order",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("用法: initra crud add <module> --table <table>")
+			return showCommandHelp(cmd)
 		},
 	}
 	configureCommand(cmd, stdout)
@@ -216,17 +344,11 @@ func newCRUDAddCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "add <module>",
 		Short:         "为现有模块生成 CRUD 示例",
+		Long:          "在现有业务模块目录中生成 <module>.crud.go 示例文件。目标模块必须已经通过 initra module add 或手动创建。",
+		Example:       "  initra crud add order --table sys_order",
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return fmt.Errorf("crud add 缺少模块名")
-			}
-			if len(args) > 1 {
-				return fmt.Errorf("crud add 只接受一个模块名")
-			}
-			return nil
-		},
+		Args:          requireExactArgs(1, "模块名"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return addCRUDSample(args[0], opts, cmd.OutOrStdout())
 		},
@@ -240,10 +362,12 @@ func newConfigCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "config",
 		Short:         "管理配置片段",
+		Long:          "为标准项目追加配置结构和 YAML 示例片段，便于把框架能力显式接入 internal/boot 配置。",
+		Example:       "  initra config add redis",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("用法: initra config add <capability>")
+			return showCommandHelp(cmd)
 		},
 	}
 	configureCommand(cmd, stdout)
@@ -255,14 +379,11 @@ func newConfigAddCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "add <capability>",
 		Short:         "生成配置结构和 YAML 示例",
+		Long:          "生成 internal/boot/<capability>.config.go 和 configs/<capability>.yaml，作为接入框架能力的配置起点。",
+		Example:       "  initra config add redis\n  initra config add storage",
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) != 1 {
-				return fmt.Errorf("用法: initra config add <capability>")
-			}
-			return nil
-		},
+		Args:          requireExactArgs(1, "能力名"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return addConfigSnippet(args[0], cmd.OutOrStdout())
 		},
@@ -275,14 +396,16 @@ func newMigrateCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "migrate",
 		Short:         "管理迁移辅助文件",
+		Long:          "管理 Ent/Atlas 迁移辅助文件。new 创建空迁移文件，diff 调用当前项目的 migratediff 入口生成 schema diff，apply 应用已有迁移。",
+		Example:       "  initra migrate new create_order\n  initra migrate diff add_order --env local --config-dir configs\n  initra migrate apply --env local",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("用法: initra migrate <new|diff> <name>")
+			return showCommandHelp(cmd)
 		},
 	}
 	configureCommand(cmd, stdout)
-	cmd.AddCommand(newMigrateNewCommand(stdout), newMigrateDiffCommand(stdout))
+	cmd.AddCommand(newMigrateNewCommand(stdout), newMigrateDiffCommand(stdout), newMigrateApplyCommand(stdout))
 	return cmd
 }
 
@@ -290,14 +413,11 @@ func newMigrateNewCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "new <name>",
 		Short:         "创建空迁移文件",
+		Long:          "在 db/migrations 下创建一个带时间戳的空 SQL 迁移文件。",
+		Example:       "  initra migrate new create_order",
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) != 1 {
-				return fmt.Errorf("用法: initra migrate new <name>")
-			}
-			return nil
-		},
+		Args:          requireExactArgs(1, "迁移名"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return createMigrationArtifact("new", args[0], cmd.OutOrStdout())
 		},
@@ -311,14 +431,11 @@ func newMigrateDiffCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "diff <name>",
 		Short:         "执行 Ent/Atlas 迁移 diff",
+		Long:          "调用当前项目的 go run ./internal/ent/migratediff/main.go <name>，并把 env、config-dir、dev-url 透传给 migratediff。",
+		Example:       "  initra migrate diff add_order\n  initra migrate diff add_order --env local --config-dir configs --dev-url postgres://dev",
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) != 1 {
-				return fmt.Errorf("用法: initra migrate diff <name>")
-			}
-			return nil
-		},
+		Args:          requireExactArgs(1, "迁移名"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runMigrationDiff(args[0], opts, cmd.OutOrStdout())
 		},
@@ -328,6 +445,30 @@ func newMigrateDiffCommand(stdout io.Writer) *cobra.Command {
 	flags.StringVar(&opts.env, "env", "", "运行环境，传递给 migratediff")
 	flags.StringVar(&opts.configDir, "config-dir", "", "配置目录，传递给 migratediff")
 	flags.StringVar(&opts.devURL, "dev-url", "", "Atlas dev database URL，传递给 migratediff")
+	_ = cmd.RegisterFlagCompletionFunc("env", completeValues("dev", "test", "local", "prod"))
+	return cmd
+}
+
+func newMigrateApplyCommand(stdout io.Writer) *cobra.Command {
+	opts := migrateApplyOptions{}
+	cmd := &cobra.Command{
+		Use:           "apply",
+		Short:         "应用 Atlas 迁移",
+		Long:          "执行 atlas -c file://db/atlas.hcl migrate apply --env <env>，用于把 db/migrations 下的迁移应用到指定环境。",
+		Example:       "  initra migrate apply --env local\n  initra migrate apply --env prod",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Args:          requireNoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if strings.TrimSpace(opts.env) == "" {
+				return commandUsageError(cmd, "参数错误：migrate apply 必须提供 --env")
+			}
+			return runMigrationApply(opts, cmd.OutOrStdout())
+		},
+	}
+	configureCommand(cmd, stdout)
+	cmd.Flags().StringVar(&opts.env, "env", "", "Atlas 迁移环境，例如 local、dev、prod")
+	_ = cmd.RegisterFlagCompletionFunc("env", completeValues("dev", "test", "local", "prod"))
 	return cmd
 }
 
@@ -335,10 +476,12 @@ func newSkillCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "skill",
 		Short:         "管理 initra 相关 Codex skill 文档",
+		Long:          "管理 initra 框架相关的 Codex skill 文档，用于在生成项目中复用 initra 的开发约束和辅助脚本。",
+		Example:       "  initra skill init",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("用法: initra skill init")
+			return showCommandHelp(cmd)
 		},
 	}
 	configureCommand(cmd, stdout)
@@ -350,14 +493,11 @@ func newSkillInitCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "init",
 		Short:         "添加 initra-framework skill 文档",
+		Long:          "在当前项目写入 .agents/skills/initra-framework，供 Codex 理解并检查 initra 项目约束。",
+		Example:       "  initra skill init",
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) != 0 {
-				return fmt.Errorf("用法: initra skill init")
-			}
-			return nil
-		},
+		Args:          requireNoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return initFrameworkSkill(cmd.OutOrStdout())
 		},
@@ -370,14 +510,11 @@ func newDoctorCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "doctor",
 		Short:         "检查本地开发环境",
+		Long:          "检查当前开发环境中 Go、Atlas、Ent、golangci-lint 和标准项目配置文件是否可用。",
+		Example:       "  initra doctor",
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) != 0 {
-				return fmt.Errorf("用法: initra doctor")
-			}
-			return nil
-		},
+		Args:          requireNoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runDoctorChecks(cmd.OutOrStdout())
 		},
@@ -386,22 +523,16 @@ func newDoctorCommand(stdout io.Writer) *cobra.Command {
 	return cmd
 }
 
-func runNew(args []string, stdout io.Writer, cliVersion string) error {
-	cmd := newNewCommand(stdout, cliVersion)
-	cmd.SetArgs(args)
-	return cmd.Execute()
-}
-
 func createProject(targetDir string, stdout io.Writer, cliVersion string, opts newOptions) error {
 	resolvedType := strings.TrimSpace(opts.projectType)
 	if resolvedType == "" {
 		resolvedType = "api"
 	}
-	if template := strings.TrimSpace(opts.templateName); template != "" {
-		if resolvedType != "api" && resolvedType != template {
+	if t := strings.TrimSpace(opts.templateName); t != "" {
+		if resolvedType != "api" && resolvedType != t {
 			return fmt.Errorf("--type 与 --template 不能指定不同项目类型")
 		}
-		resolvedType = template
+		resolvedType = t
 	}
 	if resolvedType == "basic" {
 		resolvedType = "api"
@@ -483,12 +614,6 @@ func initGitRepository(targetDir string) error {
 	return nil
 }
 
-func runModule(args []string, stdout io.Writer) error {
-	cmd := newModuleCommand(stdout)
-	cmd.SetArgs(args)
-	return cmd.Execute()
-}
-
 func addModule(name string, stdout io.Writer) error {
 	name, err := normalizeGoPackageName(name)
 	if err != nil {
@@ -522,12 +647,6 @@ func addModule(name string, stdout io.Writer) error {
 	return nil
 }
 
-func runCRUD(args []string, stdout io.Writer) error {
-	cmd := newCRUDCommand(stdout)
-	cmd.SetArgs(args)
-	return cmd.Execute()
-}
-
 func addCRUDSample(moduleName string, opts crudAddOptions, stdout io.Writer) error {
 	moduleName, err := normalizeGoPackageName(moduleName)
 	if err != nil {
@@ -552,12 +671,6 @@ func addCRUDSample(moduleName string, opts crudAddOptions, stdout io.Writer) err
 	return nil
 }
 
-func runConfig(args []string, stdout io.Writer) error {
-	cmd := newConfigCommand(stdout)
-	cmd.SetArgs(args)
-	return cmd.Execute()
-}
-
 func addConfigSnippet(capability string, stdout io.Writer) error {
 	capability, err := normalizeGoPackageName(capability)
 	if err != nil {
@@ -580,12 +693,6 @@ func addConfigSnippet(capability string, stdout io.Writer) error {
 		_, _ = fmt.Fprintf(stdout, "created config %s\n", capability)
 	}
 	return nil
-}
-
-func runMigrate(args []string, stdout io.Writer) error {
-	cmd := newMigrateCommand(stdout)
-	cmd.SetArgs(args)
-	return cmd.Execute()
 }
 
 func createMigrationArtifact(kind string, name string, stdout io.Writer) error {
@@ -633,6 +740,29 @@ func runMigrationDiff(name string, opts migrateDiffOptions, stdout io.Writer) er
 	return nil
 }
 
+func runMigrationApply(opts migrateApplyOptions, stdout io.Writer) error {
+	env, err := normalizeMigrationEnv(opts.env)
+	if err != nil {
+		return err
+	}
+	command := exec.Command("atlas", buildMigrateApplyArgs(migrateApplyOptions{env: env})...)
+	output, err := command.CombinedOutput()
+	message := strings.TrimSpace(string(output))
+	if err != nil {
+		if message == "" {
+			return fmt.Errorf("应用迁移失败: %w", err)
+		}
+		return fmt.Errorf("应用迁移失败: %w: %s", err, message)
+	}
+	if stdout != nil {
+		if message != "" {
+			_, _ = fmt.Fprintln(stdout, message)
+		}
+		_, _ = fmt.Fprintf(stdout, "applied migrations for env %s\n", env)
+	}
+	return nil
+}
+
 func buildMigrateDiffArgs(name string, opts migrateDiffOptions) []string {
 	args := []string{"run", "./internal/ent/migratediff/main.go", name}
 	if configDir := strings.TrimSpace(opts.configDir); configDir != "" {
@@ -645,6 +775,18 @@ func buildMigrateDiffArgs(name string, opts migrateDiffOptions) []string {
 		args = append(args, "-dev-url", devURL)
 	}
 	return args
+}
+
+func buildMigrateApplyArgs(opts migrateApplyOptions) []string {
+	return []string{"-c", "file://db/atlas.hcl", "migrate", "apply", "--env", strings.TrimSpace(opts.env)}
+}
+
+func normalizeMigrationEnv(env string) (string, error) {
+	env = strings.TrimSpace(env)
+	if env == "" {
+		return "", fmt.Errorf("migrate apply 必须提供 --env")
+	}
+	return normalizeSafeName(env)
 }
 
 func initFrameworkSkill(stdout io.Writer) error {
@@ -678,12 +820,6 @@ func initFrameworkSkill(stdout io.Writer) error {
 		_, _ = fmt.Fprintf(stdout, "created skill %s\n", targetRoot)
 	}
 	return nil
-}
-
-func runDoctor(args []string, stdout io.Writer) error {
-	cmd := newDoctorCommand(stdout)
-	cmd.SetArgs(args)
-	return cmd.Execute()
 }
 
 func runDoctorChecks(stdout io.Writer) error {

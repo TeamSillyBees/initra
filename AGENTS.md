@@ -97,10 +97,7 @@ internal/module/<module>/
 
 ### 模板同步
 
-- 修改 `examples/api` 中的模板来源代码时，检查是否需要同步到 `templates/api/*.tmpl`。
-- 修改 `templates/api` 或 `templates/worker` 时，确认生成项目仍能通过 `go test`、`go vet` 和必要的 CLI 生成验证。
-- 模板文件中的模块路径必须使用 `{{ .ModulePath }}`，禁止硬编码 `github.com/teamsillybees/initra/examples/api`。
-- 发布版 CLI 可写入自身构建版本；开发版生成项目必须使用 `--framework-version` 或 `--replace`，避免不可复现依赖。
+- 修改 `examples/api` 中的示例代码时，使用 `tools/sync_api_templates.go` 进行模板同步
 
 ### 错误处理
 

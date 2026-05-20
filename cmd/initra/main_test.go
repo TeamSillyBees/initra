@@ -153,9 +153,24 @@ func TestRootHelpListsCobraCommands(t *testing.T) {
 	err := run([]string{"--help"}, &stdout, "v1.2.3")
 
 	require.NoError(t, err)
-	require.Contains(t, stdout.String(), "Usage:")
+	require.Contains(t, stdout.String(), "用法:")
+	require.Contains(t, stdout.String(), "可用命令:")
+	require.Contains(t, stdout.String(), "completion")
+	require.Contains(t, stdout.String(), "生成 shell 自动补全脚本")
 	require.Contains(t, stdout.String(), "new")
+	require.Contains(t, stdout.String(), "help")
 	require.Contains(t, stdout.String(), "doctor")
+}
+
+func TestHelpCommandShowsSubcommandHelp(t *testing.T) {
+	var stdout bytes.Buffer
+
+	err := run([]string{"help", "new"}, &stdout, "v1.2.3")
+
+	require.NoError(t, err)
+	require.Contains(t, stdout.String(), "initra new <dir>")
+	require.Contains(t, stdout.String(), "示例:")
+	require.Contains(t, stdout.String(), "--module")
 }
 
 func TestSkillInitCopiesInitraFrameworkSkill(t *testing.T) {
@@ -174,11 +189,32 @@ func TestSkillInitCopiesInitraFrameworkSkill(t *testing.T) {
 	require.Contains(t, stdout.String(), "created skill")
 }
 
-func TestRootRejectsMissingCommand(t *testing.T) {
-	err := run(nil, ioDiscard{}, "dev")
+func TestRootWithoutArgsShowsHelp(t *testing.T) {
+	var stdout bytes.Buffer
+
+	err := run(nil, &stdout, "dev")
+
+	require.NoError(t, err)
+	require.Contains(t, stdout.String(), "用法:")
+	require.Contains(t, stdout.String(), "initra [command]")
+}
+
+func TestGroupCommandWithoutSubcommandShowsHelp(t *testing.T) {
+	var stdout bytes.Buffer
+
+	err := run([]string{"module"}, &stdout, "dev")
+
+	require.NoError(t, err)
+	require.Contains(t, stdout.String(), "initra module [flags]")
+	require.Contains(t, stdout.String(), "add")
+}
+
+func TestNewRejectsMissingTargetWithHelpHint(t *testing.T) {
+	err := run([]string{"new"}, ioDiscard{}, "dev")
 
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "用法: initra <command>")
+	require.Contains(t, err.Error(), "需要 1 个目标目录参数")
+	require.Contains(t, err.Error(), "initra new --help")
 }
 
 func TestNewAcceptsFlagsBeforeTarget(t *testing.T) {
@@ -334,6 +370,16 @@ func TestMigrateCommandsGenerateFiles(t *testing.T) {
 	require.Len(t, migrations, 1)
 }
 
+func TestMigrateHelpListsApplyCommand(t *testing.T) {
+	var stdout bytes.Buffer
+
+	err := run([]string{"migrate", "--help"}, &stdout, "dev")
+
+	require.NoError(t, err)
+	require.Contains(t, stdout.String(), "apply")
+	require.Contains(t, stdout.String(), "应用 Atlas 迁移")
+}
+
 func TestBuildMigrateDiffArgs(t *testing.T) {
 	actual := buildMigrateDiffArgs("add_order", migrateDiffOptions{
 		env:       "local",
@@ -352,6 +398,27 @@ func TestBuildMigrateDiffArgs(t *testing.T) {
 		"-dev-url",
 		"postgres://dev",
 	}, actual)
+}
+
+func TestBuildMigrateApplyArgs(t *testing.T) {
+	actual := buildMigrateApplyArgs(migrateApplyOptions{env: "local"})
+
+	require.Equal(t, []string{
+		"-c",
+		"file://db/atlas.hcl",
+		"migrate",
+		"apply",
+		"--env",
+		"local",
+	}, actual)
+}
+
+func TestMigrateApplyRequiresEnv(t *testing.T) {
+	err := run([]string{"migrate", "apply"}, ioDiscard{}, "dev")
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "必须提供 --env")
+	require.Contains(t, err.Error(), "initra migrate apply --help")
 }
 
 func TestDoctorReportsEnvironmentChecks(t *testing.T) {
