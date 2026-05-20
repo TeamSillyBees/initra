@@ -53,6 +53,22 @@ func (m *fakeMutation) SetField(name string, value ent.Value) error {
 	return nil
 }
 
+type fakeIDMutation struct {
+	*fakeMutation
+	id *int64
+}
+
+func (m *fakeIDMutation) ID() (int64, bool) {
+	if m.id == nil {
+		return 0, false
+	}
+	return *m.id, true
+}
+
+func (m *fakeIDMutation) SetID(id int64) {
+	m.id = &id
+}
+
 func TestAuditHookSetsIDAndAuditFieldsOnCreate(t *testing.T) {
 	now := time.Date(2026, 5, 6, 10, 0, 0, 0, time.UTC)
 	mutation := newFakeMutation(ent.OpCreate)
@@ -87,6 +103,33 @@ func TestAuditHookSetsIDAndAuditFieldsOnCreate(t *testing.T) {
 	}
 	if got := mutation.fields[FieldUpdatedBy]; got != int64(9001) {
 		t.Fatalf("updated_by = %v, want 9001", got)
+	}
+}
+
+func TestAuditHookSetsIDThroughEntIDMutation(t *testing.T) {
+	mutation := &fakeIDMutation{
+		fakeMutation: newFakeMutation(ent.OpCreate),
+	}
+	mutation.unknown = map[string]bool{
+		FieldID: true,
+	}
+	hook := AuditHook(AuditHookOptions{
+		IDGen: fixedIDGenerator{next: 1001},
+	})
+
+	_, err := hook(ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+		return "ok", nil
+	})).Mutate(context.Background(), mutation)
+
+	if err != nil {
+		t.Fatalf("Mutate() error = %v", err)
+	}
+	id, ok := mutation.ID()
+	if !ok {
+		t.Fatalf("id was not set")
+	}
+	if id != int64(1001) {
+		t.Fatalf("id = %v, want 1001", id)
 	}
 }
 

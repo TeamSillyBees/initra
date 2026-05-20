@@ -22,6 +22,11 @@ type AuditHookOptions struct {
 	Operator OperatorFunc
 }
 
+type int64IDMutation interface {
+	ID() (int64, bool)
+	SetID(int64)
+}
+
 // AuditHook 为 Ent create/update mutation 自动填充 ID 与审计字段。
 func AuditHook(options AuditHookOptions) ent.Hook {
 	now := options.Now
@@ -37,8 +42,8 @@ func AuditHook(options AuditHookOptions) ent.Hook {
 		return ent.MutateFunc(func(ctx context.Context, mutation ent.Mutation) (ent.Value, error) {
 			switch {
 			case mutation.Op().Is(ent.OpCreate):
-				if _, exists := mutation.Field(FieldID); !exists && options.IDGen != nil {
-					if err := setFieldIfExists(mutation, FieldID, options.IDGen.NextID()); err != nil {
+				if options.IDGen != nil {
+					if err := setIDIfMissing(mutation, options.IDGen); err != nil {
 						return nil, err
 					}
 				}
@@ -72,4 +77,18 @@ func AuditHook(options AuditHookOptions) ent.Hook {
 			return next.Mutate(ctx, mutation)
 		})
 	}
+}
+
+func setIDIfMissing(mutation ent.Mutation, generator IDGenerator) error {
+	if typed, ok := mutation.(int64IDMutation); ok {
+		if _, exists := typed.ID(); exists {
+			return nil
+		}
+		typed.SetID(generator.NextID())
+		return nil
+	}
+	if _, exists := mutation.Field(FieldID); exists {
+		return nil
+	}
+	return setFieldIfExists(mutation, FieldID, generator.NextID())
 }

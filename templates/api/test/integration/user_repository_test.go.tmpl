@@ -6,9 +6,9 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
-	user "{{ .ModulePath }}/internal/module/user"
 	"github.com/teamsillybees/initra/pkg/entx"
 	"github.com/teamsillybees/initra/pkg/pagination"
+	user "{{ .ModulePath }}/internal/module/user"
 )
 
 // TestUserRepositoryCreateUsesEntHooks 验证创建用户后自动填充 ID 和审计字段，并创建角色关系。
@@ -20,12 +20,12 @@ func TestUserRepositoryCreateUsesEntHooks(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "code"}).AddRow(int64(1002), "admin"))
-	mock.ExpectQuery(`INSERT INTO "sys_user".*`).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(1001)))
+	mock.ExpectExec(`INSERT INTO "sys_user" \(.*"id".*\)`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`UPDATE "sys_user_role".*`).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectQuery(`SELECT .*FROM "sys_user_role".*`).WillReturnRows(sysUserRoleRows())
-	mock.ExpectQuery(`INSERT INTO "sys_user_role".*`).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(2001)))
+	mock.ExpectExec(`INSERT INTO "sys_user_role" \(.*"id".*\)`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
 	record := &user.User{

@@ -20,12 +20,12 @@ func TestUserRepositoryCreateUsesEntHooks(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "code"}).AddRow(int64(1002), "admin"))
-	mock.ExpectQuery(`INSERT INTO "sys_user".*`).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(1001)))
+	mock.ExpectExec(`INSERT INTO "sys_user" \(.*"id".*\)`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`UPDATE "sys_user_role".*`).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectQuery(`SELECT .*FROM "sys_user_role".*`).WillReturnRows(sysUserRoleRows())
-	mock.ExpectQuery(`INSERT INTO "sys_user_role".*`).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(2001)))
+	mock.ExpectExec(`INSERT INTO "sys_user_role" \(.*"id".*\)`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
 	record := &user.User{
