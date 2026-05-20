@@ -6,6 +6,22 @@
 2. **可复用的 Go package**：通过根模块 `pkg/*` 沉淀 Web、配置、错误、日志、认证、数据访问、Redis、缓存、文件与对象存储、HTTP Client、任务队列、任务调度等通用能力，业务项目通过 `go.mod` 按需引入。
 3. **工程化 CLI**：通过 `cmd/initra` 承载生成项目、业务模块、CRUD 样例、迁移文件、配置样例、接口骨架、测试骨架和代码生成命令。
 
+## 技术栈
+
+- Web 服务：Gin + Huma
+- 数据库与 ORM：PostgreSQL + Ent
+- 数据库迁移：Atlas
+- 认证与授权：JWT + Casbin
+- 配置与依赖注入：Viper + samber/do
+- 错误处理：oops + 统一错误码
+- 日志与观测：zap + health/ready/version
+- ID 生成：snowflake 雪花 ID
+- Redis 客户端：go-redis
+- 二级缓存：jetcache-go
+- 任务队列与调度：Asynq
+- 文件与对象存储：local / OSS / COS / S3
+- 工程化 CLI：Cobra
+
 ## 目录
 
 ```text
