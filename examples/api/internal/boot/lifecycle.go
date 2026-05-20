@@ -4,12 +4,17 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
 	"time"
+
+	"github.com/teamsillybees/initra/pkg/startup"
 )
 
 // Run 启动 HTTP 服务并在收到上游取消信号后优雅关闭。
 func (a *Application) Run(ctx context.Context) error {
 	errCh := make(chan error, 1)
+
+	startup.Print(os.Stdout, newStartupInfo(a.Config, a.Server.Addr))
 
 	go func() {
 		if err := a.Server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
