@@ -9,7 +9,8 @@
 - 工作区可能存在用户未提交改动。不要回滚、覆盖或清理非本次任务产生的变更。
 - 面向仓库已有模式实现功能，优先复用现有 package、构造函数、测试 fake 和错误处理方式。
 - 修改 Go 文件后运行 `gofmt`；修改模板时同步检查生成后的实际 Go 代码是否仍可格式化和编译。
-- 文档、注释和面向开发者的说明优先使用中文。Go 导出类型、函数、常量必须有符合 Go 规范的中文注释。
+- 文档、注释和面向开发者的说明优先使用中文。
+- 代码注释完善，类型、函数、常量必须有符合 Go 规范的中文注释。符合 Go 代码风格。测试代码同样也要提供注释方便理解。
 
 ## 项目定位
 
@@ -53,7 +54,6 @@ go run ./cmd/initra new $target --type api --module example.com/demo-api --repla
 ## Go 开发规范
 
 - 遵循 Go 标准风格：小接口、显式错误处理、依赖通过构造函数注入。
-- 代码注释完善，使用中文注释，符合 Go 代码风格。测试代码也要提供注释。
 - 包名保持简短、清晰、全小写；一个业务模块一个 package。
 - 不引入不必要的抽象。只有在减少真实重复、隔离复杂度或匹配现有模式时才新增抽象。
 - 共享能力放入 `pkg/*`，不要通过业务模块之间互相 import 来复用逻辑。
@@ -65,7 +65,6 @@ go run ./cmd/initra new $target --type api --module example.com/demo-api --repla
 - `internal/boot/providers.go` 应优先调用各 `pkg/*` 的 `Register` 入口，例如 `storageprovider.Register(injector, cfg.Storage)`、`httpclient.Register(injector, cfg.HTTPClient)`、`redisx.Register(injector, cfg.Redis)`、`asynqadapter.Register(injector, cfg.Task)`；只有项目自身能力（如 examples 的 `data.NewEntClient`）才保留本地 `do.Provide`。
 - 禁止为 package 装配做两阶段传参，例如先 `do.ProvideValue(injector, cfg.HTTPClient)` 再 `httpclient.Register(injector)`；配置应作为 `Register` 参数显式传入，依赖的公共组件（如 `*zap.Logger`）可由 `Register` 内部从 injector 解析。
 - HTTP Client 装配由 `httpclient.Register(injector, cfg.HTTPClient)` 统一完成，业务模块通过 `httpclient.ClientName("service")` 注入命名 `*httpclient.Client` 或定义最小接口，不要在业务模块中手写 `Factory.Get` provider。
-- 新增或修改导出 API 时，同步补齐中文注释和必要测试。
 - 禁止在业务模块中随意使用 `panic` 或吞掉错误；错误应向上返回并保留足够上下文。
 
 ## 架构约束
@@ -98,12 +97,10 @@ internal/module/<module>/
 
 ### 模板同步
 
-- `templates` 目录下是创建项目时使用的模板代码
-- 除非明确说明要从 `examples` 来源进行同步，否则不要同步代码到 `templates` 下，避免不必要的更新
-- 当进行模板同步时，遵循下面的要求：
-  - 修改 `templates/api` 或 `templates/worker` 时，确认生成项目仍能通过 `go test`、`go vet` 和必要的 CLI 生成验证。
-  - 模板文件中的模块路径必须使用 `{{ .ModulePath }}`，禁止硬编码 `github.com/teamsillybees/initra/examples/api`。
-  - 发布版 CLI 可写入自身构建版本；开发版生成项目必须使用 `--framework-version` 或 `--replace`，避免不可复现依赖。
+- 修改 `examples/api` 中的模板来源代码时，检查是否需要同步到 `templates/api/*.tmpl`。
+- 修改 `templates/api` 或 `templates/worker` 时，确认生成项目仍能通过 `go test`、`go vet` 和必要的 CLI 生成验证。
+- 模板文件中的模块路径必须使用 `{{ .ModulePath }}`，禁止硬编码 `github.com/teamsillybees/initra/examples/api`。
+- 发布版 CLI 可写入自身构建版本；开发版生成项目必须使用 `--framework-version` 或 `--replace`，避免不可复现依赖。
 
 ### 错误处理
 

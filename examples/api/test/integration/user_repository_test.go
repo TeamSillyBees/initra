@@ -6,7 +6,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
-	user "github.com/teamsillybees/initra/examples/api/internal/module/user"
+	"github.com/teamsillybees/initra/examples/api/internal/module/user"
 	"github.com/teamsillybees/initra/pkg/entx"
 	"github.com/teamsillybees/initra/pkg/pagination"
 )

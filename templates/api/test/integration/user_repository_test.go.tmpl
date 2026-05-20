@@ -6,9 +6,9 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
+	"{{ .ModulePath }}/internal/module/user"
 	"github.com/teamsillybees/initra/pkg/entx"
 	"github.com/teamsillybees/initra/pkg/pagination"
-	user "{{ .ModulePath }}/internal/module/user"
 )
 
 // TestUserRepositoryCreateUsesEntHooks 验证创建用户后自动填充 ID 和审计字段，并创建角色关系。

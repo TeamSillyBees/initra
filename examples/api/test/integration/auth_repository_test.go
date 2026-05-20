@@ -6,7 +6,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
-	auth "github.com/teamsillybees/initra/examples/api/internal/module/auth"
+	"github.com/teamsillybees/initra/examples/api/internal/module/auth"
 )
 
 // TestAuthRepositoryFindByUsername 验证 auth 仓储能通过 Ent 按用户名读取身份并补齐角色编码。
