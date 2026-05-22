@@ -5,7 +5,7 @@ import (
 
 	"github.com/samber/do"
 	"github.com/teamsillybees/initra/examples/api/internal/data"
-	"github.com/teamsillybees/initra/examples/api/internal/ent"
+	"github.com/teamsillybees/initra/examples/api/internal/data/ent"
 	authmodule "github.com/teamsillybees/initra/examples/api/internal/module/auth"
 	filemodule "github.com/teamsillybees/initra/examples/api/internal/module/file"
 	httpdemomodule "github.com/teamsillybees/initra/examples/api/internal/module/httpdemo"

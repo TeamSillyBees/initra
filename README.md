@@ -36,7 +36,7 @@ docs/               架构与工程规范文档
 
 ## 项目模板
 
-`api` 模板生成可直接运行的 Web API 基础项目，默认包含 Gin + Huma、统一响应/错误、JWT/Casbin 中间件装配、配置加载、日志、health/ready/version 接口，以及 auth/user 基础业务模块、file 本地文件示例模块、Ent schema、seed 数据和 Atlas 配置。API 标准模板使用 Ent 作为类型安全持久化访问层，使用 Ent Mixin + Runtime Hook 实现雪花 ID、审计字段和软删除等通用自动填充能力；模板目录只保存 schema、mixin、`generate.go` 和迁移 diff 入口，`initra new` 会在渲染 API 项目后执行 `go generate ./internal/ent` 生成缺失的 Ent 代码。业务方仍可通过后续 CLI 命令追加新的模块、CRUD 样例和配置能力。
+`api` 模板生成可直接运行的 Web API 基础项目，默认包含 Gin + Huma、统一响应/错误、JWT/Casbin 中间件装配、配置加载、日志、health/ready/version 接口，以及 auth/user 基础业务模块、file 本地文件示例模块、Ent schema、seed 数据和 Atlas 配置。API 标准模板使用 Ent 作为类型安全持久化访问层，使用 Ent Mixin + Runtime Hook 实现雪花 ID、审计字段和软删除等通用自动填充能力；模板目录只保存 schema、mixin、`generate.go` 和迁移 diff 入口，`initra new` 会在渲染 API 项目后执行 `go run ./internal/data/entgenerate` 生成缺失的 Ent 代码。业务方仍可通过后续 CLI 命令追加新的模块、CRUD 样例和配置能力。
 
 `worker` 模板面向后台任务、定时任务、消费任务、批处理任务，默认演示 `pkg/task` 的 Worker、Registry 和 Scheduler 用法。
 
@@ -51,7 +51,7 @@ docs/               架构与工程规范文档
 - `pkg/config`：泛型配置加载，不绑定业务项目配置结构。
 - `pkg/logging`、`pkg/cache`、`pkg/idgen`、`pkg/database`：基础设施封装，其中 `pkg/database` 提供 SQL 连接池注册与启动 Ping 检查。
 - `pkg/redisx`：Redis 基础能力封装，支持 standalone/sentinel client、Ping/readiness、Key Builder、JSON/Msgpack 缓存、TTL jitter、空值缓存、singleflight、SCAN+UNLINK、Lua script registry、基于 `github.com/bsm/redislock` 的短时间分布式锁，以及 OpenTelemetry/zap hook；不支持 cluster，不封装 KEYS。
-- `pkg/entx`：Ent 通用 Hook 和上下文工具，不依赖具体项目生成的 `internal/ent`。
+- `pkg/entx`：Ent 通用 Hook 和上下文工具，不依赖具体项目生成的 `internal/data/ent`。
 - `pkg/errors`、`pkg/response`、`pkg/requestctx`：统一错误、响应、trace/request id。
 - `pkg/auth`：JWT、refresh token、Redis token store、Casbin、路由安全元信息。
 - `pkg/server`：Gin + Huma 应用与认证授权中间件装配。
@@ -90,7 +90,7 @@ go run ./cmd/initra new $env:TEMP\demo-api --type api --module example.com/demo-
 go run ./cmd/initra new $env:TEMP\demo-worker --type worker --module example.com/demo-worker --replace $framework
 ```
 
-`initra new` 创建项目后会自动执行 `git init`。当项目类型为 `api` 时，还会在初始化 Git 仓库前执行一次 `go generate ./internal/ent`，把模板中未保存的 Ent 生成代码补齐。
+`initra new` 创建项目后会自动执行 `git init`。当项目类型为 `api` 时，还会在初始化 Git 仓库前执行一次 `go run ./internal/data/entgenerate`，把模板中未保存的 Ent 生成代码补齐。
 
 正式版 CLI 会自动使用自身版本写入生成项目 `go.mod`：
 
@@ -118,7 +118,7 @@ initra doctor
 
 直接执行 `initra` 或 `initra <group>` 会展示对应帮助；`initra help <command>` 可查看任意子命令的参数、示例和说明。
 
-`initra migrate diff <name>` 直接执行当前项目的 `go run ./internal/ent/migratediff/main.go <name>`，可追加 `--env`、`--config-dir` 和 `--dev-url`。`initra migrate apply --env <env>` 会执行 `atlas -c file://db/atlas.hcl migrate apply --env <env>` 应用迁移。手动修改迁移文件后，可执行 `initra migrate hash` 重新计算 `atlas.sum`。
+`initra migrate diff <name>` 直接执行当前项目的 `go run ./internal/data/migratediff/main.go <name>`，可追加 `--env`、`--config-dir` 和 `--dev-url`。`initra migrate apply --env <env>` 会执行 `atlas -c file://db/atlas.hcl migrate apply --env <env>` 应用迁移。手动修改迁移文件后，可执行 `initra migrate hash` 重新计算 `atlas.sum`。
 
 在业务项目根目录执行 `initra skill init` 会写入 `.agents/skills/initra-framework`，用于让 Codex 在该项目内优先复用 initra 框架能力。
 

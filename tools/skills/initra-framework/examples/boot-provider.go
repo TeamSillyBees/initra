@@ -6,7 +6,7 @@ import (
 	"database/sql"
 
 	"example.com/your-app/internal/data"
-	"example.com/your-app/internal/ent"
+	"example.com/your-app/internal/data/ent"
 	"github.com/samber/do"
 	"github.com/teamsillybees/initra/pkg/auth"
 	platformcache "github.com/teamsillybees/initra/pkg/cache"

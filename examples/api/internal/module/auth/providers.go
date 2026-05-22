@@ -2,7 +2,7 @@ package auth
 
 import (
 	"github.com/samber/do"
-	"github.com/teamsillybees/initra/examples/api/internal/ent"
+	"github.com/teamsillybees/initra/examples/api/internal/data/ent"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 )
 

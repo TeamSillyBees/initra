@@ -2,7 +2,7 @@ package user
 
 import (
 	"github.com/samber/do"
-	"github.com/teamsillybees/initra/examples/api/internal/ent"
+	"github.com/teamsillybees/initra/examples/api/internal/data/ent"
 	"github.com/teamsillybees/initra/pkg/auth"
 	platformcache "github.com/teamsillybees/initra/pkg/cache"
 )

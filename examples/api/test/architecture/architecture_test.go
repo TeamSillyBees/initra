@@ -59,8 +59,8 @@ func TestExampleUsesAPIFoundationLayout(t *testing.T) {
 	require.NoDirExists(t, filepath.Join(root, "internal", "gen", "jet"))
 	require.NoDirExists(t, filepath.Join(root, "tools", "jetgen"))
 	require.NoDirExists(t, filepath.Join(root, "scripts"))
-	require.DirExists(t, filepath.Join(root, "internal", "ent", "schema"))
-	require.FileExists(t, filepath.Join(root, "internal", "ent", "client.go"))
+	require.DirExists(t, filepath.Join(root, "internal", "data", "schema"))
+	require.FileExists(t, filepath.Join(root, "internal", "data", "ent", "client.go"))
 	require.FileExists(t, filepath.Join(root, "internal", "data", "tx.go"))
 	requireNoEntImportOutsideRepositories(t, root)
 	_, err := os.Stat(filepath.Join(root, "internal", "app"))
@@ -116,7 +116,7 @@ func requireNoEntImportOutsideRepositories(t *testing.T, root string) {
 		}
 		content, err := os.ReadFile(path)
 		require.NoError(t, err)
-		require.NotContainsf(t, string(content), "/internal/ent", "%s should not import internal/ent", path)
+		require.NotContainsf(t, string(content), "/internal/data/ent", "%s should not import internal/data/ent", path)
 		return nil
 	}))
 }

@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/teamsillybees/initra/examples/api/internal/data"
-	appent "github.com/teamsillybees/initra/examples/api/internal/ent"
-	"github.com/teamsillybees/initra/examples/api/internal/ent/sysrole"
-	"github.com/teamsillybees/initra/examples/api/internal/ent/sysuser"
-	"github.com/teamsillybees/initra/examples/api/internal/ent/sysuserrole"
+	appent "github.com/teamsillybees/initra/examples/api/internal/data/ent"
+	"github.com/teamsillybees/initra/examples/api/internal/data/ent/sysrole"
+	"github.com/teamsillybees/initra/examples/api/internal/data/ent/sysuser"
+	"github.com/teamsillybees/initra/examples/api/internal/data/ent/sysuserrole"
 	"github.com/teamsillybees/initra/examples/api/internal/module/bizerrors"
 	"github.com/teamsillybees/initra/pkg/entx"
 )

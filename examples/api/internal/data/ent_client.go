@@ -8,7 +8,7 @@ import (
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
-	"github.com/teamsillybees/initra/examples/api/internal/ent"
+	"github.com/teamsillybees/initra/examples/api/internal/data/ent"
 	"github.com/teamsillybees/initra/pkg/auth"
 	platformdatabase "github.com/teamsillybees/initra/pkg/database"
 	"github.com/teamsillybees/initra/pkg/entx"

@@ -435,7 +435,7 @@ func newMigrateDiffCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "diff <name>",
 		Short:         "执行 Ent/Atlas 迁移 diff",
-		Long:          "调用当前项目的 go run ./internal/ent/migratediff/main.go <name>，并把 env、config-dir、dev-url 透传给 migratediff。",
+		Long:          "调用当前项目的 go run ./internal/data/migratediff/main.go <name>，并把 env、config-dir、dev-url 透传给 migratediff。",
 		Example:       "  initra migrate diff add_order\n  initra migrate diff add_order --env local --config-dir configs --dev-url postgres://dev",
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -613,7 +613,7 @@ func createProject(targetDir string, stdout io.Writer, cliVersion string, opts n
 }
 
 func generateEntCode(targetDir string) error {
-	command := exec.Command("go", "generate", "./internal/ent")
+	command := exec.Command("go", "run", "./internal/data/entgenerate")
 	command.Dir = targetDir
 	output, err := command.CombinedOutput()
 	if err != nil {
@@ -811,7 +811,7 @@ func runMigrationHash(opts migrateHashOptions, stdout io.Writer) error {
 }
 
 func buildMigrateDiffArgs(name string, opts migrateDiffOptions) []string {
-	args := []string{"run", "./internal/ent/migratediff/main.go", name}
+	args := []string{"run", "./internal/data/migratediff/main.go", name}
 	if configDir := strings.TrimSpace(opts.configDir); configDir != "" {
 		args = append(args, "-config-dir", configDir)
 	}

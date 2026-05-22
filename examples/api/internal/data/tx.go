@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/teamsillybees/initra/examples/api/internal/ent"
+	"github.com/teamsillybees/initra/examples/api/internal/data/ent"
 )
 
 // WithinTx 在 Ent 事务中执行 fn，并避免向 service 层暴露 Ent Tx 对象。

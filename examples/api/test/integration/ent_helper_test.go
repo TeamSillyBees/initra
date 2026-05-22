@@ -8,7 +8,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
 	"github.com/teamsillybees/initra/examples/api/internal/data"
-	appent "github.com/teamsillybees/initra/examples/api/internal/ent"
+	appent "github.com/teamsillybees/initra/examples/api/internal/data/ent"
 	"github.com/teamsillybees/initra/pkg/idgen"
 )
 

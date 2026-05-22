@@ -229,23 +229,12 @@ func shouldSkipSource(rel string, entry fs.DirEntry) bool {
 	if entry.IsDir() {
 		return shouldSkipDir(rel)
 	}
-	if !strings.HasPrefix(rel, "internal/ent/") {
-		return false
-	}
-	return rel != "internal/ent/generate.go" &&
-		!strings.HasPrefix(rel, "internal/ent/schema/") &&
-		!strings.HasPrefix(rel, "internal/ent/migratediff/")
+	return strings.HasPrefix(rel, "internal/data/ent/")
 }
 
 // shouldSkipDir 判断目录是否属于需要跳过的 Ent 生成代码目录。
 func shouldSkipDir(rel string) bool {
-	if !strings.HasPrefix(rel, "internal/ent") {
-		return false
-	}
-	if rel == "internal/ent" || rel == "internal/ent/schema" || rel == "internal/ent/migratediff" {
-		return false
-	}
-	return !strings.HasPrefix(rel, "internal/ent/schema/")
+	return rel == "internal/data/ent" || strings.HasPrefix(rel, "internal/data/ent/")
 }
 
 // transformTemplateContent 将示例项目中的固定值替换为模板占位符。

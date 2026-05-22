@@ -48,9 +48,9 @@ func TestNewGeneratesAPIProjectWithFrameworkRequireAndNoPkgCopy(t *testing.T) {
 	}
 	require.FileExists(t, filepath.Join(target, "db", "schema", "01_sys_user.sql"))
 	require.FileExists(t, filepath.Join(target, "db", "seeds", "001_seed_admin.sql"))
-	require.DirExists(t, filepath.Join(target, "internal", "ent", "schema"))
-	require.FileExists(t, filepath.Join(target, "internal", "ent", "client.go"))
-	require.FileExists(t, filepath.Join(target, "internal", "ent", "migrate", "schema.go"))
+	require.DirExists(t, filepath.Join(target, "internal", "data", "schema"))
+	require.FileExists(t, filepath.Join(target, "internal", "data", "ent", "client.go"))
+	require.FileExists(t, filepath.Join(target, "internal", "data", "ent", "migrate", "schema.go"))
 	require.FileExists(t, filepath.Join(target, "internal", "data", "ent_client.go"))
 	require.FileExists(t, filepath.Join(target, "internal", "data", "tx.go"))
 	require.FileExists(t, filepath.Join(target, "configs", "config.yaml"))
@@ -98,19 +98,19 @@ func TestNewGeneratesAPIMigrationsWithoutPhysicalForeignKeys(t *testing.T) {
 	require.NotContains(t, migrationContent, "FOREIGN KEY")
 	require.NotContains(t, migrationContent, "REFERENCES")
 
-	require.NoFileExists(t, filepath.Join(target, "internal", "ent", "migrate", "main.go"))
-	diffGenerator := readFile(t, filepath.Join(target, "internal", "ent", "migratediff", "main.go"))
+	require.NoFileExists(t, filepath.Join(target, "internal", "data", "ent", "migrate", "main.go"))
+	diffGenerator := readFile(t, filepath.Join(target, "internal", "data", "migratediff", "main.go"))
 	require.Contains(t, diffGenerator, `_ "github.com/lib/pq"`)
 	require.Contains(t, diffGenerator, "boot.LoadConfig")
 	require.Contains(t, diffGenerator, "databaseURL")
 	require.Contains(t, diffGenerator, "migrate.WithForeignKeys(false)")
 	require.Contains(t, diffGenerator, "schema.WithMigrationMode(schema.ModeReplay)")
 
-	entSchema := readFile(t, filepath.Join(target, "internal", "ent", "schema", "sys_user.go"))
+	entSchema := readFile(t, filepath.Join(target, "internal", "data", "schema", "sys_user.go"))
 	require.Contains(t, entSchema, "entsql.WithComments(true)")
 	require.Contains(t, entSchema, `schema.Comment("系统后台用户表，用于后台登录、审计和权限归属。")`)
 
-	migrateSchema := readFile(t, filepath.Join(target, "internal", "ent", "migrate", "schema.go"))
+	migrateSchema := readFile(t, filepath.Join(target, "internal", "data", "ent", "migrate", "schema.go"))
 	require.Contains(t, migrateSchema, `"系统后台用户表，用于后台登录、审计和权限归属。"`)
 	require.Contains(t, migrateSchema, `Comment: "登录用户名，全局唯一。"`)
 
@@ -136,15 +136,16 @@ func TestNewGeneratesWorkerPlaceholderProject(t *testing.T) {
 
 func TestAPITemplateExcludesEntGeneratedCode(t *testing.T) {
 	root := repoRoot(t)
-	templateDir := filepath.Join(root, "templates", "api", "internal", "ent")
+	dataTemplateDir := filepath.Join(root, "templates", "api", "internal", "data")
+	entTemplateDir := filepath.Join(dataTemplateDir, "ent")
 
-	require.FileExists(t, filepath.Join(templateDir, "generate.go.tmpl"))
-	require.FileExists(t, filepath.Join(templateDir, "schema", "sys_user.go.tmpl"))
-	require.FileExists(t, filepath.Join(templateDir, "migratediff", "main.go.tmpl"))
-	require.NoFileExists(t, filepath.Join(templateDir, "client.go.tmpl"))
-	require.NoFileExists(t, filepath.Join(templateDir, "migrate", "schema.go.tmpl"))
-	require.NoFileExists(t, filepath.Join(templateDir, "sysuser.go.tmpl"))
-	require.NoFileExists(t, filepath.Join(templateDir, "sysuser", "where.go.tmpl"))
+	require.FileExists(t, filepath.Join(dataTemplateDir, "generate.go.tmpl"))
+	require.FileExists(t, filepath.Join(dataTemplateDir, "schema", "sys_user.go.tmpl"))
+	require.FileExists(t, filepath.Join(dataTemplateDir, "migratediff", "main.go.tmpl"))
+	require.NoFileExists(t, filepath.Join(entTemplateDir, "client.go.tmpl"))
+	require.NoFileExists(t, filepath.Join(entTemplateDir, "migrate", "schema.go.tmpl"))
+	require.NoFileExists(t, filepath.Join(entTemplateDir, "sysuser.go.tmpl"))
+	require.NoFileExists(t, filepath.Join(entTemplateDir, "sysuser", "where.go.tmpl"))
 }
 
 func TestRootHelpListsCobraCommands(t *testing.T) {
@@ -391,7 +392,7 @@ func TestBuildMigrateDiffArgs(t *testing.T) {
 
 	require.Equal(t, []string{
 		"run",
-		"./internal/ent/migratediff/main.go",
+		"./internal/data/migratediff/main.go",
 		"add_order",
 		"-config-dir",
 		"configs",
