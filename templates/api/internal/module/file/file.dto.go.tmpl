@@ -10,11 +10,11 @@ import (
 // LocalFileVO 是 file 示例模块对外暴露的本地文件 JSON DTO。
 type LocalFileVO struct {
 	Key          string    `json:"key"`
-	FileName     string    `json:"file_name"`
+	FileName     string    `json:"fileName"`
 	Size         int64     `json:"size"`
-	ContentType  string    `json:"content_type"`
+	ContentType  string    `json:"contentType"`
 	URL          string    `json:"url,omitempty"`
-	LastModified time.Time `json:"last_modified,omitempty"`
+	LastModified time.Time `json:"lastModified,omitempty"`
 }
 
 type uploadLocalFileForm struct {

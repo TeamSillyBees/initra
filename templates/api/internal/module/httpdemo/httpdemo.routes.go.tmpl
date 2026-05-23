@@ -28,7 +28,7 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Description: "通过 pkg/httpclient 调用 https://httpbingo.org/get。",
 		Tags:        []string{"HTTP Client 示例"},
 	}, m.handler.get)
-	registry.Register(http.MethodGet, "/api/v1/http-client/httpbingo/get", platformauth.RouteSecurity{Resource: "httpdemo", Action: "read"})
+	registry.Register(http.MethodGet, "/api/v1/http-client/httpbingo/get", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Resource: "httpdemo", Action: "read"})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "httpdemo-httpbingo-form-page",
@@ -38,5 +38,5 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Description: "通过 pkg/httpclient 调用 https://httpbingo.org/forms/post 并返回 HTML 内容。",
 		Tags:        []string{"HTTP Client 示例"},
 	}, m.handler.formPage)
-	registry.Register(http.MethodGet, "/api/v1/http-client/httpbingo/forms/post", platformauth.RouteSecurity{Resource: "httpdemo", Action: "read"})
+	registry.Register(http.MethodGet, "/api/v1/http-client/httpbingo/forms/post", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Resource: "httpdemo", Action: "read"})
 }

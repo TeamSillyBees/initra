@@ -327,6 +327,8 @@ func TestModuleAddGeneratesVerticalSliceModule(t *testing.T) {
 	handlerContent := readFile(t, filepath.Join(moduleDir, "order.handler.go"))
 	require.NotContains(t, handlerContent, "type GetOrderInput")
 	require.NotContains(t, handlerContent, "type OrderResponse")
+	routesContent := readFile(t, filepath.Join(moduleDir, "order.routes.go"))
+	require.Contains(t, routesContent, "AccessMode: platformauth.AccessModePermission")
 	dtoContent := readFile(t, filepath.Join(moduleDir, "order.dto.go"))
 	require.Contains(t, dtoContent, "type getOrderRequest")
 	require.Contains(t, dtoContent, "type getOrderResponse")

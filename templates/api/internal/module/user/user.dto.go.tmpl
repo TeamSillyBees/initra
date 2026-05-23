@@ -18,11 +18,11 @@ type CreateUserBody struct {
 	Nickname     string   `json:"nickname" example:"Alice"`
 	Phone        string   `json:"phone" example:"13800000000"`
 	Email        string   `json:"email" example:"alice@example.com"`
-	AvatarURL    string   `json:"avatar_url" example:"https://example.com/avatar.png"`
-	RoleCodes    []string `json:"role_codes" example:"admin"`
-	IsSuperAdmin bool     `json:"is_super_admin" example:"false"`
-	IsEnable     *bool    `json:"is_enable,omitempty" example:"true"`
-	SortID       int      `json:"sort_id" example:"0"`
+	AvatarURL    string   `json:"avatarUrl" example:"https://example.com/avatar.png"`
+	RoleCodes    []string `json:"roleCodes" example:"admin"`
+	IsSuperAdmin bool     `json:"isSuperAdmin" example:"false"`
+	IsEnable     *bool    `json:"isEnable,omitempty" example:"true"`
+	SortID       int      `json:"sortId" example:"0"`
 }
 
 // UpdateUserBody 描述更新用户请求体。
@@ -30,11 +30,11 @@ type UpdateUserBody struct {
 	Nickname     *string   `json:"nickname,omitempty" example:"Alice Updated"`
 	Phone        *string   `json:"phone,omitempty" example:"13800000001"`
 	Email        *string   `json:"email,omitempty" example:"alice.updated@example.com"`
-	AvatarURL    *string   `json:"avatar_url,omitempty" example:"https://example.com/avatar-updated.png"`
-	RoleCodes    *[]string `json:"role_codes,omitempty" example:"viewer"`
-	IsSuperAdmin *bool     `json:"is_super_admin,omitempty" example:"false"`
-	IsEnable     *bool     `json:"is_enable,omitempty" example:"true"`
-	SortID       *int      `json:"sort_id,omitempty" example:"10"`
+	AvatarURL    *string   `json:"avatarUrl,omitempty" example:"https://example.com/avatar-updated.png"`
+	RoleCodes    *[]string `json:"roleCodes,omitempty" example:"viewer"`
+	IsSuperAdmin *bool     `json:"isSuperAdmin,omitempty" example:"false"`
+	IsEnable     *bool     `json:"isEnable,omitempty" example:"true"`
+	SortID       *int      `json:"sortId,omitempty" example:"10"`
 }
 
 // UserVO 是 user 模块对外暴露的用户 JSON DTO。
@@ -44,11 +44,11 @@ type UserVO struct {
 	Nickname     string   `json:"nickname"`
 	Phone        string   `json:"phone"`
 	Email        string   `json:"email"`
-	AvatarURL    string   `json:"avatar_url"`
-	RoleCodes    []string `json:"role_codes"`
-	IsSuperAdmin bool     `json:"is_super_admin"`
-	IsEnable     bool     `json:"is_enable"`
-	SortID       int      `json:"sort_id"`
+	AvatarURL    string   `json:"avatarUrl"`
+	RoleCodes    []string `json:"roleCodes"`
+	IsSuperAdmin bool     `json:"isSuperAdmin"`
+	IsEnable     bool     `json:"isEnable"`
+	SortID       int      `json:"sortId"`
 }
 
 type getUserRequest struct {

@@ -64,7 +64,7 @@ func TestJWTMiddlewareRejectsBlacklistedToken(t *testing.T) {
 
 	engine := gin.New()
 	engine.Use(JWTMiddleware(manager, staticRouteSecurityLookup{
-		security: RouteSecurity{Resource: "auth", Action: "read"},
+		security: RouteSecurity{AccessMode: AccessModePermission, Resource: "user", Action: "read"},
 	}, nil))
 	engine.GET("/protected", func(c *gin.Context) {
 		c.Status(http.StatusOK)
@@ -104,11 +104,87 @@ func TestAuthorizationMiddlewareRejectsUnregisteredAPIRoute(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, rec.Code)
 }
 
+// TestJWTMiddlewareRejectsMissingTokenForAuthenticatedRoute 验证 authenticated 路由仍必须提供登录态。
+func TestJWTMiddlewareRejectsMissingTokenForAuthenticatedRoute(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	engine := gin.New()
+	engine.Use(JWTMiddleware(nil, staticRouteSecurityLookup{
+		security: RouteSecurity{AccessMode: AccessModeAuthenticated},
+	}, nil))
+	engine.GET("/api/v1/me", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	rec := httptest.NewRecorder()
+
+	engine.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+// TestAuthorizationMiddlewareAllowsAuthenticatedRouteWithoutPermission 验证 authenticated 路由不进入 Casbin 授权。
+func TestAuthorizationMiddlewareAllowsAuthenticatedRouteWithoutPermission(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	engine := gin.New()
+	engine.Use(func(c *gin.Context) {
+		ctx := WithPrincipal(c.Request.Context(), Principal{
+			UserID: 1001,
+			Roles:  []string{"viewer"},
+		})
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	engine.Use(AuthorizationMiddleware(nil, staticRouteSecurityLookup{
+		security: RouteSecurity{AccessMode: AccessModeAuthenticated},
+	}, nil))
+	engine.GET("/api/v1/me", func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	rec := httptest.NewRecorder()
+
+	engine.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusNoContent, rec.Code)
+}
+
+// TestAuthorizationMiddlewareRejectsUnknownAccessMode 验证未知访问模式会被默认拒绝。
+func TestAuthorizationMiddlewareRejectsUnknownAccessMode(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	engine := gin.New()
+	engine.Use(func(c *gin.Context) {
+		ctx := WithPrincipal(c.Request.Context(), Principal{
+			UserID: 1001,
+			Roles:  []string{"admin"},
+		})
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	engine.Use(AuthorizationMiddleware(nil, staticRouteSecurityLookup{
+		security: RouteSecurity{},
+	}, nil))
+	engine.GET("/api/v1/unknown", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/unknown", nil)
+	rec := httptest.NewRecorder()
+
+	engine.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusForbidden, rec.Code)
+}
+
 // TestAuthMiddlewareReusesRouteSecurityLookup 验证 JWT 与授权中间件在同一请求中复用路由安全元信息。
 func TestAuthMiddlewareReusesRouteSecurityLookup(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	lookup := &countingRouteSecurityLookup{security: RouteSecurity{Public: true}}
+	lookup := &countingRouteSecurityLookup{security: RouteSecurity{AccessMode: AccessModePublic}}
 	engine := gin.New()
 	engine.Use(JWTMiddleware(nil, lookup, nil))
 	engine.Use(AuthorizationMiddleware(nil, lookup, nil))

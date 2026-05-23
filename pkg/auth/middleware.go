@@ -58,9 +58,16 @@ func JWTMiddleware(manager *JWTManager, lookup RouteSecurityLookup, logger *zap.
 			writeError(c, apperrors.New(apperrors.CodeForbidden, "route security metadata is missing"))
 			return
 		}
-		if ok && security.Public {
-			c.Next()
-			return
+		if ok {
+			switch security.AccessMode {
+			case AccessModePublic:
+				c.Next()
+				return
+			case AccessModeAuthenticated, AccessModePermission:
+			default:
+				writeError(c, apperrors.New(apperrors.CodeForbidden, "route security metadata is incomplete"))
+				return
+			}
 		}
 
 		token, ok := bearerToken(c.GetHeader(headerAuthorization))
@@ -106,8 +113,13 @@ func AuthorizationMiddleware(enforcer *casbin.Enforcer, lookup RouteSecurityLook
 			c.Next()
 			return
 		}
-		if security.Public {
+		switch security.AccessMode {
+		case AccessModePublic, AccessModeAuthenticated:
 			c.Next()
+			return
+		case AccessModePermission:
+		default:
+			writeError(c, apperrors.New(apperrors.CodeForbidden, "route security metadata is incomplete"))
 			return
 		}
 		if security.Resource == "" || security.Action == "" {
@@ -221,7 +233,7 @@ func resolveRouteSecurity(c *gin.Context, lookup RouteSecurityLookup) (RouteSecu
 }
 
 // shouldSkipAuth 判断无需认证的系统级公开路径。
-// 这些路径必须保持较小集合，业务公开接口应通过 RouteSecurity.Public 显式声明。
+// 这些路径必须保持较小集合，业务公开接口应通过 RouteSecurity.AccessMode 显式声明。
 func shouldSkipAuth(path string) bool {
 	return path == "/health" ||
 		path == "/ready" ||

@@ -29,8 +29,9 @@ func TestNewAppAllowsCORSPreflightBeforeAuth(t *testing.T) {
 	require.NoError(t, err)
 
 	app.Registry.Register(http.MethodGet, "/api/v1/protected", platformauth.RouteSecurity{
-		Resource: "user",
-		Action:   "read",
+		AccessMode: platformauth.AccessModePermission,
+		Resource:   "user",
+		Action:     "read",
 	})
 	app.Engine.GET("/api/v1/protected", func(c *gin.Context) {
 		c.Status(http.StatusOK)
@@ -63,8 +64,9 @@ func TestNewAppLogsUnauthorizedRequests(t *testing.T) {
 	require.NoError(t, err)
 
 	app.Registry.Register(http.MethodGet, "/api/v1/protected", platformauth.RouteSecurity{
-		Resource: "user",
-		Action:   "read",
+		AccessMode: platformauth.AccessModePermission,
+		Resource:   "user",
+		Action:     "read",
 	})
 	app.Engine.GET("/api/v1/protected", func(c *gin.Context) {
 		c.Status(http.StatusOK)
@@ -89,7 +91,7 @@ func TestNewAppLogsHumaHandlerServerError(t *testing.T) {
 	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, logger, nil, nil)
 	require.NoError(t, err)
 
-	app.Registry.Register(http.MethodGet, "/api/v1/fail", platformauth.RouteSecurity{Public: true})
+	app.Registry.Register(http.MethodGet, "/api/v1/fail", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePublic})
 	huma.Register(app.API, huma.Operation{
 		OperationID: "fail",
 		Method:      http.MethodGet,
@@ -133,8 +135,9 @@ func TestNewAppAcceptsValidJWTForProtectedAPIRoute(t *testing.T) {
 	require.NoError(t, err)
 
 	app.Registry.Register(http.MethodGet, "/api/v1/protected", platformauth.RouteSecurity{
-		Resource: "user",
-		Action:   "read",
+		AccessMode: platformauth.AccessModePermission,
+		Resource:   "user",
+		Action:     "read",
 	})
 	app.Engine.GET("/api/v1/protected", func(c *gin.Context) {
 		principal, ok := platformauth.PrincipalFromContext(c.Request.Context())
@@ -158,14 +161,54 @@ func TestNewAppAcceptsValidJWTForProtectedAPIRoute(t *testing.T) {
 	require.Equal(t, http.StatusNoContent, rec.Code)
 }
 
-// TestNewAppAllowsPublicAPIRouteWithoutToken 验证显式 Public 的 /api 路由不会触发 JWT 校验。
+// TestNewAppAllowsAuthenticatedAPIRouteWithoutCasbinPolicy 验证 authenticated 路由只要求登录态，不依赖 Casbin 授权。
+func TestNewAppAllowsAuthenticatedAPIRouteWithoutCasbinPolicy(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	manager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
+		Issuer:          "initra",
+		Secret:          "server-test-secret",
+		AccessTokenTTL:  time.Minute,
+		RefreshTokenTTL: time.Hour,
+	})
+	require.NoError(t, err)
+
+	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, nil, manager, nil)
+	require.NoError(t, err)
+
+	app.Registry.Register(http.MethodGet, "/api/v1/me", platformauth.RouteSecurity{
+		AccessMode: platformauth.AccessModeAuthenticated,
+	})
+	app.Engine.GET("/api/v1/me", func(c *gin.Context) {
+		principal, ok := platformauth.PrincipalFromContext(c.Request.Context())
+		require.True(t, ok)
+		require.Equal(t, int64(1001), principal.UserID)
+		c.Status(http.StatusNoContent)
+	})
+
+	pair, err := manager.IssueTokenPair(t.Context(), platformauth.Principal{
+		UserID: 1001,
+		Roles:  []string{"viewer"},
+	})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.Header.Set("Authorization", "Bearer "+pair.AccessToken)
+	rec := httptest.NewRecorder()
+
+	app.Engine.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusNoContent, rec.Code)
+}
+
+// TestNewAppAllowsPublicAPIRouteWithoutToken 验证 public 模式的 /api 路由不会触发 JWT 校验。
 func TestNewAppAllowsPublicAPIRouteWithoutToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, nil, nil, nil)
 	require.NoError(t, err)
 
-	app.Registry.Register(http.MethodGet, "/api/v1/public", platformauth.RouteSecurity{Public: true})
+	app.Registry.Register(http.MethodGet, "/api/v1/public", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePublic})
 	app.Engine.GET("/api/v1/public", func(c *gin.Context) {
 		c.Status(http.StatusNoContent)
 	})
@@ -207,7 +250,11 @@ func TestNewAppRejectsAPIRouteMissingSecurityMetadata(t *testing.T) {
 // TestRouteRegistryMatchesGinColonParams 验证 Gin 参数路径能匹配 Huma/OpenAPI 参数路径。
 func TestRouteRegistryMatchesGinColonParams(t *testing.T) {
 	registry := NewRouteRegistry()
-	expected := platformauth.RouteSecurity{Resource: "user", Action: "read"}
+	expected := platformauth.RouteSecurity{
+		AccessMode: platformauth.AccessModePermission,
+		Resource:   "user",
+		Action:     "read",
+	}
 
 	registry.Register(http.MethodGet, "/api/v1/users/{id}", expected)
 

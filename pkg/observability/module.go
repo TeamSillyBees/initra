@@ -42,7 +42,7 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 	}
 
 	registerPublic := func(method string, path string) {
-		registry.Register(method, path, platformauth.RouteSecurity{Public: true})
+		registry.Register(method, path, platformauth.RouteSecurity{AccessMode: platformauth.AccessModePublic})
 	}
 
 	huma.Register(api, huma.Operation{

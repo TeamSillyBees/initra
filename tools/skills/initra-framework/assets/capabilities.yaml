@@ -179,7 +179,8 @@ capabilities:
       - "auth.JWTManager"
     forbidden_patterns:
       - 未注册的 /api 路由
-      - 公开路由未设置 Public true
+      - 公开路由未设置 AccessModePublic
+      - 登录即可访问的路由误用 RBAC 授权
       - handler 层自定义鉴权绕过
 
   - id: di

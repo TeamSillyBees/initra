@@ -212,7 +212,7 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	loginResp := struct {
 		Code string `json:"code"`
 		Data struct {
-			AccessToken string `json:"access_token"`
+			AccessToken string `json:"accessToken"`
 		} `json:"data"`
 	}{}
 
@@ -301,7 +301,6 @@ m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
 `
 
 	policy := `
-p, admin, auth, read
 p, admin, user, read
 p, admin, file, read
 p, admin, file, write

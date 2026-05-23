@@ -109,8 +109,9 @@ internal/module/<module>/
 ### 路由、安全与配置
 
 - 所有 `/api/` 接口必须通过 `registry.Register` 登记 `RouteSecurity`，鉴权中间件默认 fail-closed。
-- 公开接口，例如登录接口，必须显式设置 `Public: true`。
-- `RouteSecurity` 的 `Resource`、`Action` 必须与 Casbin policy 文件保持一致。
+- 公开接口，例如登录、注册、验证码和公开内容，必须显式设置 `AccessModePublic`。
+- 登录即可访问的 ToC 接口必须设置 `AccessModeAuthenticated`，只做认证不做 RBAC 授权。
+- 后台管理、运营操作、审核、退款、风控、配置管理等接口必须设置 `AccessModePermission`，其 `Resource`、`Action` 必须与 Casbin policy 文件保持一致。
 - API 模板的 file 示例模块使用 `storage.provider: local` 展示上传、下载、元信息查询和删除；切换云厂商时只调整 `storage` 配置与 provider。
 - 业务项目在自己的 `internal/boot/config.go` 定义配置结构，并通过 `pkg/config` 泛型加载。
 - `pkg/config` 只提供通用加载能力，不绑定任何具体业务配置结构；pkg 中的配置结构体应复用 `pkg/config` 的 `Sanitize`、`Validate` 公共方法，避免各自重复实现脱敏与校验；业务项目 boot config 应组合 pkg 中定义的配置结构体（如 `storage.Config`、`redisx.Config`），而非从头定义。

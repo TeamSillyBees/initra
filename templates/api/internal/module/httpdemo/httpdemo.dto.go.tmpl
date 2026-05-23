@@ -13,7 +13,7 @@ type HTTPBingoGetVO struct {
 
 // HTTPBingoFormPageVO 是 HTTPBingo 表单页示例对外暴露的 JSON DTO。
 type HTTPBingoFormPageVO struct {
-	ContentType string `json:"content_type"`
+	ContentType string `json:"contentType"`
 	Size        int    `json:"size"`
 	Body        string `json:"body"`
 }

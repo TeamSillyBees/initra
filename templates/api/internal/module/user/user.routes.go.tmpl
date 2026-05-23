@@ -28,7 +28,7 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Description: "根据用户 ID 返回单个用户详情。",
 		Tags:        []string{"用户管理"},
 	}, m.handler.get)
-	registry.Register(http.MethodGet, "/api/v1/users/{id}", platformauth.RouteSecurity{Resource: "user", Action: "read"})
+	registry.Register(http.MethodGet, "/api/v1/users/{id}", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Resource: "user", Action: "read"})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "page-users",
@@ -38,7 +38,7 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Description: "按分页参数返回用户列表。",
 		Tags:        []string{"用户管理"},
 	}, m.handler.page)
-	registry.Register(http.MethodGet, "/api/v1/users", platformauth.RouteSecurity{Resource: "user", Action: "read"})
+	registry.Register(http.MethodGet, "/api/v1/users", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Resource: "user", Action: "read"})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "create-user",
@@ -48,7 +48,7 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Description: "创建一个新的系统用户。",
 		Tags:        []string{"用户管理"},
 	}, m.handler.create)
-	registry.Register(http.MethodPost, "/api/v1/users", platformauth.RouteSecurity{Resource: "user", Action: "write"})
+	registry.Register(http.MethodPost, "/api/v1/users", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Resource: "user", Action: "write"})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "update-user",
@@ -58,7 +58,7 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Description: "更新用户显示名、邮箱、角色与状态。",
 		Tags:        []string{"用户管理"},
 	}, m.handler.update)
-	registry.Register(http.MethodPut, "/api/v1/users/{id}", platformauth.RouteSecurity{Resource: "user", Action: "write"})
+	registry.Register(http.MethodPut, "/api/v1/users/{id}", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Resource: "user", Action: "write"})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "delete-user",
@@ -68,5 +68,5 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Description: "软删除一个用户。",
 		Tags:        []string{"用户管理"},
 	}, m.handler.delete)
-	registry.Register(http.MethodDelete, "/api/v1/users/{id}", platformauth.RouteSecurity{Resource: "user", Action: "delete"})
+	registry.Register(http.MethodDelete, "/api/v1/users/{id}", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Resource: "user", Action: "delete"})
 }

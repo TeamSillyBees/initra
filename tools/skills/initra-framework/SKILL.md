@@ -55,8 +55,8 @@ internal/module/<module>/
 - 领域模型和 service/repo 入参放在 `*.model.go`；service/repo 入参结构体使用 `DTO`，不要使用 `Params`。
 - Handler 只做传输层适配：转换请求数据、调用 service、包装响应。
 - Service 不做框架初始化。通过构造函数注入模块内小接口，并返回 `apperrors.AppError`。
-- 每个 `/api/` 路由都必须注册到 `server.RouteRegistry`；公开路由必须设置 `RouteSecurity{Public: true}`。
-- `Resource` 和 `Action` 必须与 Casbin policy 保持一致。
+- 每个 `/api/` 路由都必须注册到 `server.RouteRegistry`；公开路由必须设置 `AccessModePublic`，登录即可访问的接口必须设置 `AccessModeAuthenticated`。
+- 需要 RBAC 的后台管理、运营操作、审核、退款、风控、配置管理等接口必须设置 `AccessModePermission`，并确保 `Resource` 和 `Action` 与 Casbin policy 保持一致。
 - 生成项目和业务项目不得 import `github.com/teamsillybees/initra/internal/...`。
 
 ## 装配规则

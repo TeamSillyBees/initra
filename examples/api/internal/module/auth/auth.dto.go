@@ -14,7 +14,7 @@ type loginRequest struct {
 
 // RefreshBody 描述刷新 token 请求体。
 type RefreshBody struct {
-	RefreshToken string `json:"refresh_token" example:"token"`
+	RefreshToken string `json:"refreshToken" example:"token"`
 }
 
 type refreshRequest struct {
@@ -25,25 +25,25 @@ type meRequest struct{}
 
 // LoginVO 描述登录成功响应体。
 type LoginVO struct {
-	AccessToken  string         `json:"access_token"`
-	RefreshToken string         `json:"refresh_token"`
+	AccessToken  string         `json:"accessToken"`
+	RefreshToken string         `json:"refreshToken"`
 	User         UserIdentityVO `json:"user"`
 }
 
 // RefreshVO 描述刷新 token 响应体。
 type RefreshVO struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
 }
 
 // UserIdentityVO 描述当前登录用户的公开身份信息。
 type UserIdentityVO struct {
-	UserID       int64    `json:"user_id"`
+	UserID       int64    `json:"userId"`
 	Username     string   `json:"username"`
 	Nickname     string   `json:"nickname"`
-	RoleCodes    []string `json:"role_codes"`
-	IsSuperAdmin bool     `json:"is_super_admin"`
-	IsEnable     bool     `json:"is_enable"`
+	RoleCodes    []string `json:"roleCodes"`
+	IsSuperAdmin bool     `json:"isSuperAdmin"`
+	IsEnable     bool     `json:"isEnable"`
 }
 
 type loginResponse struct {

@@ -29,7 +29,7 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Tags:          []string{"文件示例"},
 		DefaultStatus: http.StatusCreated,
 	}, m.handler.upload)
-	registry.Register(http.MethodPost, "/api/v1/files/local", platformauth.RouteSecurity{Resource: "file", Action: "write"})
+	registry.Register(http.MethodPost, "/api/v1/files/local", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Resource: "file", Action: "write"})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "download-local-file",
@@ -39,7 +39,7 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Description: "通过对象 key 下载 local 存储中的文件。",
 		Tags:        []string{"文件示例"},
 	}, m.handler.download)
-	registry.Register(http.MethodGet, "/api/v1/files/local/download", platformauth.RouteSecurity{Resource: "file", Action: "read"})
+	registry.Register(http.MethodGet, "/api/v1/files/local/download", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Resource: "file", Action: "read"})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "stat-local-file",
@@ -49,7 +49,7 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Description: "通过对象 key 查询 local 存储中的文件元信息。",
 		Tags:        []string{"文件示例"},
 	}, m.handler.stat)
-	registry.Register(http.MethodGet, "/api/v1/files/local/meta", platformauth.RouteSecurity{Resource: "file", Action: "read"})
+	registry.Register(http.MethodGet, "/api/v1/files/local/meta", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Resource: "file", Action: "read"})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "delete-local-file",
@@ -59,5 +59,5 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Description: "通过对象 key 删除 local 存储中的文件。",
 		Tags:        []string{"文件示例"},
 	}, m.handler.delete)
-	registry.Register(http.MethodDelete, "/api/v1/files/local", platformauth.RouteSecurity{Resource: "file", Action: "delete"})
+	registry.Register(http.MethodDelete, "/api/v1/files/local", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Resource: "file", Action: "delete"})
 }
