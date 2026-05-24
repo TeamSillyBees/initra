@@ -86,10 +86,13 @@ internal/module/<module>/
 
 ## 验证
 
-业务项目可先执行 `initra skill init` 写入本 skill 文档，再使用内置检查脚本做快速静态检查：
+业务项目可先按使用的 Agent 工具写入本 skill 文档，再使用内置检查脚本做快速静态检查：
 
 ```powershell
+initra skill codex # 写入 .agents/skills/initra-framework
+initra skill cc    # 写入 .claude/skills/initra-framework
 go run .agents/skills/initra-framework/scripts/check_initra_usage.go --root .
+go run .claude/skills/initra-framework/scripts/check_initra_usage.go --root .
 ```
 
 涉及 initra 模板或生成项目改动时，还要运行项目匹配的 `go test`、`go vet`、CLI 构建和生成项目验证命令。

@@ -1,0 +1,66 @@
+# initra api example
+
+本文档面向 API 项目模板。
+
+`examples` 是 `initra new <app> --type api` 的可运行示例项目，包含认证、用户管理、local 文件示例、任务队列发布示例、缓存、JWT、Casbin、Ent schema 与生成代码、Atlas、seed 数据和版本化迁移。它用于验证和展示标准 API 项目模板；运行时通用能力来自根模块 `pkg/*`，项目生成入口来自 `cmd/initra`。`templates/api` 基于本示例同步，但不保存 Ent 生成代码；`initra new` 会在渲染 API 项目后自动执行 `go run ./internal/data/entgenerate` 补齐这些文件。
+
+## 运行
+
+```powershell
+docker compose up -d postgres redis
+initra migrate apply --env local
+psql "postgresql://postgres:postgres@127.0.0.1:5432/initra?sslmode=disable" -f db/seeds/001_seed_admin.sql
+$env:APP_ENV = "local"
+go run ./cmd/server
+```
+
+默认账号：
+
+- 用户名：`admin`
+- 密码：`admin123`
+
+## 配置
+
+配置文件先读取 `configs/config.yaml` 作为初始值，再读取 `configs/config.<env>.yaml` 覆盖。运行环境由 `--env`、`APP_ENV` 或默认值 `dev` 决定，不在 YAML 中配置 `app.env`；除 `APP_ENV` 外，环境变量覆盖默认使用 `INITRA_` 前缀，例如 `INITRA_AUTH_JWT_SECRET`、`INITRA_DATABASE_DSN`。
+
+标准分组为 `app`、`server`、`database`、`redis`、`auth`、`log`、`observability`。当前模板额外保留 `casbin`、`cache`、`idgen`、`storage`、`task`，分别用于权限策略、缓存 TTL、雪花 ID 节点、文件/对象存储和任务队列。配置打印前使用 `Config.SafeForLog()` 脱敏，密码、Token、Secret、Access Key、Authorization 和带密码的 DSN 不应明文进入日志。
+
+`redis.enabled: false` 时缓存与 token 状态使用进程内能力；多实例部署或需要跨进程 token 吊销时应启用 Redis。
+
+业务代码需要直接使用 Redis 时，优先通过根模块 `pkg/redisx` 组合 go-redis client、Key Builder、缓存、Lua script registry、SCAN+UNLINK 和 redislock 短时间互斥锁。不要使用 `KEYS`，不要手动拼接关键 Redis key，不要记录密码、token、验证码、session value；复杂命令可以直接使用底层 go-redis client。
+
+## 文件存储示例
+
+`internal/module/file` 提供 local 文件示例，业务层只依赖 `pkg/storage.Service` 小接口，不直接依赖云厂商 SDK。默认配置为 `storage.provider: local`，文件写入 `./var/uploads`，Casbin 资源为 `file`，admin 角色默认拥有 `read/write/delete` 权限。
+
+`internal/module/taskdemo` 提供任务队列发布示例，业务层只依赖 `task.Publisher` 小接口，通过 `POST /api/v1/task-demo/email` 发布 `demo:send_email` 异步任务。示例任务显式声明 `biz_key`，用于业务幂等治理；`biz_key` 不是 Asynq `TaskID` 或 `Unique`。
+
+登录后可通过以下接口体验完整链路：
+
+- `POST /api/v1/files/local`：multipart 表单字段 `file` 上传文件。
+- `GET /api/v1/files/local/download?key=<object-key>`：按 key 下载文件。
+- `GET /api/v1/files/local/meta?key=<object-key>`：按 key 查询元信息。
+- `DELETE /api/v1/files/local?key=<object-key>`：按 key 删除文件。
+
+需要切换阿里云 OSS、腾讯云 COS、AWS S3 或 S3 兼容服务时，保持业务代码不变，只调整 `configs/config.yaml` 或 `configs/config.<env>.yaml` 的 `storage` 分组。
+
+## 模型命名约定
+
+业务模块按 flat package 组织。HTTP 边界类型放在 `*.dto.go`：Huma 包装类型使用非导出的 `request`/`response` 后缀；查询参数使用 `Query`；请求体使用 `Body`；对外 JSON DTO 使用 `VO`；分页 JSON 输出使用 `pagination.PageVO[T]` 泛型。领域实体和 service/repo 入参放在 `*.model.go`，结构体入参统一使用 `DTO` 后缀；禁止使用 `Result` 后缀命名返回值，列表直接使用 `[]T`，分页使用 `pagination.PageResult[T]` 泛型封装。
+
+## 常用命令
+
+```powershell
+go test ./... -count=1
+go vet ./...
+go build ./cmd/server
+go generate ./internal/data
+atlas -c file://db/atlas.hcl migrate status --env local
+initra migrate diff <name> --env local
+initra migrate apply --env local
+initra migrate hash
+```
+
+通过 `initra new` 创建的 API 项目已经自动执行过一次 Ent 代码生成；手动修改 `internal/data/schema` 后再运行 `go generate ./internal/data`。
+
+`internal/data/schema` 是数据库结构主源；`db/migrations` 是版本化迁移历史；`db/seeds` 保存种子数据。迁移 diff 必须使用 `initra migrate diff <name>` 或 `go run ./internal/data/migratediff/main.go <name>`；这些入口通过 Ent `migrate.WithForeignKeys(false)` 只生成索引和唯一约束，不生成物理外键约束。迁移应用使用 `initra migrate apply --env <env>`，等同于执行 `atlas -c file://db/atlas.hcl migrate apply --env <env>`；手动修改迁移文件后使用 `initra migrate hash` 重新计算 `atlas.sum`。默认从 `configs/config.yaml` 和 `configs/config.<env>.yaml` 读取数据库连接，`env` 优先使用 `--env` 或 `APP_ENV`，未设置时为 `dev`，也可以通过 `--dev-url` 显式覆盖。`db/schema/*.sql` 仅作为历史参考或 DBA 阅读材料，不再作为 Atlas diff 的 schema source。

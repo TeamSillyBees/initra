@@ -66,7 +66,7 @@ func TestRedisConstructionGoesThroughRedisx(t *testing.T) {
 	}
 
 	root := repoRoot(t)
-	for _, dir := range []string{"pkg", filepath.Join("examples", "api")} {
+	for _, dir := range []string{"pkg", "examples"} {
 		err := filepath.WalkDir(filepath.Join(root, dir), func(path string, entry fs.DirEntry, err error) error {
 			require.NoError(t, err)
 			if entry.IsDir() {

@@ -66,18 +66,10 @@ func TestNewGeneratesAPIProjectWithFrameworkRequireAndNoPkgCopy(t *testing.T) {
 }
 
 func TestNewUsesReleaseCLIVersionWhenFrameworkVersionOmitted(t *testing.T) {
-	target := filepath.Join(t.TempDir(), "demo")
-
-	err := run([]string{
-		"new", target,
-		"--type", "worker",
-		"--module", "example.com/demo",
-	}, ioDiscard{}, "v1.2.3")
+	version, err := resolveFrameworkVersion("", "v1.2.3", "")
 
 	require.NoError(t, err)
-	goMod := readFile(t, filepath.Join(target, "go.mod"))
-	require.Contains(t, goMod, "github.com/teamsillybees/initra v1.2.3")
-	require.NotContains(t, goMod, "replace github.com/teamsillybees/initra")
+	require.Equal(t, "v1.2.3", version)
 }
 
 func TestNewGeneratesAPIMigrationsWithoutPhysicalForeignKeys(t *testing.T) {
@@ -115,23 +107,6 @@ func TestNewGeneratesAPIMigrationsWithoutPhysicalForeignKeys(t *testing.T) {
 	require.Contains(t, migrateSchema, `Comment: "登录用户名，全局唯一。"`)
 
 	require.NoDirExists(t, filepath.Join(target, "scripts"))
-}
-
-func TestNewGeneratesWorkerPlaceholderProject(t *testing.T) {
-	target := filepath.Join(t.TempDir(), "worker")
-
-	err := run([]string{
-		"new", target,
-		"--type", "worker",
-		"--module", "example.com/worker",
-		"--replace", repoRoot(t),
-	}, ioDiscard{}, "dev")
-
-	require.NoError(t, err)
-	require.Contains(t, readFile(t, filepath.Join(target, "go.mod")), "module example.com/worker")
-	require.FileExists(t, filepath.Join(target, "cmd", "worker", "main.go"))
-	require.FileExists(t, filepath.Join(target, "internal", "worker", "worker.go"))
-	require.NoFileExists(t, filepath.Join(target, "cmd", "server", "main.go"))
 }
 
 func TestAPITemplateExcludesEntGeneratedCode(t *testing.T) {
@@ -174,12 +149,12 @@ func TestHelpCommandShowsSubcommandHelp(t *testing.T) {
 	require.Contains(t, stdout.String(), "--module")
 }
 
-func TestSkillInitCopiesInitraFrameworkSkill(t *testing.T) {
+func TestSkillCodexCopiesInitraFrameworkSkill(t *testing.T) {
 	target := t.TempDir()
 	t.Chdir(target)
 
 	var stdout bytes.Buffer
-	err := run([]string{"skill", "init"}, &stdout, "dev")
+	err := run([]string{"skill", "codex"}, &stdout, "dev")
 
 	require.NoError(t, err)
 	skillDir := filepath.Join(target, ".agents", "skills", "initra-framework")
@@ -188,6 +163,29 @@ func TestSkillInitCopiesInitraFrameworkSkill(t *testing.T) {
 	require.FileExists(t, filepath.Join(skillDir, "references", "redisx.md"))
 	require.FileExists(t, filepath.Join(skillDir, "scripts", "check_initra_usage.go"))
 	require.Contains(t, stdout.String(), "created skill")
+}
+
+func TestSkillClaudeCodeCopiesInitraFrameworkSkill(t *testing.T) {
+	target := t.TempDir()
+	t.Chdir(target)
+
+	var stdout bytes.Buffer
+	err := run([]string{"skill", "cc"}, &stdout, "dev")
+
+	require.NoError(t, err)
+	skillDir := filepath.Join(target, ".claude", "skills", "initra-framework")
+	require.FileExists(t, filepath.Join(skillDir, "SKILL.md"))
+	require.FileExists(t, filepath.Join(skillDir, "assets", "capabilities.yaml"))
+	require.FileExists(t, filepath.Join(skillDir, "references", "redisx.md"))
+	require.FileExists(t, filepath.Join(skillDir, "scripts", "check_initra_usage.go"))
+	require.Contains(t, stdout.String(), "created skill")
+}
+
+func TestSkillInitCommandRemoved(t *testing.T) {
+	err := run([]string{"skill", "init"}, ioDiscard{}, "dev")
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "不接受位置参数")
 }
 
 func TestRootWithoutArgsShowsHelp(t *testing.T) {
@@ -219,19 +217,19 @@ func TestNewRejectsMissingTargetWithHelpHint(t *testing.T) {
 }
 
 func TestNewAcceptsFlagsBeforeTarget(t *testing.T) {
-	target := filepath.Join(t.TempDir(), "worker")
+	target := filepath.Join(t.TempDir(), "demo")
 
 	err := run([]string{
 		"new",
-		"--type", "worker",
-		"--module", "example.com/worker",
+		"--type", "api",
+		"--module", "example.com/demo",
 		"--replace", repoRoot(t),
 		target,
 	}, ioDiscard{}, "dev")
 
 	require.NoError(t, err)
-	require.Contains(t, readFile(t, filepath.Join(target, "go.mod")), "module example.com/worker")
-	require.FileExists(t, filepath.Join(target, "cmd", "worker", "main.go"))
+	require.Contains(t, readFile(t, filepath.Join(target, "go.mod")), "module example.com/demo")
+	require.FileExists(t, filepath.Join(target, "cmd", "server", "main.go"))
 	require.DirExists(t, filepath.Join(target, ".git"))
 }
 
@@ -286,6 +284,16 @@ func TestNewRejectsUnknownProjectType(t *testing.T) {
 
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "暂不支持项目类型")
+}
+
+func TestNewRejectsRemovedWorkerProjectType(t *testing.T) {
+	target := filepath.Join(t.TempDir(), "worker")
+
+	err := run([]string{"new", target, "--type", "worker", "--module", "example.com/worker", "--framework-version", "v1.2.3"}, ioDiscard{}, "dev")
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), `暂不支持项目类型 "worker"`)
+	require.Contains(t, err.Error(), "仅支持 api")
 }
 
 func TestGeneratedProjectBuildsWithLocalReplace(t *testing.T) {

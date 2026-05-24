@@ -2,7 +2,7 @@
 
 `initra` 是面向企业内部 Go 服务的快速开发脚手架，项目介绍统一按三个部分理解：
 
-1. **标准项目模板**：通过 `templates/api` 提供包含 auth/user/file 示例模块、Ent schema、seed 和 Atlas migrations 的 RESTful API 服务模板，通过 `templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。API 模板不内置 Ent 生成代码，`initra new` 会在生成项目后自动执行 Ent 代码生成。
+1. **标准项目模板**：通过 `templates/api` 提供包含 auth/user/file 示例模块、Ent schema、seed 和 Atlas migrations 的 RESTful API 服务模板；`examples` 是 API 模板的可运行验证样例。API 模板不内置 Ent 生成代码，`initra new` 会在生成项目后自动执行 Ent 代码生成。
 2. **可复用的 Go package**：通过根模块 `pkg/*` 沉淀 Web、配置、错误、日志、认证、数据访问、Redis、缓存、文件与对象存储、HTTP Client、任务队列、任务调度等通用能力，业务项目通过 `go.mod` 按需引入。
 3. **工程化 CLI**：通过 `cmd/initra` 承载生成项目、业务模块、CRUD 样例、迁移文件、配置样例、接口骨架、测试骨架和代码生成命令。
 
@@ -29,16 +29,13 @@ cmd/initra          工程化 CLI 入口
 pkg/                可复用 Go package
 internal/           根仓库内部测试与辅助代码
 templates/api       RESTful API 项目模板
-templates/worker    worker 项目占位模板
-examples/api        API 模板的可运行示例
+examples            API 模板的可运行示例
 docs/               架构与工程规范文档
 ```
 
 ## 项目模板
 
 `api` 模板生成可直接运行的 Web API 基础项目，默认包含 Gin + Huma、统一响应/错误、JWT/Casbin 中间件装配、配置加载、日志、health/ready/version 接口，以及 auth/user 基础业务模块、file 本地文件示例模块、Ent schema、seed 数据和 Atlas 配置。API 标准模板使用 Ent 作为类型安全持久化访问层，使用 Ent Mixin + Runtime Hook 实现雪花 ID、审计字段和软删除等通用自动填充能力；模板目录只保存 schema、mixin、`generate.go` 和迁移 diff 入口，`initra new` 会在渲染 API 项目后执行 `go run ./internal/data/entgenerate` 生成缺失的 Ent 代码。业务方仍可通过后续 CLI 命令追加新的模块、CRUD 样例和配置能力。
-
-`worker` 模板面向后台任务、定时任务、消费任务、批处理任务，默认演示 `pkg/task` 的 Worker、Registry 和 Scheduler 用法。
 
 模板生成的业务项目是独立 Go module，通过 `go.mod` 引入 `github.com/teamsillybees/initra` 的可复用 Go package，不复制根仓库 `pkg/` 源码，也不依赖根仓库 `internal/`。
 
@@ -87,10 +84,9 @@ go install github.com/teamsillybees/initra/cmd/initra@latest
 ```powershell
 $framework = (Resolve-Path .).Path
 go run ./cmd/initra new $env:TEMP\demo-api --type api --module example.com/demo-api --replace $framework
-go run ./cmd/initra new $env:TEMP\demo-worker --type worker --module example.com/demo-worker --replace $framework
 ```
 
-`initra new` 创建项目后会自动执行 `git init`。当项目类型为 `api` 时，还会在初始化 Git 仓库前执行一次 `go run ./internal/data/entgenerate`，把模板中未保存的 Ent 生成代码补齐。
+`initra new` 创建 API 项目后，会在初始化 Git 仓库前执行一次 `go run ./internal/data/entgenerate`，把模板中未保存的 Ent 生成代码补齐，然后执行 `git init`。
 
 正式版 CLI 会自动使用自身版本写入生成项目 `go.mod`：
 
@@ -104,7 +100,6 @@ initra new $env:TEMP\demo-api --type api --module example.com/demo-api
 initra
 initra help [command]
 initra new <app> --type api
-initra new <app> --type worker
 initra module add <name>
 initra crud add <module> --table <table>
 initra config add <capability>
@@ -112,7 +107,8 @@ initra migrate new <name>
 initra migrate diff <name>
 initra migrate apply --env <env>
 initra migrate hash
-initra skill init
+initra skill codex
+initra skill cc
 initra doctor
 ```
 
@@ -120,19 +116,19 @@ initra doctor
 
 `initra migrate diff <name>` 直接执行当前项目的 `go run ./internal/data/migratediff/main.go <name>`，可追加 `--env`、`--config-dir` 和 `--dev-url`。`initra migrate apply --env <env>` 会执行 `atlas -c file://db/atlas.hcl migrate apply --env <env>` 应用迁移。手动修改迁移文件后，可执行 `initra migrate hash` 重新计算 `atlas.sum`。
 
-在业务项目根目录执行 `initra skill init` 会写入 `.agents/skills/initra-framework`，用于让 Codex 在该项目内优先复用 initra 框架能力。
+在业务项目根目录执行 `initra skill codex` 会写入 `.agents/skills/initra-framework`，供 Codex 使用；执行 `initra skill cc` 会写入 `.claude/skills/initra-framework`，供 Claude Code 使用。
 
 发布版 CLI 会用自身构建版本写入生成项目 `go.mod`。开发版 CLI 必须传 `--framework-version` 或 `--replace`，避免生成不可复现的 `initra` 依赖。
 
 ## 本地开发
 
-仓库使用 `go.work` 联调根模块和 `examples/api`：
+仓库使用 `go.work` 联调根模块和 `examples`：
 
 ```powershell
 go test ./pkg/... ./cmd/initra/... ./internal/... -count=1
-go test ./examples/api/... -count=1
+go test ./examples/... -count=1
 go vet ./pkg/... ./cmd/initra/... ./internal/...
-go vet ./examples/api/...
+go vet ./examples/...
 ```
 
 ## 依赖治理
@@ -140,4 +136,4 @@ go vet ./examples/api/...
 - 面向标准项目模板：生成项目默认采用 Go Modules，不要求业务项目使用 `go.work`。
 - 面向可复用 Go package：私有发布时业务项目通过 `GOPRIVATE` 配置私有 Git 域名。
 - 面向本地联调：生成项目可用 `replace github.com/teamsillybees/initra => <本地路径>` 指向当前仓库。
-- 面向脚手架仓库自身：根仓库用 `go.work` 组织根模块和 `examples/api` 开发。
+- 面向脚手架仓库自身：根仓库用 `go.work` 组织根模块和 `examples` 开发。

@@ -132,7 +132,7 @@ func newRootCommand(stdout io.Writer, cliVersion string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "initra",
 		Short:         "企业内部 Go 服务快速开发脚手架",
-		Long:          "initra 用于生成和维护企业内部 Go 服务脚手架，覆盖 API/worker 项目、业务模块、CRUD 示例、配置片段和迁移辅助文件。",
+		Long:          "initra 用于生成和维护企业内部 Go 服务脚手架，覆盖 API 项目、业务模块、CRUD 示例、配置片段和迁移辅助文件。",
 		Example:       "  initra new ./demo --type api --module example.com/demo\n  initra module add order\n  initra doctor",
 		Version:       cliVersion,
 		SilenceUsage:  true,
@@ -269,9 +269,9 @@ func newNewCommand(stdout io.Writer, cliVersion string) *cobra.Command {
 	opts := newOptions{projectType: "api"}
 	cmd := &cobra.Command{
 		Use:           "new <dir>",
-		Short:         "生成 API 或 worker 项目",
-		Long:          "根据标准模板生成独立 Go module。api 模板会自动执行 Ent 代码生成并初始化 Git 仓库；worker 模板会生成可编译的后台任务骨架。",
-		Example:       "  initra new ./demo-api --type api --module example.com/demo-api\n  initra new ./demo-worker --type worker --module example.com/demo-worker\n  initra new $env:TEMP\\demo-api --type api --module example.com/demo-api --replace C:\\Project\\teamsillybees\\initra",
+		Short:         "生成 API 项目",
+		Long:          "根据标准 API 模板生成独立 Go module，自动执行 Ent 代码生成并初始化 Git 仓库。",
+		Example:       "  initra new ./demo-api --type api --module example.com/demo-api\n  initra new $env:TEMP\\demo-api --type api --module example.com/demo-api --replace C:\\Project\\teamsillybees\\initra",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Args:          requireExactArgs(1, "目标目录"),
@@ -283,12 +283,12 @@ func newNewCommand(stdout io.Writer, cliVersion string) *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&opts.modulePath, "module", "", "生成项目的 Go module path，默认使用目录名")
 	flags.StringVar(&opts.appName, "app-name", "", "应用名称，默认使用目录名")
-	flags.StringVar(&opts.projectType, "type", "api", "项目类型，可选 api 或 worker")
-	flags.StringVar(&opts.templateName, "template", "", "旧版兼容参数，等同于 --type")
+	flags.StringVar(&opts.projectType, "type", "api", "项目类型，仅支持 api")
+	flags.StringVar(&opts.templateName, "template", "", "旧版兼容参数，等同于 --type；basic 会映射为 api")
 	flags.StringVar(&opts.frameworkVersion, "framework-version", "", "写入 go.mod 的 initra 框架版本")
 	flags.StringVar(&opts.localReplacePath, "replace", "", "本地 initra 仓库路径，用于 go.mod replace")
-	_ = cmd.RegisterFlagCompletionFunc("type", completeValues("api", "worker"))
-	_ = cmd.RegisterFlagCompletionFunc("template", completeValues("api", "worker"))
+	_ = cmd.RegisterFlagCompletionFunc("type", completeValues("api"))
+	_ = cmd.RegisterFlagCompletionFunc("template", completeValues("api", "basic"))
 	return cmd
 }
 
@@ -499,31 +499,50 @@ func newMigrateHashCommand(stdout io.Writer) *cobra.Command {
 func newSkillCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "skill",
-		Short:         "管理 initra 相关 Codex skill 文档",
-		Long:          "管理 initra 框架相关的 Codex skill 文档，用于在生成项目中复用 initra 的开发约束和辅助脚本。",
-		Example:       "  initra skill init",
+		Short:         "管理 initra 相关 skill 文档",
+		Long:          "管理 initra 框架相关的 skill 文档，用于在 Codex 或 Claude Code 中复用 initra 的开发约束和辅助脚本。",
+		Example:       "  initra skill codex\n  initra skill cc",
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		Args:          requireNoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return showCommandHelp(cmd)
 		},
 	}
 	configureCommand(cmd, stdout)
-	cmd.AddCommand(newSkillInitCommand(stdout))
+	cmd.AddCommand(newSkillCodexCommand(stdout), newSkillClaudeCodeCommand(stdout))
 	return cmd
 }
 
-func newSkillInitCommand(stdout io.Writer) *cobra.Command {
+func newSkillCodexCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "init",
-		Short:         "添加 initra-framework skill 文档",
+		Use:           "codex",
+		Short:         "添加 Codex skill 文档",
 		Long:          "在当前项目写入 .agents/skills/initra-framework，供 Codex 理解并检查 initra 项目约束。",
-		Example:       "  initra skill init",
+		Example:       "  initra skill codex",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Args:          requireNoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return initFrameworkSkill(cmd.OutOrStdout())
+			return initFrameworkSkill(filepath.Join(".agents", "skills", "initra-framework"), cmd.OutOrStdout())
+		},
+	}
+	configureCommand(cmd, stdout)
+	return cmd
+}
+
+func newSkillClaudeCodeCommand(stdout io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "cc",
+		Aliases:       []string{"claude", "claude-code"},
+		Short:         "添加 Claude Code skill 文档",
+		Long:          "在当前项目写入 .claude/skills/initra-framework，供 Claude Code 理解并检查 initra 项目约束。",
+		Example:       "  initra skill cc\n  initra skill claude",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Args:          requireNoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return initFrameworkSkill(filepath.Join(".claude", "skills", "initra-framework"), cmd.OutOrStdout())
 		},
 	}
 	configureCommand(cmd, stdout)
@@ -548,21 +567,19 @@ func newDoctorCommand(stdout io.Writer) *cobra.Command {
 }
 
 func createProject(targetDir string, stdout io.Writer, cliVersion string, opts newOptions) error {
-	resolvedType := strings.TrimSpace(opts.projectType)
-	if resolvedType == "" {
-		resolvedType = "api"
+	resolvedType, err := normalizeProjectType(opts.projectType)
+	if err != nil {
+		return err
 	}
 	if t := strings.TrimSpace(opts.templateName); t != "" {
-		if resolvedType != "api" && resolvedType != t {
+		templateType, err := normalizeProjectType(t)
+		if err != nil {
+			return err
+		}
+		if resolvedType != templateType {
 			return fmt.Errorf("--type 与 --template 不能指定不同项目类型")
 		}
-		resolvedType = t
-	}
-	if resolvedType == "basic" {
-		resolvedType = "api"
-	}
-	if resolvedType != "api" && resolvedType != "worker" {
-		return fmt.Errorf("暂不支持项目类型 %q", resolvedType)
+		resolvedType = templateType
 	}
 
 	normalizedAppName := strings.TrimSpace(opts.appName)
@@ -610,6 +627,17 @@ func createProject(targetDir string, stdout io.Writer, cliVersion string, opts n
 		_, _ = fmt.Fprintf(stdout, "created %s\n", targetDir)
 	}
 	return nil
+}
+
+// normalizeProjectType 将历史项目类型归一到当前唯一的 API 模板。
+func normalizeProjectType(projectType string) (string, error) {
+	normalized := strings.TrimSpace(projectType)
+	switch normalized {
+	case "", "api", "basic":
+		return "api", nil
+	default:
+		return "", fmt.Errorf("暂不支持项目类型 %q，仅支持 api", normalized)
+	}
 }
 
 func generateEntCode(targetDir string) error {
@@ -840,9 +868,8 @@ func normalizeMigrationEnv(env string) (string, error) {
 	return normalizeSafeName(env)
 }
 
-func initFrameworkSkill(stdout io.Writer) error {
+func initFrameworkSkill(targetRoot string, stdout io.Writer) error {
 	const sourceRoot = "initra-framework"
-	targetRoot := filepath.Join(".agents", "skills", "initra-framework")
 	err := fs.WalkDir(skillassets.FS, sourceRoot, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr

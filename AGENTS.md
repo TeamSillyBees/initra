@@ -16,15 +16,14 @@
 
 `initra` 是面向企业内部 Go 服务的快速开发脚手架。理解和描述本仓库时必须区分三类内容：
 
-- **标准项目模板**：`templates/api` 提供包含 auth/user/file 示例模块、Ent schema 与生成代码、seed 和 Atlas migrations 的 RESTful API 服务模板，`templates/worker` 提供后台 worker 占位骨架；`examples/api` 是 API 模板的可运行验证样例。
+- **标准项目模板**：`templates/api` 提供包含 auth/user/file 示例模块、Ent schema 与生成代码、seed 和 Atlas migrations 的 RESTful API 服务模板；`examples` 是 API 模板的可运行验证样例。
 - **可复用 Go package**：根模块 `github.com/teamsillybees/initra` 的 `pkg/*`，沉淀 Web、配置、错误、日志、认证、数据库、Redis、缓存、文件与对象存储、HTTP Client、任务队列、任务调度等通用能力；其中 Redis 基础能力统一放在 `pkg/redisx`，支持 standalone/sentinel，不支持 cluster；任务队列能力统一放在 `pkg/task`，默认底层适配 Asynq。
 - **工程化 CLI**：`cmd/initra`，负责生成项目、业务模块、CRUD 样例、迁移文件、配置样例、接口骨架、测试骨架和代码生成命令。
 
 重要边界：
 
-- `examples/api` 是独立 Go module 的可运行 API 示例项目，属于标准项目模板。
-- `templates/api` 是 CLI API 项目模板，内容应与 `examples/api` 保持同步，并保留 auth/user 基础模块、file 本地文件示例模块、Ent schema 与生成代码、seed 数据和 Atlas migrations。
-- `templates/worker` 是 CLI worker 项目模板，目前只提供可编译占位骨架。
+- `examples` 是独立 Go module 的可运行 API 示例项目，属于标准项目模板。
+- `templates/api` 是 CLI API 项目模板，内容应与 `examples` 保持同步，并保留 auth/user 基础模块、file 本地文件示例模块、Ent schema 与生成代码、seed 数据和 Atlas migrations。
 - `cmd/initra` 只负责生成和维护工程骨架，不承载运行时业务能力。
 - `internal/` 只服务脚手架仓库自身；标准项目模板、生成项目和外部业务项目不得 import 根仓库 `internal/`。
 
@@ -38,8 +37,8 @@ go test ./pkg/... ./cmd/initra/... ./internal/... -count=1
 go vet ./pkg/... ./cmd/initra/... ./internal/...
 
 # 示例项目测试与静态检查
-go test ./examples/api/... -count=1
-go vet ./examples/api/...
+go test ./examples/... -count=1
+go vet ./examples/...
 
 # 构建 CLI
 go build -o $env:TEMP\initra.exe ./cmd/initra
@@ -49,7 +48,7 @@ $target = Join-Path $env:TEMP "demo-api"
 go run ./cmd/initra new $target --type api --module example.com/demo-api --replace (Resolve-Path .).Path
 ```
 
-仓库使用 `go.work` 联调根模块和 `examples/api`。涉及模板生成、包边界或示例项目行为时，应同时验证根模块和 `examples/api`。
+仓库使用 `go.work` 联调根模块和 `examples`。涉及模板生成、包边界或示例项目行为时，应同时验证根模块和 `examples`。
 
 ## Go 开发规范
 
@@ -97,7 +96,7 @@ internal/module/<module>/
 
 ### 模板同步
 
-- 修改 `examples/api` 中的示例代码时，使用 `tools/sync_api_templates.go` 进行模板同步
+- 修改 `examples` 中的示例代码时，使用 `tools/sync_api_templates.go` 进行模板同步
 
 ### 错误处理
 
@@ -129,7 +128,7 @@ internal/module/<module>/
 
 ## Codex 工作流
 
-1. 明确任务影响范围：根模块、`pkg/*`、`cmd/initra`、`examples/api`、`templates/api`、`templates/worker` 或文档。
+1. 明确任务影响范围：根模块、`pkg/*`、`cmd/initra`、`examples`、`templates/api` 或文档。
 2. 使用 `rg` / `rg --files` 搜索相关代码与测试，避免凭记忆修改。
 3. 修改前确认工作区状态，保护用户已有改动。
 4. 按最小可行范围编辑文件；手动编辑优先使用补丁方式。

@@ -7,10 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `initra` 是面向企业内部 Go 服务的快速开发脚手架，包含三部分：
 
 1. **可复用 Go package**（`pkg/*`）：Web、配置、错误、日志、认证、数据访问、Redis、缓存、文件存储、HTTP Client、任务队列等通用能力
-2. **标准项目模板**（`templates/api`、`templates/worker`）：通过 `initra new` 生成新项目
+2. **标准项目模板**（`templates/api`）：通过 `initra new` 生成 API 项目
 3. **工程化 CLI**（`cmd/initra`）：Cobra 驱动的项目生成与管理工具
 
-`examples/api` 是 API 模板的可运行示例，也是本地联调的验证项目。
+`examples` 是 API 模板的可运行示例，也是本地联调的验证项目。
 
 ## 技术栈
 
@@ -27,31 +27,31 @@ go test ./pkg/... ./cmd/initra/... ./internal/... -count=1
 go vet ./pkg/... ./cmd/initra/... ./internal/...
 
 # 示例项目测试与检查
-go test ./examples/api/... -count=1
-go vet ./examples/api/...
+go test ./examples/... -count=1
+go vet ./examples/...
 
 # 构建 CLI
 go build -o initra.exe ./cmd/initra
 
 # 运行示例项目
-go run ./examples/api/cmd/server
+go run ./examples/cmd/server
 
 # 通过 CLI 生成新项目（本地开发版）
 $framework = (Resolve-Path .).Path
 go run ./cmd/initra new $env:TEMP\demo-api --type api --module example.com/demo-api --replace $framework
 
 # Ent 代码生成（在示例项目目录执行）
-cd examples/api && go run ./internal/data/entgenerate
+cd examples && go run ./internal/data/entgenerate
 
 # 数据库迁移（在项目目录执行）
 go run ./internal/data/migratediff/main.go <name>   # 生成迁移 diff
 ```
 
-仓库使用 `go.work` 联调根模块和 `examples/api`，在仓库根目录执行 Go 命令即可覆盖两个模块。
+仓库使用 `go.work` 联调根模块和 `examples`，在仓库根目录执行 Go 命令即可覆盖两个模块。
 
 ## 核心架构
 
-### 模块分层（示例项目 `examples/api`）
+### 模块分层（示例项目 `examples`）
 
 每个业务模块在 `internal/module/<name>/` 下按 flat package 组织：
 
@@ -103,12 +103,13 @@ go run ./internal/data/migratediff/main.go <name>   # 生成迁移 diff
 ### CLI 命令体系
 
 ```
-initra new <app> --type api|worker    生成项目
+initra new <app> --type api           生成 API 项目
 initra module add <name>              添加业务模块
 initra crud add <module>              添加 CRUD 样例
 initra config add <capability>        添加配置能力
 initra migrate new|diff|apply|hash    数据库迁移管理
-initra skill init                     注入 Codex skill
+initra skill codex                    注入 Codex skill
+initra skill cc                       注入 Claude Code skill
 initra doctor                         诊断环境
 ```
 

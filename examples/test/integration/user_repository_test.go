@@ -1,0 +1,137 @@
+package integration_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/require"
+	"github.com/teamsillybees/initra/examples/internal/module/user"
+	"github.com/teamsillybees/initra/pkg/entx"
+	"github.com/teamsillybees/initra/pkg/pagination"
+)
+
+// TestUserRepositoryCreateUsesEntHooks 验证创建用户后自动填充 ID 和审计字段，并创建角色关系。
+func TestUserRepositoryCreateUsesEntHooks(t *testing.T) {
+	db, mock, client := newMockEntClient(t)
+	defer db.Close()
+
+	repo := user.NewRepository(client)
+	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "code"}).AddRow(int64(1002), "admin"))
+	mock.ExpectExec(`INSERT INTO "sys_user" \(.*"id".*\)`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE "sys_user_role".*`).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery(`SELECT .*FROM "sys_user_role".*`).WillReturnRows(sysUserRoleRows())
+	mock.ExpectExec(`INSERT INTO "sys_user_role" \(.*"id".*\)`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	record := &user.User{
+		Username:     "alice",
+		PasswordHash: "hashed:secret-123",
+		Nickname:     "Alice",
+		Phone:        "13800000000",
+		Email:        "alice@example.com",
+		RoleCodes:    []string{"admin"},
+		IsSuperAdmin: true,
+		IsEnable:     true,
+		SortID:       1,
+	}
+	ctx := entx.WithOperatorID(context.Background(), 9001)
+
+	err := repo.Create(ctx, record)
+
+	require.NoError(t, err)
+	require.NotZero(t, record.ID)
+	require.False(t, record.CreatedAt.IsZero())
+	require.False(t, record.UpdatedAt.IsZero())
+	require.Equal(t, int64(9001), record.CreatedBy)
+	require.Equal(t, int64(9001), record.UpdatedBy)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// TestUserRepositoryFindByID 验证 user 仓储能按 ID 查询用户并补齐角色编码。
+func TestUserRepositoryFindByID(t *testing.T) {
+	db, mock, client := newMockEntClient(t)
+	defer db.Close()
+
+	repo := user.NewRepository(client)
+	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
+		WillReturnRows(sysUserRows().AddRow(
+			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
+			"alice", "hashed:secret-123", "Alice", "13800000000", "alice@example.com",
+			"https://example.com/avatar.png", true, true, 1,
+		))
+	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
+		WillReturnRows(sqlmock.NewRows([]string{"code"}).AddRow("admin").AddRow("viewer"))
+
+	record, err := repo.FindByID(context.Background(), 1001)
+
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), record.ID)
+	require.Equal(t, "Alice", record.Nickname)
+	require.Equal(t, []string{"admin", "viewer"}, record.RoleCodes)
+	require.True(t, record.IsSuperAdmin)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// TestUserRepositoryPageLoadsRolesInBatch 验证分页查询和批量角色加载。
+func TestUserRepositoryPageLoadsRolesInBatch(t *testing.T) {
+	db, mock, client := newMockEntClient(t)
+	defer db.Close()
+
+	repo := user.NewRepository(client)
+	mock.ExpectQuery(`SELECT COUNT.*FROM "sys_user".*`).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
+		WillReturnRows(sysUserRows().AddRow(
+			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
+			"alice", "hashed:secret-123", "Alice", nil, nil, nil, false, true, 1,
+		))
+	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
+		WillReturnRows(sysRoleRows().AddRow(
+			int64(1002), nil, testNow, testNow, int64(0), int64(0),
+			"viewer", "只读用户", nil, true, true, 10,
+		))
+	mock.ExpectQuery(`SELECT .*FROM "sys_user_role".*`).
+		WillReturnRows(sysUserRoleRows().AddRow(int64(2001), nil, int64(1001), int64(1002), int64(9001), testNow))
+
+	items, total, err := repo.Page(context.Background(), user.PageUsersDTO{
+		Page: pagination.PageDTO{Page: 1, PageSize: 20},
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, int64(1), total)
+	require.Len(t, items, 1)
+	require.Equal(t, []string{"viewer"}, items[0].RoleCodes)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// TestUserRepositoryDeleteSoftDeletesUserAndRoles 验证删除用户使用软删除并同步软删除关系。
+func TestUserRepositoryDeleteSoftDeletesUserAndRoles(t *testing.T) {
+	db, mock, client := newMockEntClient(t)
+	defer db.Close()
+
+	repo := user.NewRepository(client)
+	mock.ExpectBegin()
+	mock.ExpectExec(`UPDATE "sys_user".*`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`UPDATE "sys_user_role".*`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	err := repo.Delete(context.Background(), 1001, 9001)
+
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// TestEntClientRejectsPhysicalDelete 验证 Ent 物理删除被全局 hook 拦截。
+func TestEntClientRejectsPhysicalDelete(t *testing.T) {
+	db, _, client := newMockEntClient(t)
+	defer db.Close()
+
+	err := client.SysUser.DeleteOneID(1001).Exec(context.Background())
+
+	require.Error(t, err)
+	require.ErrorIs(t, err, entx.ErrPhysicalDeleteRejected)
+}

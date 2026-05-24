@@ -18,16 +18,16 @@ import (
 
 const (
 	// defaultSourceDir 是 API 示例项目的默认来源目录。
-	defaultSourceDir = "examples/api"
+	defaultSourceDir = "examples"
 	// defaultTargetDir 是 API 模板文件的默认目标目录。
 	defaultTargetDir = "templates/api"
-	// exampleModule 是 examples/api 中需要替换的固定模块路径。
-	exampleModule = "github.com/teamsillybees/initra/examples/api"
+	// exampleModule 是 examples 中需要替换的固定模块路径。
+	exampleModule = "github.com/teamsillybees/initra/examples"
 	// frameworkModule 是生成项目依赖的 initra 根模块路径。
 	frameworkModule = "github.com/teamsillybees/initra"
 )
 
-// frameworkRequirePattern 匹配 examples/api go.mod 中的 initra 依赖版本行。
+// frameworkRequirePattern 匹配 examples go.mod 中的 initra 依赖版本行。
 var frameworkRequirePattern = regexp.MustCompile(`(?m)^\tgithub\.com/teamsillybees/initra v[^\r\n]+$`)
 
 // syncOptions 描述本次 API 模板同步的输入和行为开关。
@@ -45,7 +45,7 @@ type action struct {
 	path string
 }
 
-// main 执行 examples/api 到 templates/api 的同步。
+// main 执行 examples 到 templates/api 的同步。
 func main() {
 	opts, err := parseOptions()
 	if err != nil {
@@ -245,7 +245,7 @@ func transformTemplateContent(rel string, content string) string {
 		content = frameworkRequirePattern.ReplaceAllString(content, "\t{{ .FrameworkModule }} {{ .FrameworkVersion }}")
 		content = strings.Replace(
 			content,
-			"replace github.com/teamsillybees/initra => ../..",
+			"replace github.com/teamsillybees/initra => ..",
 			"{{- if .LocalReplacePath }}\nreplace {{ .FrameworkModule }} => {{ .LocalReplacePath }}\n{{- end }}",
 			1,
 		)

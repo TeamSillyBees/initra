@@ -1,0 +1,97 @@
+package httpdemo
+
+import (
+	"context"
+	"errors"
+	"strings"
+
+	"github.com/teamsillybees/initra/examples/internal/module/bizerrors"
+	"github.com/teamsillybees/initra/pkg/httpclient"
+)
+
+const defaultMessage = "hello from initra"
+
+// remoteHTTPClient 定义 httpdemo 示例模块依赖的最小远程调用能力。
+type remoteHTTPClient interface {
+	Get(ctx context.Context, path string, opts ...httpclient.RequestOption) (*httpclient.Response, error)
+}
+
+// Service 是 httpdemo 示例模块的应用服务。
+type Service struct {
+	client remoteHTTPClient
+}
+
+// NewService 构造 httpdemo 示例模块应用服务。
+func NewService(client remoteHTTPClient) *Service {
+	return &Service{client: client}
+}
+
+// GetHTTPBingo 调用 HTTPBingo /get 并返回 JSON 回显结果。
+func (s *Service) GetHTTPBingo(ctx context.Context, input GetHTTPBingoDTO) (*HTTPBingoGetResult, error) {
+	if err := s.ensureClient(); err != nil {
+		return nil, err
+	}
+	message := strings.TrimSpace(input.Message)
+	if message == "" {
+		message = defaultMessage
+	}
+	payload := httpBingoGetPayload{}
+	_, err := s.client.Get(ctx, "/get",
+		httpclient.WithQuery("message", message),
+		httpclient.WithHeader("X-Trace-ID", strings.TrimSpace(input.TraceID)),
+		httpclient.WithResult(&payload),
+	)
+	if err != nil {
+		return nil, mapHTTPClientError(err, "call httpbingo get failed")
+	}
+	return httpBingoGetResultFromPayload(payload), nil
+}
+
+// GetHTTPBingoFormPage 调用 HTTPBingo /forms/post 并返回 HTML 表单页内容。
+func (s *Service) GetHTTPBingoFormPage(ctx context.Context, input GetHTTPBingoFormPageDTO) (*HTTPBingoFormPage, error) {
+	if err := s.ensureClient(); err != nil {
+		return nil, err
+	}
+	resp, err := s.client.Get(ctx, "/forms/post",
+		httpclient.WithHeader("X-Trace-ID", strings.TrimSpace(input.TraceID)),
+	)
+	if err != nil {
+		return nil, mapHTTPClientError(err, "call httpbingo form page failed")
+	}
+	return &HTTPBingoFormPage{
+		ContentType: resp.Header.Get("Content-Type"),
+		Size:        len(resp.Body),
+		Body:        string(resp.Body),
+	}, nil
+}
+
+func (s *Service) ensureClient() error {
+	if s == nil || s.client == nil {
+		return bizerrors.Internal("httpbingo client is not configured")
+	}
+	return nil
+}
+
+func httpBingoGetResultFromPayload(payload httpBingoGetPayload) *HTTPBingoGetResult {
+	return &HTTPBingoGetResult{
+		Args:    payload.Args,
+		Headers: payload.Headers,
+		Method:  payload.Method,
+		Origin:  payload.Origin,
+		URL:     payload.URL,
+	}
+}
+
+func mapHTTPClientError(err error, message string) error {
+	if err == nil {
+		return nil
+	}
+	if clientErr, ok := errors.AsType[*httpclient.Error](err); ok {
+		return bizerrors.WrapInternal(err, message,
+			bizerrors.WithDetail("service", clientErr.Service),
+			bizerrors.WithDetail("kind", string(clientErr.Kind)),
+			bizerrors.WithDetail("status_code", clientErr.StatusCode),
+		)
+	}
+	return bizerrors.WrapInternal(err, message)
+}
