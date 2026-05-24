@@ -53,7 +53,7 @@ go run ./internal/data/migratediff/main.go <name>   # 生成迁移 diff
 
 ### 模块分层（示例项目 `examples`）
 
-每个业务模块在 `internal/module/<name>/` 下按 flat package 组织：
+每个业务模块在 `internal/modules/<name>/` 下按 flat package 组织：
 
 | 文件 | 职责 |
 |------|------|

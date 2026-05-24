@@ -42,9 +42,9 @@ func TestExampleDoesNotImportFrameworkInternalPackages(t *testing.T) {
 func TestExampleUsesAPIFoundationLayout(t *testing.T) {
 	root := repoRoot(t)
 
-	require.DirExists(t, filepath.Join(root, "internal", "module"))
+	require.DirExists(t, filepath.Join(root, "internal", "modules"))
 	for _, moduleName := range []string{"auth", "user"} {
-		moduleDir := filepath.Join(root, "internal", "module", moduleName)
+		moduleDir := filepath.Join(root, "internal", "modules", moduleName)
 		require.DirExists(t, moduleDir)
 		for _, suffix := range []string{"handler", "service", "repo", "model", "dto", "routes"} {
 			require.FileExists(t, filepath.Join(moduleDir, moduleName+"."+suffix+".go"))
@@ -108,7 +108,7 @@ func requireNoHTTPNamingInModel(t *testing.T, path string) {
 func requireNoEntImportOutsideRepositories(t *testing.T, root string) {
 	t.Helper()
 
-	moduleRoot := filepath.Join(root, "internal", "module")
+	moduleRoot := filepath.Join(root, "internal", "modules")
 	require.NoError(t, filepath.WalkDir(moduleRoot, func(path string, entry os.DirEntry, err error) error {
 		require.NoError(t, err)
 		if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, ".repo.go") || filepath.Base(path) == "providers.go" {

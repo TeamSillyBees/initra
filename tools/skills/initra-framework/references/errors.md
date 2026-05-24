@@ -18,7 +18,7 @@ return apperrors.Wrap(err, apperrors.CodeInternalError, "调用短信服务失�
 )
 ```
 
-业务专属错误码放在独立的 `internal/module/bizerrors` package：
+业务专属错误码放在独立的 `internal/modules/bizerrors` package：
 
 ```go
 const CodeLoginFailed apperrors.Code = "LOGIN_FAILED"

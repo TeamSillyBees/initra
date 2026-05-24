@@ -28,14 +28,18 @@ func TestNewGeneratesAPIProjectWithFrameworkRequireAndNoPkgCopy(t *testing.T) {
 	require.Contains(t, goMod, "module example.com/demo")
 	require.Contains(t, goMod, "github.com/teamsillybees/initra v1.2.3")
 	require.FileExists(t, filepath.Join(target, ".gitignore"))
+	require.FileExists(t, filepath.Join(target, "AGENTS.md"))
 	require.NoDirExists(t, filepath.Join(target, "pkg"))
+	agentInstructions := readFile(t, filepath.Join(target, "AGENTS.md"))
+	require.Contains(t, agentInstructions, "业务代码不得 import `github.com/teamsillybees/initra/internal/*`")
+	require.Contains(t, agentInstructions, "业务代码按业务模块组织为单一 flat package")
 	require.Contains(t, readFile(t, filepath.Join(target, "cmd", "server", "main.go")), "example.com/demo/internal/boot")
 	require.FileExists(t, filepath.Join(target, "internal", "boot", "app.go"))
 	require.FileExists(t, filepath.Join(target, "internal", "boot", "providers.go"))
 	require.FileExists(t, filepath.Join(target, "internal", "boot", "lifecycle.go"))
-	require.DirExists(t, filepath.Join(target, "internal", "module"))
+	require.DirExists(t, filepath.Join(target, "internal", "modules"))
 	for _, moduleName := range []string{"auth", "user"} {
-		moduleDir := filepath.Join(target, "internal", "module", moduleName)
+		moduleDir := filepath.Join(target, "internal", "modules", moduleName)
 		require.DirExists(t, moduleDir)
 		for _, suffix := range []string{"handler", "service", "repo", "model", "dto", "routes"} {
 			require.FileExists(t, filepath.Join(moduleDir, moduleName+"."+suffix+".go"))
@@ -326,7 +330,7 @@ func TestModuleAddGeneratesVerticalSliceModule(t *testing.T) {
 	err := run([]string{"module", "add", "order"}, &stdout, "dev")
 
 	require.NoError(t, err)
-	moduleDir := filepath.Join(target, "internal", "module", "order")
+	moduleDir := filepath.Join(target, "internal", "modules", "order")
 	for _, suffix := range []string{"handler", "service", "repo", "model", "dto", "routes"} {
 		require.FileExists(t, filepath.Join(moduleDir, "order."+suffix+".go"))
 	}
@@ -349,13 +353,13 @@ func TestModuleAddGeneratesVerticalSliceModule(t *testing.T) {
 
 func TestCRUDAddGeneratesSampleForModule(t *testing.T) {
 	target := t.TempDir()
-	require.NoError(t, os.MkdirAll(filepath.Join(target, "internal", "module", "order"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(target, "internal", "modules", "order"), 0o755))
 	t.Chdir(target)
 
 	err := run([]string{"crud", "add", "order", "--table", "sys_order"}, ioDiscard{}, "dev")
 
 	require.NoError(t, err)
-	content := readFile(t, filepath.Join(target, "internal", "module", "order", "order.crud.go"))
+	content := readFile(t, filepath.Join(target, "internal", "modules", "order", "order.crud.go"))
 	require.Contains(t, content, "sys_order")
 	require.Contains(t, content, "type OrderCRUD")
 }

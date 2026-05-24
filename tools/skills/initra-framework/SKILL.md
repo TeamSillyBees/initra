@@ -39,7 +39,7 @@ description: 当 Codex 在基于 initra 的 Go 业务项目中开发、修改、
 使用标准 flat module 结构：
 
 ```text
-internal/module/<module>/
+internal/modules/<module>/
   <module>.handler.go
   <module>.dto.go
   <module>.service.go

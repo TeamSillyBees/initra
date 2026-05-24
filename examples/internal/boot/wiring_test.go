@@ -8,11 +8,11 @@ import (
 
 	"github.com/samber/do"
 	"github.com/stretchr/testify/require"
-	authmodule "github.com/teamsillybees/initra/examples/internal/module/auth"
-	filemodule "github.com/teamsillybees/initra/examples/internal/module/file"
-	httpdemomodule "github.com/teamsillybees/initra/examples/internal/module/httpdemo"
-	taskdemomodule "github.com/teamsillybees/initra/examples/internal/module/taskdemo"
-	usermodule "github.com/teamsillybees/initra/examples/internal/module/user"
+	authmodule "github.com/teamsillybees/initra/examples/internal/modules/auth"
+	filemodule "github.com/teamsillybees/initra/examples/internal/modules/file"
+	httpdemomodule "github.com/teamsillybees/initra/examples/internal/modules/httpdemo"
+	taskdemomodule "github.com/teamsillybees/initra/examples/internal/modules/taskdemo"
+	usermodule "github.com/teamsillybees/initra/examples/internal/modules/user"
 	"github.com/teamsillybees/initra/pkg/observability"
 )
 

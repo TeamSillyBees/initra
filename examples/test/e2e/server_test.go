@@ -15,9 +15,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	authmodule "github.com/teamsillybees/initra/examples/internal/module/auth"
-	filemodule "github.com/teamsillybees/initra/examples/internal/module/file"
-	usermodule "github.com/teamsillybees/initra/examples/internal/module/user"
+	authmodule "github.com/teamsillybees/initra/examples/internal/modules/auth"
+	filemodule "github.com/teamsillybees/initra/examples/internal/modules/file"
+	usermodule "github.com/teamsillybees/initra/examples/internal/modules/user"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/observability"
 	"github.com/teamsillybees/initra/pkg/server"

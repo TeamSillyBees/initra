@@ -6,11 +6,11 @@ import (
 	"github.com/samber/do"
 	"github.com/teamsillybees/initra/examples/internal/data"
 	"github.com/teamsillybees/initra/examples/internal/data/ent"
-	authmodule "github.com/teamsillybees/initra/examples/internal/module/auth"
-	filemodule "github.com/teamsillybees/initra/examples/internal/module/file"
-	httpdemomodule "github.com/teamsillybees/initra/examples/internal/module/httpdemo"
-	taskdemomodule "github.com/teamsillybees/initra/examples/internal/module/taskdemo"
-	usermodule "github.com/teamsillybees/initra/examples/internal/module/user"
+	authmodule "github.com/teamsillybees/initra/examples/internal/modules/auth"
+	filemodule "github.com/teamsillybees/initra/examples/internal/modules/file"
+	httpdemomodule "github.com/teamsillybees/initra/examples/internal/modules/httpdemo"
+	taskdemomodule "github.com/teamsillybees/initra/examples/internal/modules/taskdemo"
+	usermodule "github.com/teamsillybees/initra/examples/internal/modules/user"
 	"github.com/teamsillybees/initra/pkg/auth"
 	platformcache "github.com/teamsillybees/initra/pkg/cache"
 	platformdatabase "github.com/teamsillybees/initra/pkg/database"
@@ -64,7 +64,7 @@ func registerProviders(injector *do.Injector, cfg *Config, buildInfo observabili
 }
 
 func registerModules(injector *do.Injector) {
-	// 新增业务模块时，先在 internal/module/<module>/providers.go 暴露 Provide，
+	// 新增业务模块时，先在 internal/modules/<module>/providers.go 暴露 Provide，
 	// 再在这里把模块依赖注册进同一个 do 容器。
 	usermodule.Provide(injector)
 	authmodule.Provide(injector)

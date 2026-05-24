@@ -6,11 +6,11 @@ import (
 	"github.com/samber/do"
 	"{{ .ModulePath }}/internal/data"
 	"{{ .ModulePath }}/internal/data/ent"
-	authmodule "{{ .ModulePath }}/internal/module/auth"
-	filemodule "{{ .ModulePath }}/internal/module/file"
-	httpdemomodule "{{ .ModulePath }}/internal/module/httpdemo"
-	taskdemomodule "{{ .ModulePath }}/internal/module/taskdemo"
-	usermodule "{{ .ModulePath }}/internal/module/user"
+	authmodule "{{ .ModulePath }}/internal/modules/auth"
+	filemodule "{{ .ModulePath }}/internal/modules/file"
+	httpdemomodule "{{ .ModulePath }}/internal/modules/httpdemo"
+	taskdemomodule "{{ .ModulePath }}/internal/modules/taskdemo"
+	usermodule "{{ .ModulePath }}/internal/modules/user"
 	"github.com/teamsillybees/initra/pkg/auth"
 	platformcache "github.com/teamsillybees/initra/pkg/cache"
 	platformdatabase "github.com/teamsillybees/initra/pkg/database"
@@ -64,7 +64,7 @@ func registerProviders(injector *do.Injector, cfg *Config, buildInfo observabili
 }
 
 func registerModules(injector *do.Injector) {
-	// 新增业务模块时，先在 internal/module/<module>/providers.go 暴露 Provide，
+	// 新增业务模块时，先在 internal/modules/<module>/providers.go 暴露 Provide，
 	// 再在这里把模块依赖注册进同一个 do 容器。
 	usermodule.Provide(injector)
 	authmodule.Provide(injector)

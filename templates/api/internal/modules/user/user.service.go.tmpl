@@ -1,0 +1,228 @@
+package user
+
+import (
+	"context"
+	"strings"
+
+	"{{ .ModulePath }}/internal/modules/bizerrors"
+	"github.com/teamsillybees/initra/pkg/entx"
+	"github.com/teamsillybees/initra/pkg/pagination"
+)
+
+// userRepo 定义 user 模块访问持久化层的最小能力。
+type userRepo interface {
+	Create(ctx context.Context, user *User) error
+	FindByID(ctx context.Context, id int64) (*User, error)
+	FindByUsername(ctx context.Context, username string) (*User, error)
+	Page(ctx context.Context, input PageUsersDTO) ([]*User, int64, error)
+	Update(ctx context.Context, user *User) error
+	Delete(ctx context.Context, id int64, operatorID int64) error
+}
+
+// userCache 定义用户详情缓存的最小契约。
+type userCache interface {
+	Get(ctx context.Context, id int64) (*User, bool, error)
+	Set(ctx context.Context, user *User) error
+	Delete(ctx context.Context, id int64) error
+}
+
+// passwordManager 定义密码哈希与校验能力。
+type passwordManager interface {
+	Hash(password string) (string, error)
+	Compare(hash string, password string) error
+}
+
+// Service 是 user 模块的应用服务。
+type Service struct {
+	repo      userRepo
+	cache     userCache
+	passwords passwordManager
+}
+
+// NewService 构造 user 模块应用服务。
+func NewService(
+	repo userRepo,
+	cache userCache,
+	passwords passwordManager,
+) *Service {
+	return &Service{
+		repo:      repo,
+		cache:     cache,
+		passwords: passwords,
+	}
+}
+
+// Create 创建用户。
+func (s *Service) Create(ctx context.Context, input CreateUserDTO) (*User, error) {
+	if strings.TrimSpace(input.Username) == "" {
+		return nil, bizerrors.BadRequest("username is required")
+	}
+	if strings.TrimSpace(input.Password) == "" {
+		return nil, bizerrors.BadRequest("password is required")
+	}
+
+	passwordHash, err := s.passwords.Hash(input.Password)
+	if err != nil {
+		return nil, bizerrors.WrapInternal(err, "hash password failed")
+	}
+
+	isEnable := true
+	if input.IsEnable != nil {
+		isEnable = *input.IsEnable
+	}
+
+	user := &User{
+		Username:     strings.TrimSpace(input.Username),
+		PasswordHash: passwordHash,
+		Nickname:     strings.TrimSpace(input.Nickname),
+		Phone:        strings.TrimSpace(input.Phone),
+		Email:        strings.TrimSpace(input.Email),
+		AvatarURL:    strings.TrimSpace(input.AvatarURL),
+		RoleCodes:    normalizeRoleCodes(input.RoleCodes),
+		IsSuperAdmin: input.IsSuperAdmin,
+		IsEnable:     isEnable,
+		SortID:       input.SortID,
+	}
+
+	ctx = entx.WithOperatorID(ctx, input.OperatorID)
+	if err := s.repo.Create(ctx, user); err != nil {
+		return nil, err
+	}
+
+	return cloneUser(user), nil
+}
+
+// Get 获取用户详情，缓存未命中时自动回填。
+func (s *Service) Get(ctx context.Context, id int64) (*User, error) {
+	if cached, found, err := s.cache.Get(ctx, id); err != nil {
+		return nil, bizerrors.WrapCache(err, "load user from cache failed")
+	} else if found {
+		return cloneUser(cached), nil
+	}
+
+	user, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, bizerrors.UserNotFound(id)
+	}
+
+	if err := s.cache.Set(ctx, user); err != nil {
+		return nil, bizerrors.WrapCache(err, "set user cache failed")
+	}
+
+	return cloneUser(user), nil
+}
+
+// Page 返回分页用户列表。
+func (s *Service) Page(ctx context.Context, input PageUsersDTO) (*pagination.PageResult[*User], error) {
+	pageDTO, err := input.Page.Normalize()
+	if err != nil {
+		return nil, err
+	}
+	input.Page = pageDTO
+
+	items, total, err := s.repo.Page(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+	return &pagination.PageResult[*User]{
+		Page:  pageDTO,
+		Total: total,
+		Items: items,
+	}, nil
+}
+
+// Update 更新用户并清理缓存。
+func (s *Service) Update(ctx context.Context, input UpdateUserDTO) (*User, error) {
+	user, err := s.repo.FindByID(ctx, input.ID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, bizerrors.UserNotFound(input.ID)
+	}
+
+	if input.Nickname != nil {
+		user.Nickname = strings.TrimSpace(*input.Nickname)
+	}
+	if input.Phone != nil {
+		user.Phone = strings.TrimSpace(*input.Phone)
+	}
+	if input.Email != nil {
+		user.Email = strings.TrimSpace(*input.Email)
+	}
+	if input.AvatarURL != nil {
+		user.AvatarURL = strings.TrimSpace(*input.AvatarURL)
+	}
+	if input.RoleCodes != nil {
+		user.RoleCodes = normalizeRoleCodes(*input.RoleCodes)
+	}
+	if input.IsSuperAdmin != nil {
+		user.IsSuperAdmin = *input.IsSuperAdmin
+	}
+	if input.IsEnable != nil {
+		user.IsEnable = *input.IsEnable
+	}
+	if input.SortID != nil {
+		user.SortID = *input.SortID
+	}
+
+	ctx = entx.WithOperatorID(ctx, input.OperatorID)
+	if err := s.repo.Update(ctx, user); err != nil {
+		return nil, err
+	}
+	if err := s.cache.Delete(ctx, user.ID); err != nil {
+		return nil, bizerrors.WrapCache(err, "delete user cache failed")
+	}
+
+	return cloneUser(user), nil
+}
+
+// Delete 删除用户并清理缓存。
+func (s *Service) Delete(ctx context.Context, id int64, operatorID int64) error {
+	if err := s.repo.Delete(ctx, id, operatorID); err != nil {
+		return err
+	}
+	if err := s.cache.Delete(ctx, id); err != nil {
+		return bizerrors.WrapCache(err, "delete user cache failed")
+	}
+	return nil
+}
+
+func cloneUser(user *User) *User {
+	if user == nil {
+		return nil
+	}
+	cloned := *user
+	cloned.RoleCodes = append([]string(nil), user.RoleCodes...)
+	if user.DeletedAt != nil {
+		cloned.DeletedAt = new(*user.DeletedAt)
+	}
+	return &cloned
+}
+
+func normalizeRoleCodes(roleCodes []string) []string {
+	if len(roleCodes) == 0 {
+		return []string{"viewer"}
+	}
+
+	seen := make(map[string]struct{}, len(roleCodes))
+	result := make([]string, 0, len(roleCodes))
+	for _, roleCode := range roleCodes {
+		roleCode = strings.TrimSpace(roleCode)
+		if roleCode == "" {
+			continue
+		}
+		if _, ok := seen[roleCode]; ok {
+			continue
+		}
+		seen[roleCode] = struct{}{}
+		result = append(result, roleCode)
+	}
+	if len(result) == 0 {
+		return []string{"viewer"}
+	}
+	return result
+}

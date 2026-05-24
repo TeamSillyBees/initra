@@ -296,7 +296,7 @@ func newModuleCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "module",
 		Short:         "管理业务模块骨架",
-		Long:          "管理标准项目的 internal/module/<name> 业务模块骨架。模块按 flat package 组织，包含 handler、service、repo、model、dto、routes、providers 和测试文件。",
+		Long:          "管理标准项目的 internal/modules/<name> 业务模块骨架。模块按 flat package 组织，包含 handler、service、repo、model、dto、routes、providers 和测试文件。",
 		Example:       "  initra module add order",
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -313,7 +313,7 @@ func newModuleAddCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "add <name>",
 		Short:         "生成 flat package 业务模块骨架",
-		Long:          "在当前项目的 internal/module 下生成一个业务模块骨架，模块名必须是合法 Go package 名称。",
+		Long:          "在当前项目的 internal/modules 下生成一个业务模块骨架，模块名必须是合法 Go package 名称。",
 		Example:       "  initra module add order",
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -672,7 +672,7 @@ func addModule(name string, stdout io.Writer) error {
 		return err
 	}
 
-	moduleDir := filepath.Join("internal", "module", name)
+	moduleDir := filepath.Join("internal", "modules", name)
 	if err := os.MkdirAll(moduleDir, 0o755); err != nil {
 		return err
 	}
@@ -710,7 +710,7 @@ func addCRUDSample(moduleName string, opts crudAddOptions, stdout io.Writer) err
 		return fmt.Errorf("crud add 必须提供 --table")
 	}
 
-	moduleDir := filepath.Join("internal", "module", moduleName)
+	moduleDir := filepath.Join("internal", "modules", moduleName)
 	if _, err := os.Stat(moduleDir); err != nil {
 		return fmt.Errorf("模块 %s 不存在，请先执行 initra module add %s", moduleName, moduleName)
 	}

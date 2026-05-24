@@ -73,7 +73,7 @@ go run ./cmd/initra new $target --type api --module example.com/demo-api --repla
 业务代码按业务模块组织为单一 flat package，不拆 controller/service/repository 子目录。模块主文件按职责命名，必要配套能力可用独立文件承载。模块文件结构应遵循：
 
 ```text
-internal/module/<module>/
+internal/modules/<module>/
   <module>.handler.go Handler + HTTP 适配方法 + DTO/领域模型转换
   <module>.dto.go     HTTP 边界类型：内部 Request/Response、Query、Body、VO
   <module>.service.go 业务逻辑 + 私有接口定义
@@ -101,7 +101,7 @@ internal/module/<module>/
 ### 错误处理
 
 - 可复用错误码由 `pkg/errors` 定义，如 `CodeBadRequest`、`CodeUnauthorized`、`CodeInternalError`。
-- 业务专属错误码可放在 `internal/module/bizerrors/`，通过 `apperrors.New` 工厂函数创建。
+- 业务专属错误码可放在 `internal/modules/bizerrors/`，通过 `apperrors.New` 工厂函数创建。
 - 业务模块内部不要新增 sentinel error，例如直接 `errors.New`；统一使用业务错误定义。
 - HTTP 响应错误映射应复用现有 mapper 和 response 机制，不要在 handler 中手写不一致的错误响应结构。
 
