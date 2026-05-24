@@ -12,7 +12,7 @@ func TestToHTTPMapsAppError(t *testing.T) {
 	err := New(
 		CodeNotFound,
 		"user not found",
-		WithDetail("user_id", int64(1001)),
+		WithDetail("userId", int64(1001)),
 	)
 
 	status, body := ToHTTP(err, "trace-001")
@@ -21,5 +21,5 @@ func TestToHTTPMapsAppError(t *testing.T) {
 	require.Equal(t, "NOT_FOUND", body.Code)
 	require.Equal(t, "user not found", body.Message)
 	require.Equal(t, "trace-001", body.TraceID)
-	require.Equal(t, int64(1001), body.Details["user_id"])
+	require.Equal(t, int64(1001), body.Details["userId"])
 }

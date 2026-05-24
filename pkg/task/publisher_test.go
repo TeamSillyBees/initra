@@ -12,7 +12,7 @@ import (
 func TestResolvePublishOptionsRequiresBizKeyForSideEffect(t *testing.T) {
 	item := Task{
 		Type:    "demo:send_email",
-		Payload: map[string]string{"user_id": "1001"},
+		Payload: map[string]string{"userId": "1001"},
 		Meta: TaskMeta{
 			SideEffect: true,
 		},
@@ -27,7 +27,7 @@ func TestResolvePublishOptionsRequiresBizKeyForSideEffect(t *testing.T) {
 func TestResolvePublishOptionsAppliesDefaultsAndOverrides(t *testing.T) {
 	item := Task{
 		Type:    "demo:send_email",
-		Payload: map[string]string{"user_id": "1001"},
+		Payload: map[string]string{"userId": "1001"},
 		Meta: TaskMeta{
 			SideEffect: true,
 			BizKey:     "demo:1001:send_email",
@@ -50,11 +50,11 @@ func TestResolvePublishOptionsAppliesDefaultsAndOverrides(t *testing.T) {
 }
 
 func TestMarshalAndDecodePayload(t *testing.T) {
-	raw := json.RawMessage(`{"user_id":"1001"}`)
+	raw := json.RawMessage(`{"userId":"1001"}`)
 	item := Task{Type: "demo:send_email", Payload: raw}
 
 	payload, err := DecodePayload[struct {
-		UserID string `json:"user_id"`
+		UserID string `json:"userId"`
 	}](item)
 
 	require.NoError(t, err)

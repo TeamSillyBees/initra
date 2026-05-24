@@ -32,7 +32,7 @@ func (s *Sender) Send(ctx context.Context, mobile string, code string, traceID s
 		"code":   code,
 	}
 	var payload struct {
-		RequestID string `json:"request_id"`
+		RequestID string `json:"requestId"`
 	}
 	_, err := s.client.Post(ctx, "/messages", body,
 		httpclient.WithHeader("X-Trace-ID", traceID),

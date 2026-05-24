@@ -15,7 +15,7 @@ import (
 type BuildInfoVO struct {
 	Version   string `json:"version"`
 	Commit    string `json:"commit"`
-	BuildTime string `json:"build_time"`
+	BuildTime string `json:"buildTime"`
 }
 
 // Module 暴露健康检查、就绪检查与版本信息接口。

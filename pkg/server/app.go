@@ -131,7 +131,7 @@ type humaError struct {
 	Code    string         `json:"code"`
 	Message string         `json:"message"`
 	Details map[string]any `json:"details,omitempty"`
-	TraceID string         `json:"trace_id,omitempty"`
+	TraceID string         `json:"traceId,omitempty"`
 }
 
 // Error 返回错误文本，满足 error 接口。
@@ -189,7 +189,7 @@ func unwrapGinContext(ctx huma.Context) (ginCtx *gin.Context, ok bool) {
 	return ginCtx, ginCtx != nil
 }
 
-// newHumaError 根据底层错误类型决定错误码、状态码、细节和 trace_id。
+// newHumaError 根据底层错误类型决定错误码、状态码、细节和 traceId。
 func newHumaError(status int, traceID string, message string, errs ...error) huma.StatusError {
 	if len(errs) > 0 {
 		if appErr := apperrors.From(errs[0]); appErr != nil {

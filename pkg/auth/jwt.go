@@ -41,26 +41,26 @@ type Principal struct {
 
 // Claims 是脚手架统一的 JWT Claims。
 type Claims struct {
-	UserID    int64    `json:"user_id"`
+	UserID    int64    `json:"userId"`
 	Roles     []string `json:"roles"`
-	TenantID  string   `json:"tenant_id,omitempty"`
-	TokenType string   `json:"token_type"`
+	TenantID  string   `json:"tenantId,omitempty"`
+	TokenType string   `json:"tokenType"`
 	jwt.RegisteredClaims
 }
 
 // TokenPair 表示一次签发返回的访问令牌与刷新令牌。
 type TokenPair struct {
-	AccessToken      string    `json:"access_token"`
-	RefreshToken     string    `json:"refresh_token"`
-	AccessExpiresAt  time.Time `json:"access_expires_at"`
-	RefreshExpiresAt time.Time `json:"refresh_expires_at"`
+	AccessToken      string    `json:"accessToken"`
+	RefreshToken     string    `json:"refreshToken"`
+	AccessExpiresAt  time.Time `json:"accessExpiresAt"`
+	RefreshExpiresAt time.Time `json:"refreshExpiresAt"`
 }
 
 // RefreshTokenRecord 是服务端保存的 refresh token 状态，客户端只持有 opaque token。
 type RefreshTokenRecord struct {
-	UserID          int64     `json:"user_id"`
-	AccessTokenID   string    `json:"access_token_id"`
-	AccessExpiresAt time.Time `json:"access_expires_at"`
+	UserID          int64     `json:"userId"`
+	AccessTokenID   string    `json:"accessTokenId"`
+	AccessExpiresAt time.Time `json:"accessExpiresAt"`
 }
 
 // JWTManager 负责签发 access JWT，并管理 opaque refresh token 的生命周期。

@@ -180,13 +180,12 @@ func (r *Repository) Update(ctx context.Context, user *User) error {
 func (r *Repository) Delete(ctx context.Context, id int64, operatorID int64) error {
 	ctx = entx.WithOperatorID(ctx, operatorID)
 	return data.WithinTx(ctx, r.client, func(txCtx context.Context, txClient *appent.Client) error {
-		deletedAt := data.SoftDeleteTime()
 		if _, err := txClient.SysUser.Update().
 			Where(
 				sysuser.ID(id),
 				sysuser.DeletedAtIsNil(),
 			).
-			SetDeletedAt(deletedAt).
+			SetDeletedAt(time.Now()).
 			Save(txCtx); err != nil {
 			return mapEntWriteError(err, "delete user failed")
 		}
@@ -196,7 +195,7 @@ func (r *Repository) Delete(ctx context.Context, id int64, operatorID int64) err
 				sysuserrole.UserID(id),
 				sysuserrole.DeletedAtIsNil(),
 			).
-			SetDeletedAt(deletedAt).
+			SetDeletedAt(time.Now()).
 			Save(txCtx); err != nil {
 			return mapEntWriteError(err, "delete user roles failed")
 		}
@@ -307,13 +306,12 @@ func (r *Repository) resolveRoleIDs(ctx context.Context, client *appent.Client, 
 }
 
 func (r *Repository) replaceUserRoles(ctx context.Context, client *appent.Client, userID int64, roleIDs []int64) error {
-	deletedAt := data.SoftDeleteTime()
 	if _, err := client.SysUserRole.Update().
 		Where(
 			sysuserrole.UserID(userID),
 			sysuserrole.DeletedAtIsNil(),
 		).
-		SetDeletedAt(deletedAt).
+		SetDeletedAt(time.Now()).
 		Save(ctx); err != nil {
 		return mapEntWriteError(err, "replace user roles failed")
 	}

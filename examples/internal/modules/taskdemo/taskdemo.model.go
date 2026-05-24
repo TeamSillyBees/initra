@@ -17,6 +17,6 @@ type PublishedTaskResult struct {
 }
 
 type sendEmailPayload struct {
-	UserID string `json:"user_id"`
+	UserID string `json:"userId"`
 	Email  string `json:"email"`
 }

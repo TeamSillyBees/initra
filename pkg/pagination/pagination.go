@@ -5,7 +5,7 @@ import apperrors "github.com/teamsillybees/initra/pkg/errors"
 const (
 	// DefaultPage 是未传 page 时使用的默认页码。
 	DefaultPage = 1
-	// DefaultPageSize 是未传 page_size 或 limit 时使用的默认每页数量。
+	// DefaultPageSize 是未传 pageSize 或 limit 时使用的默认每页数量。
 	DefaultPageSize = 20
 	// DefaultMaxPageSize 是默认允许的最大每页数量。
 	DefaultMaxPageSize = 100
@@ -42,13 +42,13 @@ func WithMaxPageSize(maxPageSize int) Option {
 	}
 }
 
-// PageQuery 描述 page/page_size HTTP 查询参数，可嵌入 Huma request 结构体。
+// PageQuery 描述 page/pageSize HTTP 查询参数，可嵌入 Huma request 结构体。
 type PageQuery struct {
 	Page     int `query:"page" example:"1" doc:"页码"`
-	PageSize int `query:"page_size" example:"20" doc:"每页数量"`
+	PageSize int `query:"pageSize" example:"20" doc:"每页数量"`
 }
 
-// Normalize 校验并补齐 page/page_size 分页参数。
+// Normalize 校验并补齐 page/pageSize 分页参数。
 func (q PageQuery) Normalize(opts ...Option) (PageDTO, error) {
 	normalized := normalizeOptions(opts...)
 
@@ -65,10 +65,10 @@ func (q PageQuery) Normalize(opts ...Option) (PageDTO, error) {
 		pageSize = normalized.DefaultPageSize
 	}
 	if pageSize < 0 {
-		return PageDTO{}, invalidParam("page_size", pageSize, "page_size must be greater than 0")
+		return PageDTO{}, invalidParam("pageSize", pageSize, "pageSize must be greater than 0")
 	}
 	if pageSize > normalized.MaxPageSize {
-		return PageDTO{}, invalidParam("page_size", pageSize, "page_size exceeds max page size")
+		return PageDTO{}, invalidParam("pageSize", pageSize, "pageSize exceeds max page size")
 	}
 
 	return PageDTO{
@@ -77,19 +77,19 @@ func (q PageQuery) Normalize(opts ...Option) (PageDTO, error) {
 	}, nil
 }
 
-// Validate 校验 page/page_size 分页参数。
+// Validate 校验 page/pageSize 分页参数。
 func (q PageQuery) Validate(opts ...Option) error {
 	_, err := q.Normalize(opts...)
 	return err
 }
 
-// PageDTO 是业务层和仓储层可复用的 page/page_size 分页参数。
+// PageDTO 是业务层和仓储层可复用的 page/pageSize 分页参数。
 type PageDTO struct {
 	Page     int
 	PageSize int
 }
 
-// Normalize 校验并补齐 page/page_size 分页参数。
+// Normalize 校验并补齐 page/pageSize 分页参数。
 func (p PageDTO) Normalize(opts ...Option) (PageDTO, error) {
 	return PageQuery{
 		Page:     p.Page,
@@ -97,7 +97,7 @@ func (p PageDTO) Normalize(opts ...Option) (PageDTO, error) {
 	}.Normalize(opts...)
 }
 
-// Validate 校验 page/page_size 分页参数。
+// Validate 校验 page/pageSize 分页参数。
 func (p PageDTO) Validate(opts ...Option) error {
 	_, err := p.Normalize(opts...)
 	return err
@@ -171,7 +171,7 @@ func (p OffsetDTO) Page() int {
 	return p.Offset/p.Limit + 1
 }
 
-// PageDTO 返回 offset/limit 等价的 page/page_size 参数。
+// PageDTO 返回 offset/limit 等价的 page/pageSize 参数。
 func (p OffsetDTO) PageDTO() PageDTO {
 	return PageDTO{
 		Page:     p.Page(),
@@ -222,8 +222,8 @@ type CursorDTO struct {
 type PageMetaVO struct {
 	Total      int64 `json:"total"`
 	Page       int   `json:"page"`
-	PageSize   int   `json:"page_size"`
-	TotalPages int   `json:"total_pages"`
+	PageSize   int   `json:"pageSize"`
+	TotalPages int   `json:"totalPages"`
 }
 
 // PageVO 描述带总数的通用分页 JSON DTO。
@@ -232,12 +232,12 @@ type PageVO[T any] struct {
 	PageMetaVO
 }
 
-// NewPageMetaVO 创建 page/page_size 分页输出元信息。
+// NewPageMetaVO 创建 page/pageSize 分页输出元信息。
 func NewPageMetaVO(total int64, params PageDTO) PageMetaVO {
 	return newPageMetaVO(total, params.Page, params.PageSize)
 }
 
-// NewPageVO 创建 page/page_size 分页输出。
+// NewPageVO 创建 page/pageSize 分页输出。
 func NewPageVO[T any](items []T, total int64, params PageDTO) PageVO[T] {
 	return PageVO[T]{
 		Items:      normalizeItems(items),
@@ -252,8 +252,8 @@ func NewOffsetVO[T any](items []T, total int64, params OffsetDTO) PageVO[T] {
 
 // CursorMetaVO 描述 cursor pagination 响应中的通用 JSON 字段。
 type CursorMetaVO struct {
-	NextCursor string `json:"next_cursor,omitempty"`
-	HasMore    bool   `json:"has_more"`
+	NextCursor string `json:"nextCursor,omitempty"`
+	HasMore    bool   `json:"hasMore"`
 	Limit      int    `json:"limit"`
 }
 

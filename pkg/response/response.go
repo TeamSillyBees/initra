@@ -5,7 +5,7 @@ type SuccessVO[T any] struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 	Data    T      `json:"data"`
-	TraceID string `json:"trace_id,omitempty"`
+	TraceID string `json:"traceId,omitempty"`
 }
 
 // OK 创建标准成功响应。

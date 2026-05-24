@@ -71,6 +71,6 @@ func UserNotFound(userID int64) *apperrors.AppError {
 		CodeUserNotFound,
 		"user not found",
 		apperrors.WithStatus(http.StatusNotFound),
-		apperrors.WithDetail("user_id", userID),
+		apperrors.WithDetail("userId", userID),
 	)
 }

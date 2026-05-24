@@ -24,7 +24,7 @@ func TestUserNotFound(t *testing.T) {
 
 	require.Equal(t, CodeUserNotFound, err.Code)
 	require.Equal(t, http.StatusNotFound, err.Status)
-	require.Equal(t, int64(1001), err.Details["user_id"])
+	require.Equal(t, int64(1001), err.Details["userId"])
 }
 
 // TestWrapInternal 确认业务错误封装保留底层错误链和详情。

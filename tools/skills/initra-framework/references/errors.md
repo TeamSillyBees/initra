@@ -39,7 +39,7 @@ type ErrorVO struct {
 	Code    string         `json:"code"`
 	Message string         `json:"message"`
 	Details map[string]any `json:"details,omitempty"`
-	TraceID string         `json:"trace_id,omitempty"`
+	TraceID string         `json:"traceId,omitempty"`
 }
 ```
 

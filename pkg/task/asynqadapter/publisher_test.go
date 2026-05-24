@@ -21,7 +21,7 @@ func TestPublisherPublish(t *testing.T) {
 
 	result, err := publisher.Publish(context.Background(), task.Task{
 		Type:    "demo:send_email",
-		Payload: map[string]string{"user_id": "1001"},
+		Payload: map[string]string{"userId": "1001"},
 		Meta: task.TaskMeta{
 			Name:       "发送示例邮件",
 			Module:     "demo",
@@ -47,7 +47,7 @@ func TestPublisherMapsDuplicateTask(t *testing.T) {
 
 	item := task.Task{
 		Type:    "demo:send_email",
-		Payload: map[string]string{"user_id": "1001"},
+		Payload: map[string]string{"userId": "1001"},
 	}
 	_, err = publisher.Publish(context.Background(), item, task.WithTaskID("task-duplicate"))
 	require.NoError(t, err)
@@ -88,7 +88,7 @@ func TestWorkerConsumesPublishedTask(t *testing.T) {
 
 	_, err = publisher.Publish(context.Background(), task.Task{
 		Type:    "demo:send_email",
-		Payload: map[string]string{"user_id": "1001"},
+		Payload: map[string]string{"userId": "1001"},
 		Meta: task.TaskMeta{
 			BizKey: "demo:1001:send_email",
 		},

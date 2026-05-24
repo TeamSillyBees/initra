@@ -34,7 +34,7 @@ func (s *Service) PublishEmail(ctx context.Context, input PublishEmailDTO) (*Pub
 	userID := strings.TrimSpace(input.UserID)
 	email := strings.TrimSpace(input.Email)
 	if userID == "" {
-		return nil, bizerrors.BadRequest("user_id 不能为空")
+		return nil, bizerrors.BadRequest("userId 不能为空")
 	}
 	if email == "" {
 		return nil, bizerrors.BadRequest("email 不能为空")

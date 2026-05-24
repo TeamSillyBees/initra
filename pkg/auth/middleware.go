@@ -257,7 +257,7 @@ func bearerToken(header string) (string, bool) {
 	return strings.TrimSpace(parts[1]), true
 }
 
-// writeError 将平台错误统一转换为带 trace_id 的 JSON 响应。
+// writeError 将平台错误统一转换为带 traceId 的 JSON 响应。
 func writeError(c *gin.Context, err error) {
 	if err != nil {
 		_ = c.Error(err)
