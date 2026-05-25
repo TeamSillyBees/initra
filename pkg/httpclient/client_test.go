@@ -84,6 +84,69 @@ func TestClientMethods(t *testing.T) {
 	require.Equal(t, []string{http.MethodPut, http.MethodPatch, http.MethodDelete}, methods)
 }
 
+func TestClientUsesGlobalProxy(t *testing.T) {
+	var proxyHits int32
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&proxyHits, 1)
+		require.Equal(t, "http://remote.test/ping", r.URL.String())
+		writeJSON(t, w, map[string]string{"ok": "true"})
+	}))
+	defer proxy.Close()
+
+	factory, err := NewFactory(Config{
+		Enabled: true,
+		Proxy:   proxy.URL,
+		Services: map[string]ServiceConfig{
+			"svc": {BaseURL: "http://remote.test"},
+		},
+	}, zap.NewNop())
+	require.NoError(t, err)
+	client, err := factory.Get("svc")
+	require.NoError(t, err)
+
+	_, err = client.Get(context.Background(), "/ping")
+
+	require.NoError(t, err)
+	require.Equal(t, int32(1), atomic.LoadInt32(&proxyHits))
+}
+
+func TestClientServiceProxyOverridesGlobalProxy(t *testing.T) {
+	var globalProxyHits int32
+	globalProxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&globalProxyHits, 1)
+		http.Error(w, "global proxy should not be used", http.StatusBadGateway)
+	}))
+	defer globalProxy.Close()
+
+	var serviceProxyHits int32
+	serviceProxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&serviceProxyHits, 1)
+		require.Equal(t, "http://remote.test/ping", r.URL.String())
+		writeJSON(t, w, map[string]string{"ok": "true"})
+	}))
+	defer serviceProxy.Close()
+
+	factory, err := NewFactory(Config{
+		Enabled: true,
+		Proxy:   globalProxy.URL,
+		Services: map[string]ServiceConfig{
+			"svc": {
+				BaseURL: "http://remote.test",
+				Proxy:   serviceProxy.URL,
+			},
+		},
+	}, zap.NewNop())
+	require.NoError(t, err)
+	client, err := factory.Get("svc")
+	require.NoError(t, err)
+
+	_, err = client.Get(context.Background(), "/ping")
+
+	require.NoError(t, err)
+	require.Equal(t, int32(0), atomic.LoadInt32(&globalProxyHits))
+	require.Equal(t, int32(1), atomic.LoadInt32(&serviceProxyHits))
+}
+
 func TestClientAuthTypes(t *testing.T) {
 	tests := []struct {
 		name    string

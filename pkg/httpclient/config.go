@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -57,6 +58,7 @@ type Config struct {
 	MaxIdleConns        int                      `mapstructure:"max_idle_conns"`
 	MaxIdleConnsPerHost int                      `mapstructure:"max_idle_conns_per_host"`
 	MaxResponseBodySize int64                    `mapstructure:"max_response_body_size"`
+	Proxy               string                   `mapstructure:"proxy"`
 	Services            map[string]ServiceConfig `mapstructure:"services"`
 	RetryStatusCodes    []int                    `mapstructure:"retry_status_codes"`
 	RetryMethods        []string                 `mapstructure:"retry_methods"`
@@ -71,6 +73,7 @@ type ServiceConfig struct {
 	Retry               RetryConfig       `mapstructure:"retry"`
 	Response            ResponseConfig    `mapstructure:"response"`
 	MaxResponseBodySize int64             `mapstructure:"max_response_body_size"`
+	Proxy               string            `mapstructure:"proxy"`
 }
 
 // AuthConfig 描述远程服务认证配置。
@@ -123,6 +126,9 @@ func (c Config) Validate() error {
 	if err := validateBodyLimit("http_client.max_response_body_size", cfg.MaxResponseBodySize); err != nil {
 		return err
 	}
+	if err := validateProxyURL("http_client.proxy", cfg.Proxy); err != nil {
+		return err
+	}
 	if len(cfg.Services) == 0 {
 		return fmt.Errorf("%w: http_client.services 至少配置一个远程服务", ErrInvalidConfig)
 	}
@@ -152,6 +158,7 @@ func (c Config) SafeForLog() map[string]any {
 		"max_idle_conns":          cfg.MaxIdleConns,
 		"max_idle_conns_per_host": cfg.MaxIdleConnsPerHost,
 		"max_response_body_size":  cfg.MaxResponseBodySize,
+		"proxy":                   sanitizeProxyURL(cfg.Proxy),
 		"retry_status_codes":      cfg.RetryStatusCodes,
 		"retry_methods":           cfg.RetryMethods,
 		"services":                services,
@@ -199,6 +206,9 @@ func (c ServiceConfig) withDefaults(global Config) ServiceConfig {
 	if c.MaxResponseBodySize == 0 {
 		c.MaxResponseBodySize = global.MaxResponseBodySize
 	}
+	if c.Proxy == "" {
+		c.Proxy = global.Proxy
+	}
 	if c.Retry.Enabled {
 		if c.Retry.Count == 0 {
 			c.Retry.Count = 3
@@ -228,6 +238,9 @@ func validateServiceConfig(name string, cfg ServiceConfig) error {
 		return fmt.Errorf("%w: %s.timeout 必须大于 0", ErrInvalidConfig, prefix)
 	}
 	if err := validateBodyLimit(prefix+".max_response_body_size", cfg.MaxResponseBodySize); err != nil {
+		return err
+	}
+	if err := validateProxyURL(prefix+".proxy", cfg.Proxy); err != nil {
 		return err
 	}
 	if err := validateAuthConfig(prefix+".auth", cfg.Auth); err != nil {
@@ -302,6 +315,26 @@ func validateRetryConfig(prefix string, cfg RetryConfig) error {
 	return nil
 }
 
+func validateProxyURL(name string, value string) error {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+	parsed, err := url.Parse(value)
+	if err != nil {
+		return fmt.Errorf("%w: %s 不是合法代理地址: %w", ErrInvalidConfig, name, err)
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return fmt.Errorf("%w: %s 必须包含 scheme 和 host", ErrInvalidConfig, name)
+	}
+	switch strings.ToLower(parsed.Scheme) {
+	case "http", "https", "socks5":
+		return nil
+	default:
+		return fmt.Errorf("%w: %s scheme %q 不受支持", ErrInvalidConfig, name, parsed.Scheme)
+	}
+}
+
 func validateBodyLimit(name string, value int64) error {
 	if value < 0 {
 		return fmt.Errorf("%w: %s 不能为负数", ErrInvalidConfig, name)
@@ -321,6 +354,7 @@ func sanitizeServiceConfig(cfg ServiceConfig) map[string]any {
 		"retry":                  cfg.Retry,
 		"response":               cfg.Response,
 		"max_response_body_size": cfg.MaxResponseBodySize,
+		"proxy":                  sanitizeProxyURL(cfg.Proxy),
 	}
 }
 
@@ -346,6 +380,26 @@ func sanitizeHeaderMap(headers map[string]string) map[string]string {
 		sanitized[key] = value
 	}
 	return sanitized
+}
+
+func sanitizeProxyURL(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	parsed, err := url.Parse(value)
+	if err != nil {
+		return maskedValue
+	}
+	if parsed.User != nil {
+		if _, ok := parsed.User.Password(); ok {
+			prefix := parsed.Scheme + "://"
+			username := parsed.User.Username()
+			parsed.User = nil
+			return prefix + username + ":" + maskedValue + "@" + strings.TrimPrefix(parsed.String(), prefix)
+		}
+	}
+	return parsed.String()
 }
 
 func maskIfSet(value string) string {

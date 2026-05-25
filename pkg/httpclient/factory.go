@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/go-resty/resty/v2"
@@ -83,7 +85,7 @@ func (f *factory) ClearAll() {
 
 func newRestyClient(global Config, service ServiceConfig) *resty.Client {
 	transport := &http.Transport{
-		Proxy:               http.ProxyFromEnvironment,
+		Proxy:               proxyFunc(service.Proxy),
 		MaxIdleConns:        global.MaxIdleConns,
 		MaxIdleConnsPerHost: global.MaxIdleConnsPerHost,
 		IdleConnTimeout:     global.IdleConnTimeout,
@@ -107,4 +109,16 @@ func newRestyClient(global Config, service ServiceConfig) *resty.Client {
 			AddRetryCondition(retryCondition(service.Retry))
 	}
 	return restyClient
+}
+
+func proxyFunc(proxy string) func(*http.Request) (*url.URL, error) {
+	proxy = strings.TrimSpace(proxy)
+	if proxy == "" {
+		return http.ProxyFromEnvironment
+	}
+	parsed, err := url.Parse(proxy)
+	if err != nil {
+		return http.ProxyFromEnvironment
+	}
+	return http.ProxyURL(parsed)
 }

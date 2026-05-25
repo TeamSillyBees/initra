@@ -64,6 +64,9 @@ func newTestFactory(t *testing.T, baseURL string, override ServiceConfig) Factor
 	if override.Timeout != 0 {
 		service.Timeout = override.Timeout
 	}
+	if override.Proxy != "" {
+		service.Proxy = override.Proxy
+	}
 	factory, err := NewFactory(Config{
 		Enabled: true,
 		Services: map[string]ServiceConfig{

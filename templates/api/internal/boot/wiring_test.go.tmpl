@@ -6,13 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/samber/do"
-	"github.com/stretchr/testify/require"
 	authmodule "{{ .ModulePath }}/internal/modules/auth"
 	filemodule "{{ .ModulePath }}/internal/modules/file"
 	httpdemomodule "{{ .ModulePath }}/internal/modules/httpdemo"
 	taskdemomodule "{{ .ModulePath }}/internal/modules/taskdemo"
 	usermodule "{{ .ModulePath }}/internal/modules/user"
+
+	"github.com/samber/do"
+	"github.com/stretchr/testify/require"
 	"github.com/teamsillybees/initra/pkg/observability"
 )
 
@@ -141,10 +142,12 @@ http_client:
   max_idle_conns: 100
   max_idle_conns_per_host: 20
   max_response_body_size: 10485760
+  proxy: http://127.0.0.1:7890
   services:
     httpbingo:
       base_url: https://httpbingo.org
       timeout: 10s
+      proxy: http://127.0.0.1:7891
       headers:
         X-App-Id: example-api
       retry:
@@ -194,7 +197,9 @@ auth:
 	require.Equal(t, int64(10*1024*1024), cfg.Storage.Local.MaxSize)
 	require.True(t, cfg.HTTPClient.Enabled)
 	require.Equal(t, 30*time.Second, cfg.HTTPClient.Timeout)
+	require.Equal(t, "http://127.0.0.1:7890", cfg.HTTPClient.Proxy)
 	require.Equal(t, "https://httpbingo.org", cfg.HTTPClient.Services["httpbingo"].BaseURL)
+	require.Equal(t, "http://127.0.0.1:7891", cfg.HTTPClient.Services["httpbingo"].Proxy)
 	require.Equal(t, "example-api", cfg.HTTPClient.Services["httpbingo"].Headers["x-app-id"])
 
 	safe := cfg.SafeForLog()
