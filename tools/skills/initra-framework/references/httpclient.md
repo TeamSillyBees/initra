@@ -2,6 +2,8 @@
 
 当业务需要远程 HTTP API、第三方服务、内部服务调用、webhook、重试、超时、请求头、认证配置、响应大小限制或结构化请求日志时，使用 `github.com/teamsillybees/initra/pkg/httpclient`。
 
+`httpclient` 支持通过配置设置全局代理或服务级代理，例如 `http://127.0.0.1:7890`。
+
 ## 标准装配
 
 在配置中添加 `http_client.services.<name>`，并在 boot 层注册一次：
