@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/predicate"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysconfig"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysConfigQuery is the builder for querying SysConfig entities.
@@ -82,8 +83,8 @@ func (_q *SysConfigQuery) FirstX(ctx context.Context) *SysConfig {
 
 // FirstID returns the first SysConfig ID from the query.
 // Returns a *NotFoundError when no SysConfig ID was found.
-func (_q *SysConfigQuery) FirstID(ctx context.Context) (id int64, err error) {
-	var ids []int64
+func (_q *SysConfigQuery) FirstID(ctx context.Context) (id idgen.ID, err error) {
+	var ids []idgen.ID
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
@@ -95,7 +96,7 @@ func (_q *SysConfigQuery) FirstID(ctx context.Context) (id int64, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *SysConfigQuery) FirstIDX(ctx context.Context) int64 {
+func (_q *SysConfigQuery) FirstIDX(ctx context.Context) idgen.ID {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -133,8 +134,8 @@ func (_q *SysConfigQuery) OnlyX(ctx context.Context) *SysConfig {
 // OnlyID is like Only, but returns the only SysConfig ID in the query.
 // Returns a *NotSingularError when more than one SysConfig ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *SysConfigQuery) OnlyID(ctx context.Context) (id int64, err error) {
-	var ids []int64
+func (_q *SysConfigQuery) OnlyID(ctx context.Context) (id idgen.ID, err error) {
+	var ids []idgen.ID
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
@@ -150,7 +151,7 @@ func (_q *SysConfigQuery) OnlyID(ctx context.Context) (id int64, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *SysConfigQuery) OnlyIDX(ctx context.Context) int64 {
+func (_q *SysConfigQuery) OnlyIDX(ctx context.Context) idgen.ID {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -178,7 +179,7 @@ func (_q *SysConfigQuery) AllX(ctx context.Context) []*SysConfig {
 }
 
 // IDs executes the query and returns a list of SysConfig IDs.
-func (_q *SysConfigQuery) IDs(ctx context.Context) (ids []int64, err error) {
+func (_q *SysConfigQuery) IDs(ctx context.Context) (ids []idgen.ID, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
@@ -190,7 +191,7 @@ func (_q *SysConfigQuery) IDs(ctx context.Context) (ids []int64, err error) {
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *SysConfigQuery) IDsX(ctx context.Context) []int64 {
+func (_q *SysConfigQuery) IDsX(ctx context.Context) []idgen.ID {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)

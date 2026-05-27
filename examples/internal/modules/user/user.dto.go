@@ -1,6 +1,7 @@
 package user
 
 import (
+	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/pagination"
 	"github.com/teamsillybees/initra/pkg/response"
 )
@@ -39,7 +40,7 @@ type UpdateUserBody struct {
 
 // UserVO 是 user 模块对外暴露的用户 JSON DTO。
 type UserVO struct {
-	ID           int64    `json:"id"`
+	ID           idgen.ID `json:"id"`
 	Username     string   `json:"username"`
 	Nickname     string   `json:"nickname"`
 	Phone        string   `json:"phone"`
@@ -52,7 +53,7 @@ type UserVO struct {
 }
 
 type getUserRequest struct {
-	ID int64 `path:"id" example:"1001" doc:"用户 ID"`
+	ID idgen.ID `path:"id" example:"1771234567890123456" doc:"用户 ID"`
 }
 
 type getUserResponse struct {
@@ -76,7 +77,7 @@ type createUserResponse struct {
 }
 
 type updateUserRequest struct {
-	ID   int64 `path:"id" example:"1001" doc:"用户 ID"`
+	ID   idgen.ID `path:"id" example:"1771234567890123456" doc:"用户 ID"`
 	Body UpdateUserBody
 }
 
@@ -85,7 +86,7 @@ type updateUserResponse struct {
 }
 
 type deleteUserRequest struct {
-	ID int64 `path:"id" example:"1001" doc:"用户 ID"`
+	ID idgen.ID `path:"id" example:"1771234567890123456" doc:"用户 ID"`
 }
 
 type deleteUserResponse struct {

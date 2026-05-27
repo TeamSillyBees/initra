@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/require"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // fakeTokenStore 记录 JWTManager 对 TokenStore 的调用，便于断言 Redis TTL 和黑名单行为。
@@ -86,7 +87,7 @@ func TestJWTManagerIssuesAndParsesTokens(t *testing.T) {
 	require.NoError(t, err)
 
 	pair, err := manager.IssueTokenPair(context.Background(), Principal{
-		UserID: 1001,
+		UserID: idgen.New(1001),
 		Roles:  []string{"admin"},
 	})
 	require.NoError(t, err)
@@ -95,7 +96,7 @@ func TestJWTManagerIssuesAndParsesTokens(t *testing.T) {
 
 	accessClaims, err := manager.ParseAccessToken(context.Background(), pair.AccessToken)
 	require.NoError(t, err)
-	require.Equal(t, int64(1001), accessClaims.UserID)
+	require.Equal(t, idgen.New(1001), accessClaims.UserID)
 	require.Equal(t, []string{"admin"}, accessClaims.Roles)
 	require.Equal(t, TokenTypeAccess, accessClaims.TokenType)
 	require.NotEmpty(t, accessClaims.ID)
@@ -104,7 +105,7 @@ func TestJWTManagerIssuesAndParsesTokens(t *testing.T) {
 	require.Error(t, err)
 	require.NotContains(t, pair.RefreshToken, ".")
 	require.NotEqual(t, pair.RefreshToken, store.storedRefreshTokenID)
-	require.Equal(t, int64(1001), store.storedRefreshRecord.UserID)
+	require.Equal(t, idgen.New(1001), store.storedRefreshRecord.UserID)
 	require.Equal(t, accessClaims.ID, store.storedRefreshRecord.AccessTokenID)
 	require.Equal(t, pair.AccessExpiresAt.Unix(), store.storedRefreshRecord.AccessExpiresAt.Unix())
 	require.Positive(t, store.storedRefreshTTL)
@@ -121,7 +122,7 @@ func TestJWTManagerRejectsExpiredAccessToken(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	token, err := manager.issue(Principal{UserID: 1001}, TokenTypeAccess, time.Now().Add(-time.Minute), time.Now().Add(-2*time.Minute))
+	token, err := manager.issue(Principal{UserID: idgen.New(1001)}, TokenTypeAccess, time.Now().Add(-time.Minute), time.Now().Add(-2*time.Minute))
 	require.NoError(t, err)
 
 	_, err = manager.ParseAccessToken(context.Background(), token)
@@ -139,7 +140,7 @@ func TestJWTManagerRejectsAccessTokenWithoutExpiration(t *testing.T) {
 	require.NoError(t, err)
 
 	claims := Claims{
-		UserID:    1001,
+		UserID:    idgen.New(1001),
 		TokenType: TokenTypeAccess,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:  "initra",
@@ -166,7 +167,7 @@ func TestJWTManagerRejectsBlacklistedAccessToken(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: 1001})
+	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001)})
 	require.NoError(t, err)
 
 	claims, err := manager.parse(pair.AccessToken, TokenTypeAccess)
@@ -190,7 +191,7 @@ func TestJWTManagerRejectsRefreshTokenMissingFromStore(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: 1001})
+	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001)})
 	require.NoError(t, err)
 
 	_, err = manager.ValidateRefreshToken(context.Background(), pair.RefreshToken)
@@ -213,14 +214,14 @@ func TestJWTManagerConsumeRefreshTokenRevokesPairedAccessToken(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: 1001})
+	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001)})
 	require.NoError(t, err)
 	accessClaims, err := manager.parse(pair.AccessToken, TokenTypeAccess)
 	require.NoError(t, err)
 
 	record, err := manager.ConsumeRefreshToken(context.Background(), pair.RefreshToken)
 	require.NoError(t, err)
-	require.Equal(t, int64(1001), record.UserID)
+	require.Equal(t, idgen.New(1001), record.UserID)
 	require.Equal(t, accessClaims.ID, store.blacklistedTokenID)
 	require.Greater(t, store.blacklistedTTL, 50*time.Minute)
 
@@ -240,7 +241,7 @@ func TestJWTManagerBlacklistAccessTokenStoresRemainingTTL(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: 1001})
+	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001)})
 	require.NoError(t, err)
 
 	err = manager.BlacklistAccessToken(context.Background(), pair.AccessToken)
@@ -265,7 +266,7 @@ func TestJWTManagerUsesInjectedClockForRefreshTTL(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = manager.IssueTokenPair(context.Background(), Principal{UserID: 1001})
+	_, err = manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001)})
 	require.NoError(t, err)
 
 	require.Equal(t, 24*time.Hour, store.storedRefreshTTL)
@@ -287,7 +288,7 @@ func TestJWTManagerUsesInjectedClockForBlacklistTTL(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: 1001})
+	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001)})
 	require.NoError(t, err)
 
 	err = manager.BlacklistAccessToken(context.Background(), pair.AccessToken)

@@ -15,6 +15,7 @@ import (
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrole"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysuser"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysuserrole"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysUserRoleUpdate is the builder for updating SysUserRole entities.
@@ -51,13 +52,13 @@ func (_u *SysUserRoleUpdate) ClearDeletedAt() *SysUserRoleUpdate {
 }
 
 // SetUserID sets the "user_id" field.
-func (_u *SysUserRoleUpdate) SetUserID(v int64) *SysUserRoleUpdate {
+func (_u *SysUserRoleUpdate) SetUserID(v idgen.ID) *SysUserRoleUpdate {
 	_u.mutation.SetUserID(v)
 	return _u
 }
 
 // SetNillableUserID sets the "user_id" field if the given value is not nil.
-func (_u *SysUserRoleUpdate) SetNillableUserID(v *int64) *SysUserRoleUpdate {
+func (_u *SysUserRoleUpdate) SetNillableUserID(v *idgen.ID) *SysUserRoleUpdate {
 	if v != nil {
 		_u.SetUserID(*v)
 	}
@@ -65,13 +66,13 @@ func (_u *SysUserRoleUpdate) SetNillableUserID(v *int64) *SysUserRoleUpdate {
 }
 
 // SetRoleID sets the "role_id" field.
-func (_u *SysUserRoleUpdate) SetRoleID(v int64) *SysUserRoleUpdate {
+func (_u *SysUserRoleUpdate) SetRoleID(v idgen.ID) *SysUserRoleUpdate {
 	_u.mutation.SetRoleID(v)
 	return _u
 }
 
 // SetNillableRoleID sets the "role_id" field if the given value is not nil.
-func (_u *SysUserRoleUpdate) SetNillableRoleID(v *int64) *SysUserRoleUpdate {
+func (_u *SysUserRoleUpdate) SetNillableRoleID(v *idgen.ID) *SysUserRoleUpdate {
 	if v != nil {
 		_u.SetRoleID(*v)
 	}
@@ -79,14 +80,14 @@ func (_u *SysUserRoleUpdate) SetNillableRoleID(v *int64) *SysUserRoleUpdate {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_u *SysUserRoleUpdate) SetCreatedBy(v int64) *SysUserRoleUpdate {
+func (_u *SysUserRoleUpdate) SetCreatedBy(v idgen.ID) *SysUserRoleUpdate {
 	_u.mutation.ResetCreatedBy()
 	_u.mutation.SetCreatedBy(v)
 	return _u
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysUserRoleUpdate) SetNillableCreatedBy(v *int64) *SysUserRoleUpdate {
+func (_u *SysUserRoleUpdate) SetNillableCreatedBy(v *idgen.ID) *SysUserRoleUpdate {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
@@ -94,7 +95,7 @@ func (_u *SysUserRoleUpdate) SetNillableCreatedBy(v *int64) *SysUserRoleUpdate {
 }
 
 // AddCreatedBy adds value to the "created_by" field.
-func (_u *SysUserRoleUpdate) AddCreatedBy(v int64) *SysUserRoleUpdate {
+func (_u *SysUserRoleUpdate) AddCreatedBy(v idgen.ID) *SysUserRoleUpdate {
 	_u.mutation.AddCreatedBy(v)
 	return _u
 }
@@ -162,12 +163,12 @@ func (_u *SysUserRoleUpdate) ExecX(ctx context.Context) {
 // check runs all checks and user-defined validators on the builder.
 func (_u *SysUserRoleUpdate) check() error {
 	if v, ok := _u.mutation.UserID(); ok {
-		if err := sysuserrole.UserIDValidator(v); err != nil {
+		if err := sysuserrole.UserIDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "user_id", err: fmt.Errorf(`ent: validator failed for field "SysUserRole.user_id": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.RoleID(); ok {
-		if err := sysuserrole.RoleIDValidator(v); err != nil {
+		if err := sysuserrole.RoleIDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "role_id", err: fmt.Errorf(`ent: validator failed for field "SysUserRole.role_id": %w`, err)}
 		}
 	}
@@ -306,13 +307,13 @@ func (_u *SysUserRoleUpdateOne) ClearDeletedAt() *SysUserRoleUpdateOne {
 }
 
 // SetUserID sets the "user_id" field.
-func (_u *SysUserRoleUpdateOne) SetUserID(v int64) *SysUserRoleUpdateOne {
+func (_u *SysUserRoleUpdateOne) SetUserID(v idgen.ID) *SysUserRoleUpdateOne {
 	_u.mutation.SetUserID(v)
 	return _u
 }
 
 // SetNillableUserID sets the "user_id" field if the given value is not nil.
-func (_u *SysUserRoleUpdateOne) SetNillableUserID(v *int64) *SysUserRoleUpdateOne {
+func (_u *SysUserRoleUpdateOne) SetNillableUserID(v *idgen.ID) *SysUserRoleUpdateOne {
 	if v != nil {
 		_u.SetUserID(*v)
 	}
@@ -320,13 +321,13 @@ func (_u *SysUserRoleUpdateOne) SetNillableUserID(v *int64) *SysUserRoleUpdateOn
 }
 
 // SetRoleID sets the "role_id" field.
-func (_u *SysUserRoleUpdateOne) SetRoleID(v int64) *SysUserRoleUpdateOne {
+func (_u *SysUserRoleUpdateOne) SetRoleID(v idgen.ID) *SysUserRoleUpdateOne {
 	_u.mutation.SetRoleID(v)
 	return _u
 }
 
 // SetNillableRoleID sets the "role_id" field if the given value is not nil.
-func (_u *SysUserRoleUpdateOne) SetNillableRoleID(v *int64) *SysUserRoleUpdateOne {
+func (_u *SysUserRoleUpdateOne) SetNillableRoleID(v *idgen.ID) *SysUserRoleUpdateOne {
 	if v != nil {
 		_u.SetRoleID(*v)
 	}
@@ -334,14 +335,14 @@ func (_u *SysUserRoleUpdateOne) SetNillableRoleID(v *int64) *SysUserRoleUpdateOn
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_u *SysUserRoleUpdateOne) SetCreatedBy(v int64) *SysUserRoleUpdateOne {
+func (_u *SysUserRoleUpdateOne) SetCreatedBy(v idgen.ID) *SysUserRoleUpdateOne {
 	_u.mutation.ResetCreatedBy()
 	_u.mutation.SetCreatedBy(v)
 	return _u
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysUserRoleUpdateOne) SetNillableCreatedBy(v *int64) *SysUserRoleUpdateOne {
+func (_u *SysUserRoleUpdateOne) SetNillableCreatedBy(v *idgen.ID) *SysUserRoleUpdateOne {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
@@ -349,7 +350,7 @@ func (_u *SysUserRoleUpdateOne) SetNillableCreatedBy(v *int64) *SysUserRoleUpdat
 }
 
 // AddCreatedBy adds value to the "created_by" field.
-func (_u *SysUserRoleUpdateOne) AddCreatedBy(v int64) *SysUserRoleUpdateOne {
+func (_u *SysUserRoleUpdateOne) AddCreatedBy(v idgen.ID) *SysUserRoleUpdateOne {
 	_u.mutation.AddCreatedBy(v)
 	return _u
 }
@@ -430,12 +431,12 @@ func (_u *SysUserRoleUpdateOne) ExecX(ctx context.Context) {
 // check runs all checks and user-defined validators on the builder.
 func (_u *SysUserRoleUpdateOne) check() error {
 	if v, ok := _u.mutation.UserID(); ok {
-		if err := sysuserrole.UserIDValidator(v); err != nil {
+		if err := sysuserrole.UserIDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "user_id", err: fmt.Errorf(`ent: validator failed for field "SysUserRole.user_id": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.RoleID(); ok {
-		if err := sysuserrole.RoleIDValidator(v); err != nil {
+		if err := sysuserrole.RoleIDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "role_id", err: fmt.Errorf(`ent: validator failed for field "SysUserRole.role_id": %w`, err)}
 		}
 	}

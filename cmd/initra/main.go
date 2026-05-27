@@ -1091,9 +1091,11 @@ func moduleModelTemplate(name string) string {
 	typeName := exportedName(name)
 	return fmt.Sprintf(`package %s
 
+import "github.com/teamsillybees/initra/pkg/idgen"
+
 // %s 是 %s 模块的领域占位模型。
 type %s struct {
-	ID int64
+	ID idgen.ID
 }
 `, name, typeName, name, typeName)
 }
@@ -1102,7 +1104,11 @@ func moduleServiceTemplate(name string) string {
 	typeName := exportedName(name)
 	return fmt.Sprintf(`package %s
 
-import "context"
+import (
+	"context"
+
+	"github.com/teamsillybees/initra/pkg/idgen"
+)
 
 // Service 是 %s 模块的应用服务。
 type Service struct{}
@@ -1113,7 +1119,7 @@ func NewService() *Service {
 }
 
 // Get 返回 %s 详情占位数据。
-func (s *Service) Get(ctx context.Context, id int64) (*%s, error) {
+func (s *Service) Get(ctx context.Context, id idgen.ID) (*%s, error) {
 	_ = s
 	_ = ctx
 	return &%s{ID: id}, nil
@@ -1171,15 +1177,18 @@ func moduleDTOTemplate(name string) string {
 	typeName := exportedName(name)
 	return fmt.Sprintf(`package %s
 
-import "github.com/teamsillybees/initra/pkg/response"
+import (
+	"github.com/teamsillybees/initra/pkg/idgen"
+	"github.com/teamsillybees/initra/pkg/response"
+)
 
 type get%sRequest struct {
-	ID int64 `+"`path:\"id\" doc:\"ID\"`"+`
+	ID idgen.ID `+"`path:\"id\" example:\"1771234567890123456\" doc:\"ID\"`"+`
 }
 
 // %sVO 描述 %s 对外 JSON DTO。
 type %sVO struct {
-	ID int64 `+"`json:\"id\"`"+`
+	ID idgen.ID `+"`json:\"id\"`"+`
 }
 
 type get%sResponse struct {

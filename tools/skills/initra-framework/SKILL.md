@@ -23,6 +23,7 @@ description: 当 Codex 在基于 initra 的 Go 业务项目中开发、修改、
 
 ## 能力路由
 
+- 业务 ID、Ent 主键/外键、Huma/OpenAPI ID、schema mixin：`references/id.md`
 - Redis、Key、TTL、验证码、token/session 存储、分布式锁、Redis 缓存：`references/redisx.md`
 - 远程 HTTP API、第三方服务、webhook、内部服务调用：`references/httpclient.md`
 - 上传、下载、对象存储、本地存储、OSS、COS、S3、预签名 URL、STS：`references/storage.md`
@@ -52,6 +53,9 @@ internal/modules/<module>/
 ```
 
 - HTTP 边界类型放在 `*.dto.go`：Huma/Gin 包装类型使用非导出的 `request` / `response`；查询参数使用 `Query`；请求体使用 `Body`；对外 JSON DTO 使用 `VO`。
+- 业务 ID 统一使用 `idgen.ID`；Ent 主键、外键、auth user ID、REST path params、service/repo 入参和 JSON VO 不使用 `int64` 或 `string` 表达业务 ID。
+- 对外 REST/OpenAPI ID 是 JSON string，示例使用 `"1771234567890123456"`；只有雪花 ID 生成器、第三方库、手写 SQL 参数或底层基础设施场景才调用 `Int64()`。
+- Ent schema 复用 `pkg/entx/mixin` 的 ID、审计、软删除和乐观锁 mixin，不在业务项目内复制本地 schema mixin。
 - 领域模型和 service/repo 入参放在 `*.model.go`；service/repo 入参结构体使用 `DTO`，不要使用 `Params`。
 - Handler 只做传输层适配：转换请求数据、调用 service、包装响应。
 - Service 不做框架初始化。通过构造函数注入模块内小接口，并返回 `apperrors.AppError`。

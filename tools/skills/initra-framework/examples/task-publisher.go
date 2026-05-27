@@ -3,6 +3,7 @@ package examples
 import (
 	"context"
 
+	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/task"
 )
 
@@ -11,12 +12,12 @@ type demoTaskPublisher interface {
 }
 
 type demoSendEmailPayload struct {
-	UserID string `json:"userId"`
-	Email  string `json:"email"`
+	UserID idgen.ID `json:"userId"`
+	Email  string   `json:"email"`
 }
 
-func publishDemoEmail(ctx context.Context, publisher demoTaskPublisher, userID string, email string) (*task.PublishResult, error) {
-	bizKey := "demo:" + userID + ":send_email"
+func publishDemoEmail(ctx context.Context, publisher demoTaskPublisher, userID idgen.ID, email string) (*task.PublishResult, error) {
+	bizKey := "demo:" + userID.String() + ":send_email"
 	return publisher.Publish(ctx, task.Task{
 		Type: "demo:send_email",
 		Payload: demoSendEmailPayload{

@@ -4,12 +4,12 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
-	"entgo.io/ent/schema/mixin"
+	entschemamixin "entgo.io/ent/schema/mixin"
 )
 
 // SoftDelete 为支持逻辑删除的表提供 deleted_at 字段。
 type SoftDelete struct {
-	mixin.Schema
+	entschemamixin.Schema
 }
 
 // Fields 返回逻辑删除字段定义。

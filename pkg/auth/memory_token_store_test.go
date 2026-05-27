@@ -6,13 +6,14 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // TestMemoryTokenStoreConsumesRefreshTokenOnce 验证内存 token store 支持 refresh token 一次性消费。
 func TestMemoryTokenStoreConsumesRefreshTokenOnce(t *testing.T) {
 	store := NewMemoryTokenStore()
 	record := RefreshTokenRecord{
-		UserID:          1001,
+		UserID:          idgen.New(1001),
 		AccessTokenID:   "access-1",
 		AccessExpiresAt: time.Now().Add(time.Hour),
 	}

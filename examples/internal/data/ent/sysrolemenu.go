@@ -12,6 +12,7 @@ import (
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysmenu"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrole"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrolemenu"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // 系统角色与菜单/按钮资源关系表，用于角色授权。
@@ -19,15 +20,15 @@ type SysRoleMenu struct {
 	config `json:"-"`
 	// ID of the ent.
 	// 雪花算法生成的主键 ID。
-	ID int64 `json:"id,omitempty"`
+	ID idgen.ID `json:"id,omitempty"`
 	// 逻辑删除时间，NULL 表示未删除。
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// 系统角色 ID，关联 sys_role.id。
-	RoleID int64 `json:"role_id,omitempty"`
+	RoleID idgen.ID `json:"role_id,omitempty"`
 	// 系统菜单资源 ID，关联 sys_menu.id。
-	MenuID int64 `json:"menu_id,omitempty"`
+	MenuID idgen.ID `json:"menu_id,omitempty"`
 	// 创建人用户 ID。
-	CreatedBy *int64 `json:"created_by,omitempty"`
+	CreatedBy *idgen.ID `json:"created_by,omitempty"`
 	// 创建时间。
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -94,11 +95,11 @@ func (_m *SysRoleMenu) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case sysrolemenu.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value.Valid {
+				_m.ID = idgen.ID(value.Int64)
 			}
-			_m.ID = int64(value.Int64)
 		case sysrolemenu.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
@@ -110,20 +111,20 @@ func (_m *SysRoleMenu) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field role_id", values[i])
 			} else if value.Valid {
-				_m.RoleID = value.Int64
+				_m.RoleID = idgen.ID(value.Int64)
 			}
 		case sysrolemenu.FieldMenuID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field menu_id", values[i])
 			} else if value.Valid {
-				_m.MenuID = value.Int64
+				_m.MenuID = idgen.ID(value.Int64)
 			}
 		case sysrolemenu.FieldCreatedBy:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field created_by", values[i])
 			} else if value.Valid {
-				_m.CreatedBy = new(int64)
-				*_m.CreatedBy = value.Int64
+				_m.CreatedBy = new(idgen.ID)
+				*_m.CreatedBy = idgen.ID(value.Int64)
 			}
 		case sysrolemenu.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

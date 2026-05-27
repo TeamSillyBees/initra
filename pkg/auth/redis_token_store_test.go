@@ -7,6 +7,7 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/stretchr/testify/require"
+	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/redisx"
 )
 
@@ -26,7 +27,7 @@ func TestRedisTokenStoreUsesRedisxKeyBuilderAndScripts(t *testing.T) {
 
 	store := NewRedisTokenStoreWithEnv("initra", "dev", client)
 	record := RefreshTokenRecord{
-		UserID:          1001,
+		UserID:          idgen.New(1001),
 		AccessTokenID:   "access-1",
 		AccessExpiresAt: time.Now().Add(time.Hour),
 	}

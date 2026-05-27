@@ -5,15 +5,16 @@ import (
 	"time"
 
 	"entgo.io/ent"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // IDGenerator 定义雪花 ID 生成器的最小能力。
 type IDGenerator interface {
-	NextID() int64
+	NextID() idgen.ID
 }
 
 // OperatorFunc 从 context 中解析当前操作人 ID。
-type OperatorFunc func(ctx context.Context) (int64, bool)
+type OperatorFunc func(ctx context.Context) (idgen.ID, bool)
 
 // AuditHookOptions 描述审计自动填充 hook 的运行时依赖。
 type AuditHookOptions struct {
@@ -23,8 +24,8 @@ type AuditHookOptions struct {
 }
 
 type int64IDMutation interface {
-	ID() (int64, bool)
-	SetID(int64)
+	ID() (idgen.ID, bool)
+	SetID(idgen.ID)
 }
 
 // AuditHook 为 Ent create/update mutation 自动填充 ID 与审计字段。

@@ -6,24 +6,25 @@ import (
 
 	"{{ .ModulePath }}/internal/modules/bizerrors"
 	"github.com/teamsillybees/initra/pkg/entx"
+	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/pagination"
 )
 
 // userRepo 定义 user 模块访问持久化层的最小能力。
 type userRepo interface {
 	Create(ctx context.Context, user *User) error
-	FindByID(ctx context.Context, id int64) (*User, error)
+	FindByID(ctx context.Context, id idgen.ID) (*User, error)
 	FindByUsername(ctx context.Context, username string) (*User, error)
 	Page(ctx context.Context, input PageUsersDTO) ([]*User, int64, error)
 	Update(ctx context.Context, user *User) error
-	Delete(ctx context.Context, id int64, operatorID int64) error
+	Delete(ctx context.Context, id idgen.ID, operatorID idgen.ID) error
 }
 
 // userCache 定义用户详情缓存的最小契约。
 type userCache interface {
-	Get(ctx context.Context, id int64) (*User, bool, error)
+	Get(ctx context.Context, id idgen.ID) (*User, bool, error)
 	Set(ctx context.Context, user *User) error
-	Delete(ctx context.Context, id int64) error
+	Delete(ctx context.Context, id idgen.ID) error
 }
 
 // passwordManager 定义密码哈希与校验能力。
@@ -93,7 +94,7 @@ func (s *Service) Create(ctx context.Context, input CreateUserDTO) (*User, error
 }
 
 // Get 获取用户详情，缓存未命中时自动回填。
-func (s *Service) Get(ctx context.Context, id int64) (*User, error) {
+func (s *Service) Get(ctx context.Context, id idgen.ID) (*User, error) {
 	if cached, found, err := s.cache.Get(ctx, id); err != nil {
 		return nil, bizerrors.WrapCache(err, "load user from cache failed")
 	} else if found {
@@ -181,7 +182,7 @@ func (s *Service) Update(ctx context.Context, input UpdateUserDTO) (*User, error
 }
 
 // Delete 删除用户并清理缓存。
-func (s *Service) Delete(ctx context.Context, id int64, operatorID int64) error {
+func (s *Service) Delete(ctx context.Context, id idgen.ID, operatorID idgen.ID) error {
 	if err := s.repo.Delete(ctx, id, operatorID); err != nil {
 		return err
 	}

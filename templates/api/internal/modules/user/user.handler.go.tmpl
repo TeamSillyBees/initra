@@ -4,6 +4,7 @@ import (
 	"context"
 
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
+	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/pagination"
 	"github.com/teamsillybees/initra/pkg/requestctx"
 	"github.com/teamsillybees/initra/pkg/response"
@@ -54,7 +55,7 @@ func (h *Handler) page(ctx context.Context, input *pageUsersRequest) (*pageUsers
 }
 
 func (h *Handler) create(ctx context.Context, input *createUserRequest) (*createUserResponse, error) {
-	operatorID := int64(0)
+	var operatorID idgen.ID
 	if principal, ok := platformauth.PrincipalFromContext(ctx); ok {
 		operatorID = principal.UserID
 	}
@@ -82,7 +83,7 @@ func (h *Handler) create(ctx context.Context, input *createUserRequest) (*create
 }
 
 func (h *Handler) update(ctx context.Context, input *updateUserRequest) (*updateUserResponse, error) {
-	operatorID := int64(0)
+	var operatorID idgen.ID
 	if principal, ok := platformauth.PrincipalFromContext(ctx); ok {
 		operatorID = principal.UserID
 	}
@@ -109,7 +110,7 @@ func (h *Handler) update(ctx context.Context, input *updateUserRequest) (*update
 }
 
 func (h *Handler) delete(ctx context.Context, input *deleteUserRequest) (*deleteUserResponse, error) {
-	operatorID := int64(0)
+	var operatorID idgen.ID
 	if principal, ok := platformauth.PrincipalFromContext(ctx); ok {
 		operatorID = principal.UserID
 	}

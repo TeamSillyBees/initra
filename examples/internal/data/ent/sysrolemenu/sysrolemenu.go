@@ -5,6 +5,7 @@ package sysrolemenu
 import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 const (
@@ -69,6 +70,8 @@ var (
 	RoleIDValidator func(int64) error
 	// MenuIDValidator is a validator for the "menu_id" field. It is called by the builders before save.
 	MenuIDValidator func(int64) error
+	// DefaultID holds the default value on creation for the "id" field.
+	DefaultID func() idgen.ID
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int64) error
 )

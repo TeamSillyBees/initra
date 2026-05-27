@@ -19,6 +19,7 @@ import (
 	filemodule "github.com/teamsillybees/initra/examples/internal/modules/file"
 	usermodule "github.com/teamsillybees/initra/examples/internal/modules/user"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
+	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/observability"
 	"github.com/teamsillybees/initra/pkg/server"
 	"github.com/teamsillybees/initra/pkg/storage"
@@ -28,7 +29,7 @@ import (
 
 // memoryUserRepository 为端到端测试提供无需数据库的 user 仓储实现。
 type memoryUserRepository struct {
-	items map[int64]*usermodule.User
+	items map[idgen.ID]*usermodule.User
 }
 
 // Create 保存用户副本，避免后续修改影响测试仓储状态。
@@ -38,7 +39,7 @@ func (m *memoryUserRepository) Create(_ context.Context, user *usermodule.User) 
 }
 
 // FindByID 按 ID 返回用户副本。
-func (m *memoryUserRepository) FindByID(_ context.Context, id int64) (*usermodule.User, error) {
+func (m *memoryUserRepository) FindByID(_ context.Context, id idgen.ID) (*usermodule.User, error) {
 	user, ok := m.items[id]
 	if !ok {
 		return nil, nil
@@ -72,7 +73,7 @@ func (m *memoryUserRepository) Update(_ context.Context, user *usermodule.User) 
 }
 
 // Delete 从内存仓储中删除用户。
-func (m *memoryUserRepository) Delete(_ context.Context, id int64, _ int64) error {
+func (m *memoryUserRepository) Delete(_ context.Context, id idgen.ID, _ idgen.ID) error {
 	delete(m.items, id)
 	return nil
 }
@@ -81,7 +82,7 @@ func (m *memoryUserRepository) Delete(_ context.Context, id int64, _ int64) erro
 type memoryUserCache struct{}
 
 // Get 始终返回未命中。
-func (memoryUserCache) Get(context.Context, int64) (*usermodule.User, bool, error) {
+func (memoryUserCache) Get(context.Context, idgen.ID) (*usermodule.User, bool, error) {
 	return nil, false, nil
 }
 
@@ -91,13 +92,13 @@ func (memoryUserCache) Set(context.Context, *usermodule.User) error {
 }
 
 // Delete 忽略缓存删除。
-func (memoryUserCache) Delete(context.Context, int64) error {
+func (memoryUserCache) Delete(context.Context, idgen.ID) error {
 	return nil
 }
 
 // memoryIdentityRepository 为端到端测试提供无需数据库的 auth 身份仓储实现。
 type memoryIdentityRepository struct {
-	byID       map[int64]*authmodule.Identity
+	byID       map[idgen.ID]*authmodule.Identity
 	byUsername map[string]*authmodule.Identity
 }
 
@@ -111,7 +112,7 @@ func (m *memoryIdentityRepository) FindByUsername(_ context.Context, username st
 }
 
 // FindByID 按用户 ID 返回身份副本。
-func (m *memoryIdentityRepository) FindByID(_ context.Context, id int64) (*authmodule.Identity, error) {
+func (m *memoryIdentityRepository) FindByID(_ context.Context, id idgen.ID) (*authmodule.Identity, error) {
 	identity, ok := m.byID[id]
 	if !ok {
 		return nil, nil
@@ -152,9 +153,9 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	}).Register(app.API, app.Registry)
 
 	userRepo := &memoryUserRepository{
-		items: map[int64]*usermodule.User{
-			1001: {
-				ID:           1001,
+		items: map[idgen.ID]*usermodule.User{
+			idgen.New(1001): {
+				ID:           idgen.New(1001),
 				Username:     "alice",
 				PasswordHash: passwordHash,
 				Nickname:     "Alice",
@@ -168,11 +169,17 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 
 	userService := usermodule.NewService(userRepo, memoryUserCache{}, passwords)
 	usermodule.NewModule(usermodule.NewHandler(userService)).Register(app.API, app.Registry)
+	openAPIJSON, err := json.Marshal(app.API.OpenAPI())
+	require.NoError(t, err)
+	openAPIText := string(openAPIJSON)
+	require.Contains(t, openAPIText, `"type":"string"`)
+	require.Contains(t, openAPIText, `"pattern":"^[1-9][0-9]{0,18}$"`)
+	require.Contains(t, openAPIText, `"1771234567890123456"`)
 
 	identityRepo := &memoryIdentityRepository{
-		byID: map[int64]*authmodule.Identity{
-			1001: {
-				UserID:       1001,
+		byID: map[idgen.ID]*authmodule.Identity{
+			idgen.New(1001): {
+				UserID:       idgen.New(1001),
 				Username:     "alice",
 				Nickname:     "Alice",
 				PasswordHash: passwordHash,
@@ -182,7 +189,7 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 		},
 		byUsername: map[string]*authmodule.Identity{
 			"alice": {
-				UserID:       1001,
+				UserID:       idgen.New(1001),
 				Username:     "alice",
 				Nickname:     "Alice",
 				PasswordHash: passwordHash,
@@ -230,12 +237,28 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	meRec := httptest.NewRecorder()
 	app.Engine.ServeHTTP(meRec, meReq)
 	require.Equal(t, http.StatusOK, meRec.Code)
+	meResp := struct {
+		Code string `json:"code"`
+		Data struct {
+			UserID string `json:"userId"`
+		} `json:"data"`
+	}{}
+	require.NoError(t, json.Unmarshal(meRec.Body.Bytes(), &meResp))
+	require.Equal(t, "1001", meResp.Data.UserID)
 
 	userReq := httptest.NewRequest(http.MethodGet, "/api/v1/users/1001", nil)
 	userReq.Header.Set("Authorization", "Bearer "+loginResp.Data.AccessToken)
 	userRec := httptest.NewRecorder()
 	app.Engine.ServeHTTP(userRec, userReq)
-	require.Equal(t, http.StatusOK, userRec.Code)
+	require.Equalf(t, http.StatusOK, userRec.Code, "body: %s", userRec.Body.String())
+	userResp := struct {
+		Code string `json:"code"`
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}{}
+	require.NoError(t, json.Unmarshal(userRec.Body.Bytes(), &userResp))
+	require.Equal(t, "1001", userResp.Data.ID)
 
 	uploadBody := &bytes.Buffer{}
 	uploadWriter := multipartWriter(t, uploadBody, "file", "hello.txt", "hello local file")

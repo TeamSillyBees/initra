@@ -8,7 +8,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
-	schemamixin "{{ .ModulePath }}/internal/data/schema/mixin"
+	entxmixin "github.com/teamsillybees/initra/pkg/entx/mixin"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysRoleMenu 系统角色与菜单/按钮资源关系表，用于角色授权。
@@ -19,19 +20,19 @@ type SysRoleMenu struct {
 // Mixin 返回角色菜单关系表通用字段。
 func (SysRoleMenu) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		schemamixin.ID{},
-		schemamixin.SoftDelete{},
+		entxmixin.ID{},
+		entxmixin.SoftDelete{},
 	}
 }
 
 // Fields 返回角色菜单关系表字段定义。
 func (SysRoleMenu) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int64("role_id").Positive().
+		field.Int64("role_id").GoType(idgen.ID(0)).Positive().
 			Comment("系统角色 ID，关联 sys_role.id。"),
-		field.Int64("menu_id").Positive().
+		field.Int64("menu_id").GoType(idgen.ID(0)).Positive().
 			Comment("系统菜单资源 ID，关联 sys_menu.id。"),
-		field.Int64("created_by").Optional().Nillable().
+		field.Int64("created_by").GoType(idgen.ID(0)).Optional().Nillable().
 			Comment("创建人用户 ID。"),
 		field.Time("created_at").Immutable().
 			Comment("创建时间。"),

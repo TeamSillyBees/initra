@@ -8,7 +8,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
-	schemamixin "github.com/teamsillybees/initra/examples/internal/data/schema/mixin"
+	entxmixin "github.com/teamsillybees/initra/pkg/entx/mixin"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysDictItem 系统字典项表，用于保存某个字典集下的具体值。
@@ -19,16 +20,16 @@ type SysDictItem struct {
 // Mixin 返回系统字典项表通用字段。
 func (SysDictItem) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		schemamixin.ID{},
-		schemamixin.SoftDelete{},
-		schemamixin.Audit{},
+		entxmixin.ID{},
+		entxmixin.SoftDelete{},
+		entxmixin.Audit{},
 	}
 }
 
 // Fields 返回系统字典项表字段定义。
 func (SysDictItem) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int64("collection_id").Positive().
+		field.Int64("collection_id").GoType(idgen.ID(0)).Positive().
 			Comment("字典集 ID，关联 sys_dict_collection.id。"),
 		field.String("collection_code").MaxLen(64).NotEmpty().
 			Comment("字典集编码，便于按编码直接查询字典项。"),

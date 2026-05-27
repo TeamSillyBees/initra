@@ -12,6 +12,7 @@ import (
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysuser"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysuserrole"
 	"github.com/teamsillybees/initra/examples/internal/data/schema"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -55,6 +56,8 @@ func init() {
 	sysconfig.DefaultSortID = sysconfigDescSortID.Default.(int)
 	// sysconfigDescID is the schema descriptor for id field.
 	sysconfigDescID := sysconfigMixinFields0[0].Descriptor()
+	// sysconfig.DefaultID holds the default value on creation for the id field.
+	sysconfig.DefaultID = sysconfigDescID.Default.(func() idgen.ID)
 	// sysconfig.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	sysconfig.IDValidator = sysconfigDescID.Validators[0].(func(int64) error)
 	sysdictcollectionMixin := schema.SysDictCollection{}.Mixin()
@@ -112,6 +115,8 @@ func init() {
 	sysdictcollection.DefaultSortID = sysdictcollectionDescSortID.Default.(int)
 	// sysdictcollectionDescID is the schema descriptor for id field.
 	sysdictcollectionDescID := sysdictcollectionMixinFields0[0].Descriptor()
+	// sysdictcollection.DefaultID holds the default value on creation for the id field.
+	sysdictcollection.DefaultID = sysdictcollectionDescID.Default.(func() idgen.ID)
 	// sysdictcollection.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	sysdictcollection.IDValidator = sysdictcollectionDescID.Validators[0].(func(int64) error)
 	sysdictitemMixin := schema.SysDictItem{}.Mixin()
@@ -197,6 +202,8 @@ func init() {
 	sysdictitem.DefaultSortID = sysdictitemDescSortID.Default.(int)
 	// sysdictitemDescID is the schema descriptor for id field.
 	sysdictitemDescID := sysdictitemMixinFields0[0].Descriptor()
+	// sysdictitem.DefaultID holds the default value on creation for the id field.
+	sysdictitem.DefaultID = sysdictitemDescID.Default.(func() idgen.ID)
 	// sysdictitem.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	sysdictitem.IDValidator = sysdictitemDescID.Validators[0].(func(int64) error)
 	sysmenuMixin := schema.SysMenu{}.Mixin()
@@ -204,10 +211,6 @@ func init() {
 	_ = sysmenuMixinFields0
 	sysmenuFields := schema.SysMenu{}.Fields()
 	_ = sysmenuFields
-	// sysmenuDescParentID is the schema descriptor for parent_id field.
-	sysmenuDescParentID := sysmenuFields[0].Descriptor()
-	// sysmenu.DefaultParentID holds the default value on creation for the parent_id field.
-	sysmenu.DefaultParentID = sysmenuDescParentID.Default.(int64)
 	// sysmenuDescAppID is the schema descriptor for app_id field.
 	sysmenuDescAppID := sysmenuFields[1].Descriptor()
 	// sysmenu.AppIDValidator is a validator for the "app_id" field. It is called by the builders before save.
@@ -252,6 +255,8 @@ func init() {
 	sysmenu.DefaultSortID = sysmenuDescSortID.Default.(int)
 	// sysmenuDescID is the schema descriptor for id field.
 	sysmenuDescID := sysmenuMixinFields0[0].Descriptor()
+	// sysmenu.DefaultID holds the default value on creation for the id field.
+	sysmenu.DefaultID = sysmenuDescID.Default.(func() idgen.ID)
 	// sysmenu.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	sysmenu.IDValidator = sysmenuDescID.Validators[0].(func(int64) error)
 	sysroleMixin := schema.SysRole{}.Mixin()
@@ -309,6 +314,8 @@ func init() {
 	sysrole.DefaultSortID = sysroleDescSortID.Default.(int)
 	// sysroleDescID is the schema descriptor for id field.
 	sysroleDescID := sysroleMixinFields0[0].Descriptor()
+	// sysrole.DefaultID holds the default value on creation for the id field.
+	sysrole.DefaultID = sysroleDescID.Default.(func() idgen.ID)
 	// sysrole.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	sysrole.IDValidator = sysroleDescID.Validators[0].(func(int64) error)
 	sysrolemenuMixin := schema.SysRoleMenu{}.Mixin()
@@ -326,6 +333,8 @@ func init() {
 	sysrolemenu.MenuIDValidator = sysrolemenuDescMenuID.Validators[0].(func(int64) error)
 	// sysrolemenuDescID is the schema descriptor for id field.
 	sysrolemenuDescID := sysrolemenuMixinFields0[0].Descriptor()
+	// sysrolemenu.DefaultID holds the default value on creation for the id field.
+	sysrolemenu.DefaultID = sysrolemenuDescID.Default.(func() idgen.ID)
 	// sysrolemenu.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	sysrolemenu.IDValidator = sysrolemenuDescID.Validators[0].(func(int64) error)
 	sysuserMixin := schema.SysUser{}.Mixin()
@@ -381,6 +390,8 @@ func init() {
 	sysuser.DefaultSortID = sysuserDescSortID.Default.(int)
 	// sysuserDescID is the schema descriptor for id field.
 	sysuserDescID := sysuserMixinFields0[0].Descriptor()
+	// sysuser.DefaultID holds the default value on creation for the id field.
+	sysuser.DefaultID = sysuserDescID.Default.(func() idgen.ID)
 	// sysuser.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	sysuser.IDValidator = sysuserDescID.Validators[0].(func(int64) error)
 	sysuserroleMixin := schema.SysUserRole{}.Mixin()
@@ -398,6 +409,8 @@ func init() {
 	sysuserrole.RoleIDValidator = sysuserroleDescRoleID.Validators[0].(func(int64) error)
 	// sysuserroleDescID is the schema descriptor for id field.
 	sysuserroleDescID := sysuserroleMixinFields0[0].Descriptor()
+	// sysuserrole.DefaultID holds the default value on creation for the id field.
+	sysuserrole.DefaultID = sysuserroleDescID.Default.(func() idgen.ID)
 	// sysuserrole.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	sysuserrole.IDValidator = sysuserroleDescID.Validators[0].(func(int64) error)
 }

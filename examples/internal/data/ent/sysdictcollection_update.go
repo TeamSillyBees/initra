@@ -14,6 +14,7 @@ import (
 	"github.com/teamsillybees/initra/examples/internal/data/ent/predicate"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysdictcollection"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysdictitem"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysDictCollectionUpdate is the builder for updating SysDictCollection entities.
@@ -64,14 +65,14 @@ func (_u *SysDictCollectionUpdate) SetNillableUpdatedAt(v *time.Time) *SysDictCo
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_u *SysDictCollectionUpdate) SetCreatedBy(v int64) *SysDictCollectionUpdate {
+func (_u *SysDictCollectionUpdate) SetCreatedBy(v idgen.ID) *SysDictCollectionUpdate {
 	_u.mutation.ResetCreatedBy()
 	_u.mutation.SetCreatedBy(v)
 	return _u
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysDictCollectionUpdate) SetNillableCreatedBy(v *int64) *SysDictCollectionUpdate {
+func (_u *SysDictCollectionUpdate) SetNillableCreatedBy(v *idgen.ID) *SysDictCollectionUpdate {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
@@ -79,7 +80,7 @@ func (_u *SysDictCollectionUpdate) SetNillableCreatedBy(v *int64) *SysDictCollec
 }
 
 // AddCreatedBy adds value to the "created_by" field.
-func (_u *SysDictCollectionUpdate) AddCreatedBy(v int64) *SysDictCollectionUpdate {
+func (_u *SysDictCollectionUpdate) AddCreatedBy(v idgen.ID) *SysDictCollectionUpdate {
 	_u.mutation.AddCreatedBy(v)
 	return _u
 }
@@ -91,14 +92,14 @@ func (_u *SysDictCollectionUpdate) ClearCreatedBy() *SysDictCollectionUpdate {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (_u *SysDictCollectionUpdate) SetUpdatedBy(v int64) *SysDictCollectionUpdate {
+func (_u *SysDictCollectionUpdate) SetUpdatedBy(v idgen.ID) *SysDictCollectionUpdate {
 	_u.mutation.ResetUpdatedBy()
 	_u.mutation.SetUpdatedBy(v)
 	return _u
 }
 
 // SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysDictCollectionUpdate) SetNillableUpdatedBy(v *int64) *SysDictCollectionUpdate {
+func (_u *SysDictCollectionUpdate) SetNillableUpdatedBy(v *idgen.ID) *SysDictCollectionUpdate {
 	if v != nil {
 		_u.SetUpdatedBy(*v)
 	}
@@ -106,7 +107,7 @@ func (_u *SysDictCollectionUpdate) SetNillableUpdatedBy(v *int64) *SysDictCollec
 }
 
 // AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysDictCollectionUpdate) AddUpdatedBy(v int64) *SysDictCollectionUpdate {
+func (_u *SysDictCollectionUpdate) AddUpdatedBy(v idgen.ID) *SysDictCollectionUpdate {
 	_u.mutation.AddUpdatedBy(v)
 	return _u
 }
@@ -242,14 +243,14 @@ func (_u *SysDictCollectionUpdate) AddSortID(v int) *SysDictCollectionUpdate {
 }
 
 // AddItemIDs adds the "items" edge to the SysDictItem entity by IDs.
-func (_u *SysDictCollectionUpdate) AddItemIDs(ids ...int64) *SysDictCollectionUpdate {
+func (_u *SysDictCollectionUpdate) AddItemIDs(ids ...idgen.ID) *SysDictCollectionUpdate {
 	_u.mutation.AddItemIDs(ids...)
 	return _u
 }
 
 // AddItems adds the "items" edges to the SysDictItem entity.
 func (_u *SysDictCollectionUpdate) AddItems(v ...*SysDictItem) *SysDictCollectionUpdate {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -268,14 +269,14 @@ func (_u *SysDictCollectionUpdate) ClearItems() *SysDictCollectionUpdate {
 }
 
 // RemoveItemIDs removes the "items" edge to SysDictItem entities by IDs.
-func (_u *SysDictCollectionUpdate) RemoveItemIDs(ids ...int64) *SysDictCollectionUpdate {
+func (_u *SysDictCollectionUpdate) RemoveItemIDs(ids ...idgen.ID) *SysDictCollectionUpdate {
 	_u.mutation.RemoveItemIDs(ids...)
 	return _u
 }
 
 // RemoveItems removes "items" edges to SysDictItem entities.
 func (_u *SysDictCollectionUpdate) RemoveItems(v ...*SysDictItem) *SysDictCollectionUpdate {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -496,14 +497,14 @@ func (_u *SysDictCollectionUpdateOne) SetNillableUpdatedAt(v *time.Time) *SysDic
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_u *SysDictCollectionUpdateOne) SetCreatedBy(v int64) *SysDictCollectionUpdateOne {
+func (_u *SysDictCollectionUpdateOne) SetCreatedBy(v idgen.ID) *SysDictCollectionUpdateOne {
 	_u.mutation.ResetCreatedBy()
 	_u.mutation.SetCreatedBy(v)
 	return _u
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysDictCollectionUpdateOne) SetNillableCreatedBy(v *int64) *SysDictCollectionUpdateOne {
+func (_u *SysDictCollectionUpdateOne) SetNillableCreatedBy(v *idgen.ID) *SysDictCollectionUpdateOne {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
@@ -511,7 +512,7 @@ func (_u *SysDictCollectionUpdateOne) SetNillableCreatedBy(v *int64) *SysDictCol
 }
 
 // AddCreatedBy adds value to the "created_by" field.
-func (_u *SysDictCollectionUpdateOne) AddCreatedBy(v int64) *SysDictCollectionUpdateOne {
+func (_u *SysDictCollectionUpdateOne) AddCreatedBy(v idgen.ID) *SysDictCollectionUpdateOne {
 	_u.mutation.AddCreatedBy(v)
 	return _u
 }
@@ -523,14 +524,14 @@ func (_u *SysDictCollectionUpdateOne) ClearCreatedBy() *SysDictCollectionUpdateO
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (_u *SysDictCollectionUpdateOne) SetUpdatedBy(v int64) *SysDictCollectionUpdateOne {
+func (_u *SysDictCollectionUpdateOne) SetUpdatedBy(v idgen.ID) *SysDictCollectionUpdateOne {
 	_u.mutation.ResetUpdatedBy()
 	_u.mutation.SetUpdatedBy(v)
 	return _u
 }
 
 // SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysDictCollectionUpdateOne) SetNillableUpdatedBy(v *int64) *SysDictCollectionUpdateOne {
+func (_u *SysDictCollectionUpdateOne) SetNillableUpdatedBy(v *idgen.ID) *SysDictCollectionUpdateOne {
 	if v != nil {
 		_u.SetUpdatedBy(*v)
 	}
@@ -538,7 +539,7 @@ func (_u *SysDictCollectionUpdateOne) SetNillableUpdatedBy(v *int64) *SysDictCol
 }
 
 // AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysDictCollectionUpdateOne) AddUpdatedBy(v int64) *SysDictCollectionUpdateOne {
+func (_u *SysDictCollectionUpdateOne) AddUpdatedBy(v idgen.ID) *SysDictCollectionUpdateOne {
 	_u.mutation.AddUpdatedBy(v)
 	return _u
 }
@@ -674,14 +675,14 @@ func (_u *SysDictCollectionUpdateOne) AddSortID(v int) *SysDictCollectionUpdateO
 }
 
 // AddItemIDs adds the "items" edge to the SysDictItem entity by IDs.
-func (_u *SysDictCollectionUpdateOne) AddItemIDs(ids ...int64) *SysDictCollectionUpdateOne {
+func (_u *SysDictCollectionUpdateOne) AddItemIDs(ids ...idgen.ID) *SysDictCollectionUpdateOne {
 	_u.mutation.AddItemIDs(ids...)
 	return _u
 }
 
 // AddItems adds the "items" edges to the SysDictItem entity.
 func (_u *SysDictCollectionUpdateOne) AddItems(v ...*SysDictItem) *SysDictCollectionUpdateOne {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -700,14 +701,14 @@ func (_u *SysDictCollectionUpdateOne) ClearItems() *SysDictCollectionUpdateOne {
 }
 
 // RemoveItemIDs removes the "items" edge to SysDictItem entities by IDs.
-func (_u *SysDictCollectionUpdateOne) RemoveItemIDs(ids ...int64) *SysDictCollectionUpdateOne {
+func (_u *SysDictCollectionUpdateOne) RemoveItemIDs(ids ...idgen.ID) *SysDictCollectionUpdateOne {
 	_u.mutation.RemoveItemIDs(ids...)
 	return _u
 }
 
 // RemoveItems removes "items" edges to SysDictItem entities.
 func (_u *SysDictCollectionUpdateOne) RemoveItems(v ...*SysDictItem) *SysDictCollectionUpdateOne {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}

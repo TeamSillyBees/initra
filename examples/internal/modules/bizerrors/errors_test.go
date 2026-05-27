@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // TestLoginFailed 使用独立业务码表达统一的登录失败语义。
@@ -20,11 +21,11 @@ func TestLoginFailed(t *testing.T) {
 
 // TestUserNotFound 确认用户不存在错误携带用户 ID 详情。
 func TestUserNotFound(t *testing.T) {
-	err := UserNotFound(1001)
+	err := UserNotFound(idgen.New(1001))
 
 	require.Equal(t, CodeUserNotFound, err.Code)
 	require.Equal(t, http.StatusNotFound, err.Status)
-	require.Equal(t, int64(1001), err.Details["userId"])
+	require.Equal(t, idgen.New(1001), err.Details["userId"])
 }
 
 // TestWrapInternal 确认业务错误封装保留底层错误链和详情。

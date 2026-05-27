@@ -7,6 +7,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
 	"github.com/teamsillybees/initra/examples/internal/modules/auth"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // TestAuthRepositoryFindByUsername 验证 auth 仓储能通过 Ent 按用户名读取身份并补齐角色编码。
@@ -27,7 +28,7 @@ func TestAuthRepositoryFindByUsername(t *testing.T) {
 	identity, err := repo.FindByUsername(context.Background(), " alice ")
 
 	require.NoError(t, err)
-	require.Equal(t, int64(1001), identity.UserID)
+	require.Equal(t, idgen.New(1001), identity.UserID)
 	require.Equal(t, "alice", identity.Username)
 	require.Equal(t, "Alice", identity.Nickname)
 	require.Equal(t, []string{"admin"}, identity.RoleCodes)

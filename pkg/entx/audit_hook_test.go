@@ -8,13 +8,15 @@ import (
 	"time"
 
 	"entgo.io/ent"
+
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 type fixedIDGenerator struct {
-	next int64
+	next idgen.ID
 }
 
-func (g fixedIDGenerator) NextID() int64 {
+func (g fixedIDGenerator) NextID() idgen.ID {
 	return g.next
 }
 
@@ -55,17 +57,17 @@ func (m *fakeMutation) SetField(name string, value ent.Value) error {
 
 type fakeIDMutation struct {
 	*fakeMutation
-	id *int64
+	id *idgen.ID
 }
 
-func (m *fakeIDMutation) ID() (int64, bool) {
+func (m *fakeIDMutation) ID() (idgen.ID, bool) {
 	if m.id == nil {
 		return 0, false
 	}
 	return *m.id, true
 }
 
-func (m *fakeIDMutation) SetID(id int64) {
+func (m *fakeIDMutation) SetID(id idgen.ID) {
 	m.id = &id
 }
 
@@ -73,12 +75,12 @@ func TestAuditHookSetsIDAndAuditFieldsOnCreate(t *testing.T) {
 	now := time.Date(2026, 5, 6, 10, 0, 0, 0, time.UTC)
 	mutation := newFakeMutation(ent.OpCreate)
 	hook := AuditHook(AuditHookOptions{
-		IDGen: fixedIDGenerator{next: 1001},
+		IDGen: fixedIDGenerator{next: idgen.New(1001)},
 		Now: func() time.Time {
 			return now
 		},
-		Operator: func(ctx context.Context) (int64, bool) {
-			return 9001, true
+		Operator: func(ctx context.Context) (idgen.ID, bool) {
+			return idgen.New(9001), true
 		},
 	})
 
@@ -89,7 +91,7 @@ func TestAuditHookSetsIDAndAuditFieldsOnCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Mutate() error = %v", err)
 	}
-	if got := mutation.fields[FieldID]; got != int64(1001) {
+	if got := mutation.fields[FieldID]; got != idgen.New(1001) {
 		t.Fatalf("id = %v, want 1001", got)
 	}
 	if got := mutation.fields[FieldCreatedAt]; got != now {
@@ -98,10 +100,10 @@ func TestAuditHookSetsIDAndAuditFieldsOnCreate(t *testing.T) {
 	if got := mutation.fields[FieldUpdatedAt]; got != now {
 		t.Fatalf("updated_at = %v, want %v", got, now)
 	}
-	if got := mutation.fields[FieldCreatedBy]; got != int64(9001) {
+	if got := mutation.fields[FieldCreatedBy]; got != idgen.New(9001) {
 		t.Fatalf("created_by = %v, want 9001", got)
 	}
-	if got := mutation.fields[FieldUpdatedBy]; got != int64(9001) {
+	if got := mutation.fields[FieldUpdatedBy]; got != idgen.New(9001) {
 		t.Fatalf("updated_by = %v, want 9001", got)
 	}
 }
@@ -114,7 +116,7 @@ func TestAuditHookSetsIDThroughEntIDMutation(t *testing.T) {
 		FieldID: true,
 	}
 	hook := AuditHook(AuditHookOptions{
-		IDGen: fixedIDGenerator{next: 1001},
+		IDGen: fixedIDGenerator{next: idgen.New(1001)},
 	})
 
 	_, err := hook(ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
@@ -128,7 +130,7 @@ func TestAuditHookSetsIDThroughEntIDMutation(t *testing.T) {
 	if !ok {
 		t.Fatalf("id was not set")
 	}
-	if id != int64(1001) {
+	if id != idgen.New(1001) {
 		t.Fatalf("id = %v, want 1001", id)
 	}
 }
@@ -140,8 +142,8 @@ func TestAuditHookSetsOnlyUpdateAuditFieldsOnUpdate(t *testing.T) {
 		Now: func() time.Time {
 			return now
 		},
-		Operator: func(ctx context.Context) (int64, bool) {
-			return 9002, true
+		Operator: func(ctx context.Context) (idgen.ID, bool) {
+			return idgen.New(9002), true
 		},
 	})
 
@@ -158,7 +160,7 @@ func TestAuditHookSetsOnlyUpdateAuditFieldsOnUpdate(t *testing.T) {
 	if got := mutation.fields[FieldUpdatedAt]; got != now {
 		t.Fatalf("updated_at = %v, want %v", got, now)
 	}
-	if got := mutation.fields[FieldUpdatedBy]; got != int64(9002) {
+	if got := mutation.fields[FieldUpdatedBy]; got != idgen.New(9002) {
 		t.Fatalf("updated_by = %v, want 9002", got)
 	}
 }
@@ -170,9 +172,9 @@ func TestAuditHookIgnoresUnknownFields(t *testing.T) {
 		FieldUpdatedBy: true,
 	}
 	hook := AuditHook(AuditHookOptions{
-		IDGen: fixedIDGenerator{next: 1001},
-		Operator: func(ctx context.Context) (int64, bool) {
-			return 9001, true
+		IDGen: fixedIDGenerator{next: idgen.New(1001)},
+		Operator: func(ctx context.Context) (idgen.ID, bool) {
+			return idgen.New(9001), true
 		},
 	})
 

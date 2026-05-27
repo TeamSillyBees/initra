@@ -7,12 +7,15 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 func TestResolvePublishOptionsRequiresBizKeyForSideEffect(t *testing.T) {
 	item := Task{
-		Type:    "demo:send_email",
-		Payload: map[string]string{"userId": "1001"},
+		Type: "demo:send_email",
+		Payload: struct {
+			UserID idgen.ID `json:"userId"`
+		}{UserID: idgen.New(1001)},
 		Meta: TaskMeta{
 			SideEffect: true,
 		},
@@ -26,8 +29,10 @@ func TestResolvePublishOptionsRequiresBizKeyForSideEffect(t *testing.T) {
 
 func TestResolvePublishOptionsAppliesDefaultsAndOverrides(t *testing.T) {
 	item := Task{
-		Type:    "demo:send_email",
-		Payload: map[string]string{"userId": "1001"},
+		Type: "demo:send_email",
+		Payload: struct {
+			UserID idgen.ID `json:"userId"`
+		}{UserID: idgen.New(1001)},
 		Meta: TaskMeta{
 			SideEffect: true,
 			BizKey:     "demo:1001:send_email",
@@ -54,9 +59,9 @@ func TestMarshalAndDecodePayload(t *testing.T) {
 	item := Task{Type: "demo:send_email", Payload: raw}
 
 	payload, err := DecodePayload[struct {
-		UserID string `json:"userId"`
+		UserID idgen.ID `json:"userId"`
 	}](item)
 
 	require.NoError(t, err)
-	require.Equal(t, "1001", payload.UserID)
+	require.Equal(t, idgen.New(1001), payload.UserID)
 }

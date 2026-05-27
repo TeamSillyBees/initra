@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysconfig"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysConfigCreate is the builder for creating a SysConfig entity.
@@ -47,13 +48,13 @@ func (_c *SysConfigCreate) SetUpdatedAt(v time.Time) *SysConfigCreate {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_c *SysConfigCreate) SetCreatedBy(v int64) *SysConfigCreate {
+func (_c *SysConfigCreate) SetCreatedBy(v idgen.ID) *SysConfigCreate {
 	_c.mutation.SetCreatedBy(v)
 	return _c
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_c *SysConfigCreate) SetNillableCreatedBy(v *int64) *SysConfigCreate {
+func (_c *SysConfigCreate) SetNillableCreatedBy(v *idgen.ID) *SysConfigCreate {
 	if v != nil {
 		_c.SetCreatedBy(*v)
 	}
@@ -61,13 +62,13 @@ func (_c *SysConfigCreate) SetNillableCreatedBy(v *int64) *SysConfigCreate {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (_c *SysConfigCreate) SetUpdatedBy(v int64) *SysConfigCreate {
+func (_c *SysConfigCreate) SetUpdatedBy(v idgen.ID) *SysConfigCreate {
 	_c.mutation.SetUpdatedBy(v)
 	return _c
 }
 
 // SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_c *SysConfigCreate) SetNillableUpdatedBy(v *int64) *SysConfigCreate {
+func (_c *SysConfigCreate) SetNillableUpdatedBy(v *idgen.ID) *SysConfigCreate {
 	if v != nil {
 		_c.SetUpdatedBy(*v)
 	}
@@ -137,8 +138,16 @@ func (_c *SysConfigCreate) SetNillableSortID(v *int) *SysConfigCreate {
 }
 
 // SetID sets the "id" field.
-func (_c *SysConfigCreate) SetID(v int64) *SysConfigCreate {
+func (_c *SysConfigCreate) SetID(v idgen.ID) *SysConfigCreate {
 	_c.mutation.SetID(v)
+	return _c
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (_c *SysConfigCreate) SetNillableID(v *idgen.ID) *SysConfigCreate {
+	if v != nil {
+		_c.SetID(*v)
+	}
 	return _c
 }
 
@@ -189,6 +198,10 @@ func (_c *SysConfigCreate) defaults() {
 		v := sysconfig.DefaultSortID
 		_c.mutation.SetSortID(v)
 	}
+	if _, ok := _c.mutation.ID(); !ok {
+		v := sysconfig.DefaultID()
+		_c.mutation.SetID(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -217,7 +230,7 @@ func (_c *SysConfigCreate) check() error {
 		return &ValidationError{Name: "sort_id", err: errors.New(`ent: missing required field "SysConfig.sort_id"`)}
 	}
 	if v, ok := _c.mutation.ID(); ok {
-		if err := sysconfig.IDValidator(v); err != nil {
+		if err := sysconfig.IDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "SysConfig.id": %w`, err)}
 		}
 	}
@@ -237,7 +250,7 @@ func (_c *SysConfigCreate) sqlSave(ctx context.Context) (*SysConfig, error) {
 	}
 	if _spec.ID.Value != _node.ID {
 		id := _spec.ID.Value.(int64)
-		_node.ID = int64(id)
+		_node.ID = idgen.ID(id)
 	}
 	_c.mutation.id = &_node.ID
 	_c.mutation.done = true
@@ -343,7 +356,7 @@ func (_c *SysConfigCreateBulk) Save(ctx context.Context) ([]*SysConfig, error) {
 				mutation.id = &nodes[i].ID
 				if specs[i].ID.Value != nil && nodes[i].ID == 0 {
 					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int64(id)
+					nodes[i].ID = idgen.ID(id)
 				}
 				mutation.done = true
 				return nodes[i], nil

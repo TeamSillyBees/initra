@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
+	"github.com/teamsillybees/initra/pkg/idgen"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
 )
@@ -142,12 +143,12 @@ func TestNewAppAcceptsValidJWTForProtectedAPIRoute(t *testing.T) {
 	app.Engine.GET("/api/v1/protected", func(c *gin.Context) {
 		principal, ok := platformauth.PrincipalFromContext(c.Request.Context())
 		require.True(t, ok)
-		require.Equal(t, int64(1001), principal.UserID)
+		require.Equal(t, idgen.New(1001), principal.UserID)
 		c.Status(http.StatusNoContent)
 	})
 
 	pair, err := manager.IssueTokenPair(t.Context(), platformauth.Principal{
-		UserID: 1001,
+		UserID: idgen.New(1001),
 		Roles:  []string{"admin"},
 	})
 	require.NoError(t, err)
@@ -182,12 +183,12 @@ func TestNewAppAllowsAuthenticatedAPIRouteWithoutCasbinPolicy(t *testing.T) {
 	app.Engine.GET("/api/v1/me", func(c *gin.Context) {
 		principal, ok := platformauth.PrincipalFromContext(c.Request.Context())
 		require.True(t, ok)
-		require.Equal(t, int64(1001), principal.UserID)
+		require.Equal(t, idgen.New(1001), principal.UserID)
 		c.Status(http.StatusNoContent)
 	})
 
 	pair, err := manager.IssueTokenPair(t.Context(), platformauth.Principal{
-		UserID: 1001,
+		UserID: idgen.New(1001),
 		Roles:  []string{"viewer"},
 	})
 	require.NoError(t, err)

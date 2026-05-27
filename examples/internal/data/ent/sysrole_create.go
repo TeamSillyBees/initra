@@ -13,6 +13,7 @@ import (
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrole"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrolemenu"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysuserrole"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysRoleCreate is the builder for creating a SysRole entity.
@@ -49,13 +50,13 @@ func (_c *SysRoleCreate) SetUpdatedAt(v time.Time) *SysRoleCreate {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_c *SysRoleCreate) SetCreatedBy(v int64) *SysRoleCreate {
+func (_c *SysRoleCreate) SetCreatedBy(v idgen.ID) *SysRoleCreate {
 	_c.mutation.SetCreatedBy(v)
 	return _c
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_c *SysRoleCreate) SetNillableCreatedBy(v *int64) *SysRoleCreate {
+func (_c *SysRoleCreate) SetNillableCreatedBy(v *idgen.ID) *SysRoleCreate {
 	if v != nil {
 		_c.SetCreatedBy(*v)
 	}
@@ -63,13 +64,13 @@ func (_c *SysRoleCreate) SetNillableCreatedBy(v *int64) *SysRoleCreate {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (_c *SysRoleCreate) SetUpdatedBy(v int64) *SysRoleCreate {
+func (_c *SysRoleCreate) SetUpdatedBy(v idgen.ID) *SysRoleCreate {
 	_c.mutation.SetUpdatedBy(v)
 	return _c
 }
 
 // SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_c *SysRoleCreate) SetNillableUpdatedBy(v *int64) *SysRoleCreate {
+func (_c *SysRoleCreate) SetNillableUpdatedBy(v *idgen.ID) *SysRoleCreate {
 	if v != nil {
 		_c.SetUpdatedBy(*v)
 	}
@@ -145,20 +146,28 @@ func (_c *SysRoleCreate) SetNillableSortID(v *int) *SysRoleCreate {
 }
 
 // SetID sets the "id" field.
-func (_c *SysRoleCreate) SetID(v int64) *SysRoleCreate {
+func (_c *SysRoleCreate) SetID(v idgen.ID) *SysRoleCreate {
 	_c.mutation.SetID(v)
 	return _c
 }
 
+// SetNillableID sets the "id" field if the given value is not nil.
+func (_c *SysRoleCreate) SetNillableID(v *idgen.ID) *SysRoleCreate {
+	if v != nil {
+		_c.SetID(*v)
+	}
+	return _c
+}
+
 // AddUserRoleIDs adds the "user_roles" edge to the SysUserRole entity by IDs.
-func (_c *SysRoleCreate) AddUserRoleIDs(ids ...int64) *SysRoleCreate {
+func (_c *SysRoleCreate) AddUserRoleIDs(ids ...idgen.ID) *SysRoleCreate {
 	_c.mutation.AddUserRoleIDs(ids...)
 	return _c
 }
 
 // AddUserRoles adds the "user_roles" edges to the SysUserRole entity.
 func (_c *SysRoleCreate) AddUserRoles(v ...*SysUserRole) *SysRoleCreate {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -166,14 +175,14 @@ func (_c *SysRoleCreate) AddUserRoles(v ...*SysUserRole) *SysRoleCreate {
 }
 
 // AddRoleMenuIDs adds the "role_menus" edge to the SysRoleMenu entity by IDs.
-func (_c *SysRoleCreate) AddRoleMenuIDs(ids ...int64) *SysRoleCreate {
+func (_c *SysRoleCreate) AddRoleMenuIDs(ids ...idgen.ID) *SysRoleCreate {
 	_c.mutation.AddRoleMenuIDs(ids...)
 	return _c
 }
 
 // AddRoleMenus adds the "role_menus" edges to the SysRoleMenu entity.
 func (_c *SysRoleCreate) AddRoleMenus(v ...*SysRoleMenu) *SysRoleCreate {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -227,6 +236,10 @@ func (_c *SysRoleCreate) defaults() {
 		v := sysrole.DefaultSortID
 		_c.mutation.SetSortID(v)
 	}
+	if _, ok := _c.mutation.ID(); !ok {
+		v := sysrole.DefaultID()
+		_c.mutation.SetID(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -263,7 +276,7 @@ func (_c *SysRoleCreate) check() error {
 		return &ValidationError{Name: "sort_id", err: errors.New(`ent: missing required field "SysRole.sort_id"`)}
 	}
 	if v, ok := _c.mutation.ID(); ok {
-		if err := sysrole.IDValidator(v); err != nil {
+		if err := sysrole.IDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "SysRole.id": %w`, err)}
 		}
 	}
@@ -283,7 +296,7 @@ func (_c *SysRoleCreate) sqlSave(ctx context.Context) (*SysRole, error) {
 	}
 	if _spec.ID.Value != _node.ID {
 		id := _spec.ID.Value.(int64)
-		_node.ID = int64(id)
+		_node.ID = idgen.ID(id)
 	}
 	_c.mutation.id = &_node.ID
 	_c.mutation.done = true
@@ -425,7 +438,7 @@ func (_c *SysRoleCreateBulk) Save(ctx context.Context) ([]*SysRole, error) {
 				mutation.id = &nodes[i].ID
 				if specs[i].ID.Value != nil && nodes[i].ID == 0 {
 					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int64(id)
+					nodes[i].ID = idgen.ID(id)
 				}
 				mutation.done = true
 				return nodes[i], nil

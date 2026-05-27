@@ -8,50 +8,51 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/predicate"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id int64) predicate.SysDictCollection {
+func ID(id idgen.ID) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int64) predicate.SysDictCollection {
+func IDEQ(id idgen.ID) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int64) predicate.SysDictCollection {
+func IDNEQ(id idgen.ID) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int64) predicate.SysDictCollection {
+func IDIn(ids ...idgen.ID) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int64) predicate.SysDictCollection {
+func IDNotIn(ids ...idgen.ID) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int64) predicate.SysDictCollection {
+func IDGT(id idgen.ID) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int64) predicate.SysDictCollection {
+func IDGTE(id idgen.ID) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int64) predicate.SysDictCollection {
+func IDLT(id idgen.ID) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int64) predicate.SysDictCollection {
+func IDLTE(id idgen.ID) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldLTE(FieldID, id))
 }
 
@@ -71,13 +72,15 @@ func UpdatedAt(v time.Time) predicate.SysDictCollection {
 }
 
 // CreatedBy applies equality check predicate on the "created_by" field. It's identical to CreatedByEQ.
-func CreatedBy(v int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldEQ(FieldCreatedBy, v))
+func CreatedBy(v idgen.ID) predicate.SysDictCollection {
+	vc := int64(v)
+	return predicate.SysDictCollection(sql.FieldEQ(FieldCreatedBy, vc))
 }
 
 // UpdatedBy applies equality check predicate on the "updated_by" field. It's identical to UpdatedByEQ.
-func UpdatedBy(v int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldEQ(FieldUpdatedBy, v))
+func UpdatedBy(v idgen.ID) predicate.SysDictCollection {
+	vc := int64(v)
+	return predicate.SysDictCollection(sql.FieldEQ(FieldUpdatedBy, vc))
 }
 
 // Code applies equality check predicate on the "code" field. It's identical to CodeEQ.
@@ -246,43 +249,57 @@ func UpdatedAtLTE(v time.Time) predicate.SysDictCollection {
 }
 
 // CreatedByEQ applies the EQ predicate on the "created_by" field.
-func CreatedByEQ(v int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldEQ(FieldCreatedBy, v))
+func CreatedByEQ(v idgen.ID) predicate.SysDictCollection {
+	vc := int64(v)
+	return predicate.SysDictCollection(sql.FieldEQ(FieldCreatedBy, vc))
 }
 
 // CreatedByNEQ applies the NEQ predicate on the "created_by" field.
-func CreatedByNEQ(v int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldNEQ(FieldCreatedBy, v))
+func CreatedByNEQ(v idgen.ID) predicate.SysDictCollection {
+	vc := int64(v)
+	return predicate.SysDictCollection(sql.FieldNEQ(FieldCreatedBy, vc))
 }
 
 // CreatedByIn applies the In predicate on the "created_by" field.
-func CreatedByIn(vs ...int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldIn(FieldCreatedBy, vs...))
+func CreatedByIn(vs ...idgen.ID) predicate.SysDictCollection {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysDictCollection(sql.FieldIn(FieldCreatedBy, v...))
 }
 
 // CreatedByNotIn applies the NotIn predicate on the "created_by" field.
-func CreatedByNotIn(vs ...int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldNotIn(FieldCreatedBy, vs...))
+func CreatedByNotIn(vs ...idgen.ID) predicate.SysDictCollection {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysDictCollection(sql.FieldNotIn(FieldCreatedBy, v...))
 }
 
 // CreatedByGT applies the GT predicate on the "created_by" field.
-func CreatedByGT(v int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldGT(FieldCreatedBy, v))
+func CreatedByGT(v idgen.ID) predicate.SysDictCollection {
+	vc := int64(v)
+	return predicate.SysDictCollection(sql.FieldGT(FieldCreatedBy, vc))
 }
 
 // CreatedByGTE applies the GTE predicate on the "created_by" field.
-func CreatedByGTE(v int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldGTE(FieldCreatedBy, v))
+func CreatedByGTE(v idgen.ID) predicate.SysDictCollection {
+	vc := int64(v)
+	return predicate.SysDictCollection(sql.FieldGTE(FieldCreatedBy, vc))
 }
 
 // CreatedByLT applies the LT predicate on the "created_by" field.
-func CreatedByLT(v int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldLT(FieldCreatedBy, v))
+func CreatedByLT(v idgen.ID) predicate.SysDictCollection {
+	vc := int64(v)
+	return predicate.SysDictCollection(sql.FieldLT(FieldCreatedBy, vc))
 }
 
 // CreatedByLTE applies the LTE predicate on the "created_by" field.
-func CreatedByLTE(v int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldLTE(FieldCreatedBy, v))
+func CreatedByLTE(v idgen.ID) predicate.SysDictCollection {
+	vc := int64(v)
+	return predicate.SysDictCollection(sql.FieldLTE(FieldCreatedBy, vc))
 }
 
 // CreatedByIsNil applies the IsNil predicate on the "created_by" field.
@@ -296,43 +313,57 @@ func CreatedByNotNil() predicate.SysDictCollection {
 }
 
 // UpdatedByEQ applies the EQ predicate on the "updated_by" field.
-func UpdatedByEQ(v int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldEQ(FieldUpdatedBy, v))
+func UpdatedByEQ(v idgen.ID) predicate.SysDictCollection {
+	vc := int64(v)
+	return predicate.SysDictCollection(sql.FieldEQ(FieldUpdatedBy, vc))
 }
 
 // UpdatedByNEQ applies the NEQ predicate on the "updated_by" field.
-func UpdatedByNEQ(v int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldNEQ(FieldUpdatedBy, v))
+func UpdatedByNEQ(v idgen.ID) predicate.SysDictCollection {
+	vc := int64(v)
+	return predicate.SysDictCollection(sql.FieldNEQ(FieldUpdatedBy, vc))
 }
 
 // UpdatedByIn applies the In predicate on the "updated_by" field.
-func UpdatedByIn(vs ...int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldIn(FieldUpdatedBy, vs...))
+func UpdatedByIn(vs ...idgen.ID) predicate.SysDictCollection {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysDictCollection(sql.FieldIn(FieldUpdatedBy, v...))
 }
 
 // UpdatedByNotIn applies the NotIn predicate on the "updated_by" field.
-func UpdatedByNotIn(vs ...int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldNotIn(FieldUpdatedBy, vs...))
+func UpdatedByNotIn(vs ...idgen.ID) predicate.SysDictCollection {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysDictCollection(sql.FieldNotIn(FieldUpdatedBy, v...))
 }
 
 // UpdatedByGT applies the GT predicate on the "updated_by" field.
-func UpdatedByGT(v int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldGT(FieldUpdatedBy, v))
+func UpdatedByGT(v idgen.ID) predicate.SysDictCollection {
+	vc := int64(v)
+	return predicate.SysDictCollection(sql.FieldGT(FieldUpdatedBy, vc))
 }
 
 // UpdatedByGTE applies the GTE predicate on the "updated_by" field.
-func UpdatedByGTE(v int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldGTE(FieldUpdatedBy, v))
+func UpdatedByGTE(v idgen.ID) predicate.SysDictCollection {
+	vc := int64(v)
+	return predicate.SysDictCollection(sql.FieldGTE(FieldUpdatedBy, vc))
 }
 
 // UpdatedByLT applies the LT predicate on the "updated_by" field.
-func UpdatedByLT(v int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldLT(FieldUpdatedBy, v))
+func UpdatedByLT(v idgen.ID) predicate.SysDictCollection {
+	vc := int64(v)
+	return predicate.SysDictCollection(sql.FieldLT(FieldUpdatedBy, vc))
 }
 
 // UpdatedByLTE applies the LTE predicate on the "updated_by" field.
-func UpdatedByLTE(v int64) predicate.SysDictCollection {
-	return predicate.SysDictCollection(sql.FieldLTE(FieldUpdatedBy, v))
+func UpdatedByLTE(v idgen.ID) predicate.SysDictCollection {
+	vc := int64(v)
+	return predicate.SysDictCollection(sql.FieldLTE(FieldUpdatedBy, vc))
 }
 
 // UpdatedByIsNil applies the IsNil predicate on the "updated_by" field.

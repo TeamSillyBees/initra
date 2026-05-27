@@ -7,50 +7,51 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/predicate"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id int64) predicate.SysConfig {
+func ID(id idgen.ID) predicate.SysConfig {
 	return predicate.SysConfig(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int64) predicate.SysConfig {
+func IDEQ(id idgen.ID) predicate.SysConfig {
 	return predicate.SysConfig(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int64) predicate.SysConfig {
+func IDNEQ(id idgen.ID) predicate.SysConfig {
 	return predicate.SysConfig(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int64) predicate.SysConfig {
+func IDIn(ids ...idgen.ID) predicate.SysConfig {
 	return predicate.SysConfig(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int64) predicate.SysConfig {
+func IDNotIn(ids ...idgen.ID) predicate.SysConfig {
 	return predicate.SysConfig(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int64) predicate.SysConfig {
+func IDGT(id idgen.ID) predicate.SysConfig {
 	return predicate.SysConfig(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int64) predicate.SysConfig {
+func IDGTE(id idgen.ID) predicate.SysConfig {
 	return predicate.SysConfig(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int64) predicate.SysConfig {
+func IDLT(id idgen.ID) predicate.SysConfig {
 	return predicate.SysConfig(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int64) predicate.SysConfig {
+func IDLTE(id idgen.ID) predicate.SysConfig {
 	return predicate.SysConfig(sql.FieldLTE(FieldID, id))
 }
 
@@ -70,13 +71,15 @@ func UpdatedAt(v time.Time) predicate.SysConfig {
 }
 
 // CreatedBy applies equality check predicate on the "created_by" field. It's identical to CreatedByEQ.
-func CreatedBy(v int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldEQ(FieldCreatedBy, v))
+func CreatedBy(v idgen.ID) predicate.SysConfig {
+	vc := int64(v)
+	return predicate.SysConfig(sql.FieldEQ(FieldCreatedBy, vc))
 }
 
 // UpdatedBy applies equality check predicate on the "updated_by" field. It's identical to UpdatedByEQ.
-func UpdatedBy(v int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldEQ(FieldUpdatedBy, v))
+func UpdatedBy(v idgen.ID) predicate.SysConfig {
+	vc := int64(v)
+	return predicate.SysConfig(sql.FieldEQ(FieldUpdatedBy, vc))
 }
 
 // ConfigKey applies equality check predicate on the "config_key" field. It's identical to ConfigKeyEQ.
@@ -235,43 +238,57 @@ func UpdatedAtLTE(v time.Time) predicate.SysConfig {
 }
 
 // CreatedByEQ applies the EQ predicate on the "created_by" field.
-func CreatedByEQ(v int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldEQ(FieldCreatedBy, v))
+func CreatedByEQ(v idgen.ID) predicate.SysConfig {
+	vc := int64(v)
+	return predicate.SysConfig(sql.FieldEQ(FieldCreatedBy, vc))
 }
 
 // CreatedByNEQ applies the NEQ predicate on the "created_by" field.
-func CreatedByNEQ(v int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldNEQ(FieldCreatedBy, v))
+func CreatedByNEQ(v idgen.ID) predicate.SysConfig {
+	vc := int64(v)
+	return predicate.SysConfig(sql.FieldNEQ(FieldCreatedBy, vc))
 }
 
 // CreatedByIn applies the In predicate on the "created_by" field.
-func CreatedByIn(vs ...int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldIn(FieldCreatedBy, vs...))
+func CreatedByIn(vs ...idgen.ID) predicate.SysConfig {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysConfig(sql.FieldIn(FieldCreatedBy, v...))
 }
 
 // CreatedByNotIn applies the NotIn predicate on the "created_by" field.
-func CreatedByNotIn(vs ...int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldNotIn(FieldCreatedBy, vs...))
+func CreatedByNotIn(vs ...idgen.ID) predicate.SysConfig {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysConfig(sql.FieldNotIn(FieldCreatedBy, v...))
 }
 
 // CreatedByGT applies the GT predicate on the "created_by" field.
-func CreatedByGT(v int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldGT(FieldCreatedBy, v))
+func CreatedByGT(v idgen.ID) predicate.SysConfig {
+	vc := int64(v)
+	return predicate.SysConfig(sql.FieldGT(FieldCreatedBy, vc))
 }
 
 // CreatedByGTE applies the GTE predicate on the "created_by" field.
-func CreatedByGTE(v int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldGTE(FieldCreatedBy, v))
+func CreatedByGTE(v idgen.ID) predicate.SysConfig {
+	vc := int64(v)
+	return predicate.SysConfig(sql.FieldGTE(FieldCreatedBy, vc))
 }
 
 // CreatedByLT applies the LT predicate on the "created_by" field.
-func CreatedByLT(v int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldLT(FieldCreatedBy, v))
+func CreatedByLT(v idgen.ID) predicate.SysConfig {
+	vc := int64(v)
+	return predicate.SysConfig(sql.FieldLT(FieldCreatedBy, vc))
 }
 
 // CreatedByLTE applies the LTE predicate on the "created_by" field.
-func CreatedByLTE(v int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldLTE(FieldCreatedBy, v))
+func CreatedByLTE(v idgen.ID) predicate.SysConfig {
+	vc := int64(v)
+	return predicate.SysConfig(sql.FieldLTE(FieldCreatedBy, vc))
 }
 
 // CreatedByIsNil applies the IsNil predicate on the "created_by" field.
@@ -285,43 +302,57 @@ func CreatedByNotNil() predicate.SysConfig {
 }
 
 // UpdatedByEQ applies the EQ predicate on the "updated_by" field.
-func UpdatedByEQ(v int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldEQ(FieldUpdatedBy, v))
+func UpdatedByEQ(v idgen.ID) predicate.SysConfig {
+	vc := int64(v)
+	return predicate.SysConfig(sql.FieldEQ(FieldUpdatedBy, vc))
 }
 
 // UpdatedByNEQ applies the NEQ predicate on the "updated_by" field.
-func UpdatedByNEQ(v int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldNEQ(FieldUpdatedBy, v))
+func UpdatedByNEQ(v idgen.ID) predicate.SysConfig {
+	vc := int64(v)
+	return predicate.SysConfig(sql.FieldNEQ(FieldUpdatedBy, vc))
 }
 
 // UpdatedByIn applies the In predicate on the "updated_by" field.
-func UpdatedByIn(vs ...int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldIn(FieldUpdatedBy, vs...))
+func UpdatedByIn(vs ...idgen.ID) predicate.SysConfig {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysConfig(sql.FieldIn(FieldUpdatedBy, v...))
 }
 
 // UpdatedByNotIn applies the NotIn predicate on the "updated_by" field.
-func UpdatedByNotIn(vs ...int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldNotIn(FieldUpdatedBy, vs...))
+func UpdatedByNotIn(vs ...idgen.ID) predicate.SysConfig {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysConfig(sql.FieldNotIn(FieldUpdatedBy, v...))
 }
 
 // UpdatedByGT applies the GT predicate on the "updated_by" field.
-func UpdatedByGT(v int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldGT(FieldUpdatedBy, v))
+func UpdatedByGT(v idgen.ID) predicate.SysConfig {
+	vc := int64(v)
+	return predicate.SysConfig(sql.FieldGT(FieldUpdatedBy, vc))
 }
 
 // UpdatedByGTE applies the GTE predicate on the "updated_by" field.
-func UpdatedByGTE(v int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldGTE(FieldUpdatedBy, v))
+func UpdatedByGTE(v idgen.ID) predicate.SysConfig {
+	vc := int64(v)
+	return predicate.SysConfig(sql.FieldGTE(FieldUpdatedBy, vc))
 }
 
 // UpdatedByLT applies the LT predicate on the "updated_by" field.
-func UpdatedByLT(v int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldLT(FieldUpdatedBy, v))
+func UpdatedByLT(v idgen.ID) predicate.SysConfig {
+	vc := int64(v)
+	return predicate.SysConfig(sql.FieldLT(FieldUpdatedBy, vc))
 }
 
 // UpdatedByLTE applies the LTE predicate on the "updated_by" field.
-func UpdatedByLTE(v int64) predicate.SysConfig {
-	return predicate.SysConfig(sql.FieldLTE(FieldUpdatedBy, v))
+func UpdatedByLTE(v idgen.ID) predicate.SysConfig {
+	vc := int64(v)
+	return predicate.SysConfig(sql.FieldLTE(FieldUpdatedBy, vc))
 }
 
 // UpdatedByIsNil applies the IsNil predicate on the "updated_by" field.

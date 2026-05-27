@@ -5,6 +5,7 @@ package sysuser
 import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 const (
@@ -99,6 +100,8 @@ var (
 	DefaultIsEnable bool
 	// DefaultSortID holds the default value on creation for the "sort_id" field.
 	DefaultSortID int
+	// DefaultID holds the default value on creation for the "id" field.
+	DefaultID func() idgen.ID
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int64) error
 )

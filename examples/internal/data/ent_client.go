@@ -46,13 +46,16 @@ func SQLDBConfig(cfg DatabaseConfig) platformdatabase.Config {
 
 // NewEntClientFromDB 基于已有 *sql.DB 创建 Ent Client 并注册 Hook，用于 sqlmock 等测试场景。
 func NewEntClientFromDB(db *sql.DB, generator *idgen.Generator) *ent.Client {
+	if generator != nil {
+		idgen.SetDefaultGenerator(generator)
+	}
 	drv := entsql.OpenDB(dialect.Postgres, db)
 	client := ent.NewClient(ent.Driver(drv))
 
 	client.Use(entx.AuditHook(entx.AuditHookOptions{
 		IDGen: generator,
 		Now:   time.Now,
-		Operator: func(ctx context.Context) (int64, bool) {
+		Operator: func(ctx context.Context) (idgen.ID, bool) {
 			if id, ok := entx.OperatorIDFromContext(ctx); ok {
 				return id, true
 			}

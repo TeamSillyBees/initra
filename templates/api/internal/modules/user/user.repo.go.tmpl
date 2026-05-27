@@ -12,6 +12,7 @@ import (
 	"{{ .ModulePath }}/internal/data/ent/sysuserrole"
 	"{{ .ModulePath }}/internal/modules/bizerrors"
 	"github.com/teamsillybees/initra/pkg/entx"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // Repository 使用 Ent Client 实现 user 模块仓储。
@@ -57,7 +58,7 @@ func (r *Repository) Create(ctx context.Context, user *User) error {
 }
 
 // FindByID 根据用户 ID 查询用户详情。
-func (r *Repository) FindByID(ctx context.Context, id int64) (*User, error) {
+func (r *Repository) FindByID(ctx context.Context, id idgen.ID) (*User, error) {
 	record, err := r.client.SysUser.Query().
 		Where(
 			sysuser.ID(id),
@@ -117,7 +118,7 @@ func (r *Repository) Page(ctx context.Context, input PageUsersDTO) ([]*User, int
 		return nil, 0, bizerrors.WrapDB(err, "list users failed")
 	}
 
-	userIDs := make([]int64, 0, len(records))
+	userIDs := make([]idgen.ID, 0, len(records))
 	items := make([]*User, 0, len(records))
 	for _, record := range records {
 		item := userFromEnt(record)
@@ -177,7 +178,7 @@ func (r *Repository) Update(ctx context.Context, user *User) error {
 }
 
 // Delete 通过软删除方式移除用户，并清理角色关系。
-func (r *Repository) Delete(ctx context.Context, id int64, operatorID int64) error {
+func (r *Repository) Delete(ctx context.Context, id idgen.ID, operatorID idgen.ID) error {
 	ctx = entx.WithOperatorID(ctx, operatorID)
 	return data.WithinTx(ctx, r.client, func(txCtx context.Context, txClient *appent.Client) error {
 		if _, err := txClient.SysUser.Update().
@@ -203,7 +204,7 @@ func (r *Repository) Delete(ctx context.Context, id int64, operatorID int64) err
 	})
 }
 
-func (r *Repository) findByIDWithClient(ctx context.Context, client *appent.Client, id int64) (*User, error) {
+func (r *Repository) findByIDWithClient(ctx context.Context, client *appent.Client, id idgen.ID) (*User, error) {
 	record, err := client.SysUser.Query().
 		Where(
 			sysuser.ID(id),
@@ -254,19 +255,19 @@ func fillDomainFromEnt(user *User, record *appent.SysUser) {
 	user.CreatedAt = record.CreatedAt
 	user.UpdatedAt = record.UpdatedAt
 	user.DeletedAt = cloneTimePtr(record.DeletedAt)
-	user.CreatedBy = int64Value(record.CreatedBy)
-	user.UpdatedBy = int64Value(record.UpdatedBy)
+	user.CreatedBy = idValue(record.CreatedBy)
+	user.UpdatedBy = idValue(record.UpdatedBy)
 }
 
-func (r *Repository) resolveRoleIDs(ctx context.Context, client *appent.Client, roleCodes []string) ([]int64, error) {
+func (r *Repository) resolveRoleIDs(ctx context.Context, client *appent.Client, roleCodes []string) ([]idgen.ID, error) {
 	normalizedCodes := normalizeCodes(roleCodes)
 	if len(normalizedCodes) == 0 {
-		return []int64{}, nil
+		return []idgen.ID{}, nil
 	}
 
 	var rows []struct {
-		ID   int64  `json:"id"`
-		Code string `json:"code"`
+		ID   idgen.ID `json:"id"`
+		Code string   `json:"code"`
 	}
 	err := client.SysRole.Query().
 		Where(
@@ -281,7 +282,7 @@ func (r *Repository) resolveRoleIDs(ctx context.Context, client *appent.Client, 
 		return nil, bizerrors.WrapDB(err, "query roles failed")
 	}
 
-	roleIDsByCode := make(map[string]int64, len(rows))
+	roleIDsByCode := make(map[string]idgen.ID, len(rows))
 	for _, row := range rows {
 		roleIDsByCode[row.Code] = row.ID
 	}
@@ -298,14 +299,14 @@ func (r *Repository) resolveRoleIDs(ctx context.Context, client *appent.Client, 
 		)
 	}
 
-	roleIDs := make([]int64, 0, len(normalizedCodes))
+	roleIDs := make([]idgen.ID, 0, len(normalizedCodes))
 	for _, roleCode := range normalizedCodes {
 		roleIDs = append(roleIDs, roleIDsByCode[roleCode])
 	}
 	return roleIDs, nil
 }
 
-func (r *Repository) replaceUserRoles(ctx context.Context, client *appent.Client, userID int64, roleIDs []int64) error {
+func (r *Repository) replaceUserRoles(ctx context.Context, client *appent.Client, userID idgen.ID, roleIDs []idgen.ID) error {
 	if _, err := client.SysUserRole.Update().
 		Where(
 			sysuserrole.UserID(userID),
@@ -344,7 +345,7 @@ func (r *Repository) replaceUserRoles(ctx context.Context, client *appent.Client
 	return nil
 }
 
-func (r *Repository) loadRoleCodes(ctx context.Context, client *appent.Client, userID int64) ([]string, error) {
+func (r *Repository) loadRoleCodes(ctx context.Context, client *appent.Client, userID idgen.ID) ([]string, error) {
 	var rows []struct {
 		Code string `json:"code"`
 	}
@@ -371,8 +372,8 @@ func (r *Repository) loadRoleCodes(ctx context.Context, client *appent.Client, u
 	return roleCodes, nil
 }
 
-func (r *Repository) loadRoleCodesByUserIDs(ctx context.Context, userIDs []int64) (map[int64][]string, error) {
-	result := make(map[int64][]string, len(userIDs))
+func (r *Repository) loadRoleCodesByUserIDs(ctx context.Context, userIDs []idgen.ID) (map[idgen.ID][]string, error) {
+	result := make(map[idgen.ID][]string, len(userIDs))
 	if len(userIDs) == 0 {
 		return result, nil
 	}
@@ -456,7 +457,7 @@ func stringValue(value *string) string {
 	return *value
 }
 
-func int64Value(value *int64) int64 {
+func idValue(value *idgen.ID) idgen.ID {
 	if value == nil {
 		return 0
 	}
@@ -467,7 +468,8 @@ func cloneTimePtr(value *time.Time) *time.Time {
 	if value == nil {
 		return nil
 	}
-	return new(*value)
+	cloned := *value
+	return &cloned
 }
 
 func mapEntWriteError(err error, message string) error {

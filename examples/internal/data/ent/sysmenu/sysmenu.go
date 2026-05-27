@@ -5,6 +5,7 @@ package sysmenu
 import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 const (
@@ -89,8 +90,6 @@ func ValidColumn(column string) bool {
 }
 
 var (
-	// DefaultParentID holds the default value on creation for the "parent_id" field.
-	DefaultParentID int64
 	// AppIDValidator is a validator for the "app_id" field. It is called by the builders before save.
 	AppIDValidator func(string) error
 	// TitleValidator is a validator for the "title" field. It is called by the builders before save.
@@ -105,6 +104,8 @@ var (
 	DefaultIsCached bool
 	// DefaultSortID holds the default value on creation for the "sort_id" field.
 	DefaultSortID int
+	// DefaultID holds the default value on creation for the "id" field.
+	DefaultID func() idgen.ID
 	// IDValidator is a validator for the "id" field. It is called by the builders before save.
 	IDValidator func(int64) error
 )

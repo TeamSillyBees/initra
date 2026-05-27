@@ -171,7 +171,7 @@ func RequestLoggerMiddleware(logger *zap.Logger) gin.HandlerFunc {
 		}
 
 		if principal, ok := PrincipalFromContext(c.Request.Context()); ok {
-			fields = append(fields, zap.Int64("user_id", principal.UserID))
+			fields = append(fields, zap.String("user_id", principal.UserID.String()))
 		}
 
 		if c.Writer.Status() >= http.StatusInternalServerError {

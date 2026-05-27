@@ -8,12 +8,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 var errLoginFailed = errors.New("login failed")
 
 type fakeIdentityRepository struct {
-	byID       map[int64]*Identity
+	byID       map[idgen.ID]*Identity
 	byUsername map[string]*Identity
 }
 
@@ -24,7 +25,7 @@ func (f *fakeIdentityRepository) FindByUsername(_ context.Context, username stri
 	return nil, nil
 }
 
-func (f *fakeIdentityRepository) FindByID(_ context.Context, id int64) (*Identity, error) {
+func (f *fakeIdentityRepository) FindByID(_ context.Context, id idgen.ID) (*Identity, error) {
 	if identity, ok := f.byID[id]; ok {
 		return new(*identity), nil
 	}
@@ -113,9 +114,9 @@ func TestServiceLoginReturnsTokenPairForValidCredentials(t *testing.T) {
 	require.NoError(t, err)
 
 	repo := &fakeIdentityRepository{
-		byID: map[int64]*Identity{
-			1001: {
-				UserID:       1001,
+		byID: map[idgen.ID]*Identity{
+			idgen.New(1001): {
+				UserID:       idgen.New(1001),
 				Username:     "alice",
 				Nickname:     "Alice",
 				PasswordHash: "hashed:secret-123",
@@ -125,7 +126,7 @@ func TestServiceLoginReturnsTokenPairForValidCredentials(t *testing.T) {
 		},
 		byUsername: map[string]*Identity{
 			"alice": {
-				UserID:       1001,
+				UserID:       idgen.New(1001),
 				Username:     "alice",
 				Nickname:     "Alice",
 				PasswordHash: "hashed:secret-123",
@@ -142,7 +143,7 @@ func TestServiceLoginReturnsTokenPairForValidCredentials(t *testing.T) {
 		Password: "secret-123",
 	})
 	require.NoError(t, err)
-	require.Equal(t, int64(1001), identity.UserID)
+	require.Equal(t, idgen.New(1001), identity.UserID)
 	require.Equal(t, "Alice", identity.Nickname)
 	require.Equal(t, []string{"admin"}, identity.RoleCodes)
 	require.NotEmpty(t, tokenPair.AccessToken)
@@ -163,9 +164,9 @@ func TestServiceRefreshIssuesNewAccessToken(t *testing.T) {
 	require.NoError(t, err)
 
 	repo := &fakeIdentityRepository{
-		byID: map[int64]*Identity{
-			1001: {
-				UserID:       1001,
+		byID: map[idgen.ID]*Identity{
+			idgen.New(1001): {
+				UserID:       idgen.New(1001),
 				Username:     "alice",
 				Nickname:     "Alice",
 				PasswordHash: "hashed:secret-123",
@@ -177,7 +178,7 @@ func TestServiceRefreshIssuesNewAccessToken(t *testing.T) {
 
 	service := NewService(repo, fakePasswordVerifier{}, tokenManager)
 	pair, err := tokenManager.IssueTokenPair(context.Background(), platformauth.Principal{
-		UserID: 1001,
+		UserID: idgen.New(1001),
 		Roles:  []string{"admin"},
 	})
 	require.NoError(t, err)
@@ -189,7 +190,7 @@ func TestServiceRefreshIssuesNewAccessToken(t *testing.T) {
 
 	claims, err := tokenManager.ParseAccessToken(context.Background(), tokenPair.AccessToken)
 	require.NoError(t, err)
-	require.Equal(t, int64(1001), claims.UserID)
+	require.Equal(t, idgen.New(1001), claims.UserID)
 
 	_, err = tokenManager.ValidateRefreshToken(context.Background(), pair.RefreshToken)
 	require.Error(t, err)

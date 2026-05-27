@@ -7,6 +7,7 @@ import (
 	jetcache "github.com/mgtv-tech/jetcache-go"
 	"{{ .ModulePath }}/internal/modules/bizerrors"
 	platformcache "github.com/teamsillybees/initra/pkg/cache"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // UserCache 负责 user 模块详情缓存的读写与 Key 规范封装。
@@ -24,7 +25,7 @@ func NewUserCache(manager *platformcache.Manager) *UserCache {
 }
 
 // Get 读取用户详情缓存。
-func (c *UserCache) Get(ctx context.Context, id int64) (*User, bool, error) {
+func (c *UserCache) Get(ctx context.Context, id idgen.ID) (*User, bool, error) {
 	var user User
 	err := c.cache.Get(ctx, c.key(id), &user)
 	if err == nil {
@@ -42,13 +43,13 @@ func (c *UserCache) Set(ctx context.Context, user *User) error {
 }
 
 // Delete 删除用户详情缓存。
-func (c *UserCache) Delete(ctx context.Context, id int64) error {
+func (c *UserCache) Delete(ctx context.Context, id idgen.ID) error {
 	if err := c.cache.Delete(ctx, c.key(id)); err != nil {
 		return bizerrors.WrapCache(err, "delete user cache failed")
 	}
 	return nil
 }
 
-func (c *UserCache) key(id int64) string {
+func (c *UserCache) key(id idgen.ID) string {
 	return c.manager.BuildKey("user", "profile", id)
 }

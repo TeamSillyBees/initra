@@ -14,6 +14,7 @@ import (
 	"github.com/teamsillybees/initra/examples/internal/data/ent/predicate"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysdictcollection"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysdictitem"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysDictItemUpdate is the builder for updating SysDictItem entities.
@@ -64,14 +65,14 @@ func (_u *SysDictItemUpdate) SetNillableUpdatedAt(v *time.Time) *SysDictItemUpda
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_u *SysDictItemUpdate) SetCreatedBy(v int64) *SysDictItemUpdate {
+func (_u *SysDictItemUpdate) SetCreatedBy(v idgen.ID) *SysDictItemUpdate {
 	_u.mutation.ResetCreatedBy()
 	_u.mutation.SetCreatedBy(v)
 	return _u
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysDictItemUpdate) SetNillableCreatedBy(v *int64) *SysDictItemUpdate {
+func (_u *SysDictItemUpdate) SetNillableCreatedBy(v *idgen.ID) *SysDictItemUpdate {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
@@ -79,7 +80,7 @@ func (_u *SysDictItemUpdate) SetNillableCreatedBy(v *int64) *SysDictItemUpdate {
 }
 
 // AddCreatedBy adds value to the "created_by" field.
-func (_u *SysDictItemUpdate) AddCreatedBy(v int64) *SysDictItemUpdate {
+func (_u *SysDictItemUpdate) AddCreatedBy(v idgen.ID) *SysDictItemUpdate {
 	_u.mutation.AddCreatedBy(v)
 	return _u
 }
@@ -91,14 +92,14 @@ func (_u *SysDictItemUpdate) ClearCreatedBy() *SysDictItemUpdate {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (_u *SysDictItemUpdate) SetUpdatedBy(v int64) *SysDictItemUpdate {
+func (_u *SysDictItemUpdate) SetUpdatedBy(v idgen.ID) *SysDictItemUpdate {
 	_u.mutation.ResetUpdatedBy()
 	_u.mutation.SetUpdatedBy(v)
 	return _u
 }
 
 // SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysDictItemUpdate) SetNillableUpdatedBy(v *int64) *SysDictItemUpdate {
+func (_u *SysDictItemUpdate) SetNillableUpdatedBy(v *idgen.ID) *SysDictItemUpdate {
 	if v != nil {
 		_u.SetUpdatedBy(*v)
 	}
@@ -106,7 +107,7 @@ func (_u *SysDictItemUpdate) SetNillableUpdatedBy(v *int64) *SysDictItemUpdate {
 }
 
 // AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysDictItemUpdate) AddUpdatedBy(v int64) *SysDictItemUpdate {
+func (_u *SysDictItemUpdate) AddUpdatedBy(v idgen.ID) *SysDictItemUpdate {
 	_u.mutation.AddUpdatedBy(v)
 	return _u
 }
@@ -118,13 +119,13 @@ func (_u *SysDictItemUpdate) ClearUpdatedBy() *SysDictItemUpdate {
 }
 
 // SetCollectionID sets the "collection_id" field.
-func (_u *SysDictItemUpdate) SetCollectionID(v int64) *SysDictItemUpdate {
+func (_u *SysDictItemUpdate) SetCollectionID(v idgen.ID) *SysDictItemUpdate {
 	_u.mutation.SetCollectionID(v)
 	return _u
 }
 
 // SetNillableCollectionID sets the "collection_id" field if the given value is not nil.
-func (_u *SysDictItemUpdate) SetNillableCollectionID(v *int64) *SysDictItemUpdate {
+func (_u *SysDictItemUpdate) SetNillableCollectionID(v *idgen.ID) *SysDictItemUpdate {
 	if v != nil {
 		_u.SetCollectionID(*v)
 	}
@@ -302,7 +303,7 @@ func (_u *SysDictItemUpdate) ExecX(ctx context.Context) {
 // check runs all checks and user-defined validators on the builder.
 func (_u *SysDictItemUpdate) check() error {
 	if v, ok := _u.mutation.CollectionID(); ok {
-		if err := sysdictitem.CollectionIDValidator(v); err != nil {
+		if err := sysdictitem.CollectionIDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "collection_id", err: fmt.Errorf(`ent: validator failed for field "SysDictItem.collection_id": %w`, err)}
 		}
 	}
@@ -485,14 +486,14 @@ func (_u *SysDictItemUpdateOne) SetNillableUpdatedAt(v *time.Time) *SysDictItemU
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_u *SysDictItemUpdateOne) SetCreatedBy(v int64) *SysDictItemUpdateOne {
+func (_u *SysDictItemUpdateOne) SetCreatedBy(v idgen.ID) *SysDictItemUpdateOne {
 	_u.mutation.ResetCreatedBy()
 	_u.mutation.SetCreatedBy(v)
 	return _u
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysDictItemUpdateOne) SetNillableCreatedBy(v *int64) *SysDictItemUpdateOne {
+func (_u *SysDictItemUpdateOne) SetNillableCreatedBy(v *idgen.ID) *SysDictItemUpdateOne {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
@@ -500,7 +501,7 @@ func (_u *SysDictItemUpdateOne) SetNillableCreatedBy(v *int64) *SysDictItemUpdat
 }
 
 // AddCreatedBy adds value to the "created_by" field.
-func (_u *SysDictItemUpdateOne) AddCreatedBy(v int64) *SysDictItemUpdateOne {
+func (_u *SysDictItemUpdateOne) AddCreatedBy(v idgen.ID) *SysDictItemUpdateOne {
 	_u.mutation.AddCreatedBy(v)
 	return _u
 }
@@ -512,14 +513,14 @@ func (_u *SysDictItemUpdateOne) ClearCreatedBy() *SysDictItemUpdateOne {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (_u *SysDictItemUpdateOne) SetUpdatedBy(v int64) *SysDictItemUpdateOne {
+func (_u *SysDictItemUpdateOne) SetUpdatedBy(v idgen.ID) *SysDictItemUpdateOne {
 	_u.mutation.ResetUpdatedBy()
 	_u.mutation.SetUpdatedBy(v)
 	return _u
 }
 
 // SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysDictItemUpdateOne) SetNillableUpdatedBy(v *int64) *SysDictItemUpdateOne {
+func (_u *SysDictItemUpdateOne) SetNillableUpdatedBy(v *idgen.ID) *SysDictItemUpdateOne {
 	if v != nil {
 		_u.SetUpdatedBy(*v)
 	}
@@ -527,7 +528,7 @@ func (_u *SysDictItemUpdateOne) SetNillableUpdatedBy(v *int64) *SysDictItemUpdat
 }
 
 // AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysDictItemUpdateOne) AddUpdatedBy(v int64) *SysDictItemUpdateOne {
+func (_u *SysDictItemUpdateOne) AddUpdatedBy(v idgen.ID) *SysDictItemUpdateOne {
 	_u.mutation.AddUpdatedBy(v)
 	return _u
 }
@@ -539,13 +540,13 @@ func (_u *SysDictItemUpdateOne) ClearUpdatedBy() *SysDictItemUpdateOne {
 }
 
 // SetCollectionID sets the "collection_id" field.
-func (_u *SysDictItemUpdateOne) SetCollectionID(v int64) *SysDictItemUpdateOne {
+func (_u *SysDictItemUpdateOne) SetCollectionID(v idgen.ID) *SysDictItemUpdateOne {
 	_u.mutation.SetCollectionID(v)
 	return _u
 }
 
 // SetNillableCollectionID sets the "collection_id" field if the given value is not nil.
-func (_u *SysDictItemUpdateOne) SetNillableCollectionID(v *int64) *SysDictItemUpdateOne {
+func (_u *SysDictItemUpdateOne) SetNillableCollectionID(v *idgen.ID) *SysDictItemUpdateOne {
 	if v != nil {
 		_u.SetCollectionID(*v)
 	}
@@ -736,7 +737,7 @@ func (_u *SysDictItemUpdateOne) ExecX(ctx context.Context) {
 // check runs all checks and user-defined validators on the builder.
 func (_u *SysDictItemUpdateOne) check() error {
 	if v, ok := _u.mutation.CollectionID(); ok {
-		if err := sysdictitem.CollectionIDValidator(v); err != nil {
+		if err := sysdictitem.CollectionIDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "collection_id", err: fmt.Errorf(`ent: validator failed for field "SysDictItem.collection_id": %w`, err)}
 		}
 	}

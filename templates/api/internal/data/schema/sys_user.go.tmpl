@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
-	schemamixin "{{ .ModulePath }}/internal/data/schema/mixin"
+	entxmixin "github.com/teamsillybees/initra/pkg/entx/mixin"
 )
 
 // SysUser 系统后台用户表，用于后台登录、审计和权限归属。
@@ -19,9 +19,9 @@ type SysUser struct {
 // Mixin 返回系统用户表通用字段。
 func (SysUser) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		schemamixin.ID{},
-		schemamixin.SoftDelete{},
-		schemamixin.Audit{},
+		entxmixin.ID{},
+		entxmixin.SoftDelete{},
+		entxmixin.Audit{},
 	}
 }
 

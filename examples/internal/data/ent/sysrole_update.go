@@ -15,6 +15,7 @@ import (
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrole"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrolemenu"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysuserrole"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysRoleUpdate is the builder for updating SysRole entities.
@@ -65,14 +66,14 @@ func (_u *SysRoleUpdate) SetNillableUpdatedAt(v *time.Time) *SysRoleUpdate {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_u *SysRoleUpdate) SetCreatedBy(v int64) *SysRoleUpdate {
+func (_u *SysRoleUpdate) SetCreatedBy(v idgen.ID) *SysRoleUpdate {
 	_u.mutation.ResetCreatedBy()
 	_u.mutation.SetCreatedBy(v)
 	return _u
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysRoleUpdate) SetNillableCreatedBy(v *int64) *SysRoleUpdate {
+func (_u *SysRoleUpdate) SetNillableCreatedBy(v *idgen.ID) *SysRoleUpdate {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
@@ -80,7 +81,7 @@ func (_u *SysRoleUpdate) SetNillableCreatedBy(v *int64) *SysRoleUpdate {
 }
 
 // AddCreatedBy adds value to the "created_by" field.
-func (_u *SysRoleUpdate) AddCreatedBy(v int64) *SysRoleUpdate {
+func (_u *SysRoleUpdate) AddCreatedBy(v idgen.ID) *SysRoleUpdate {
 	_u.mutation.AddCreatedBy(v)
 	return _u
 }
@@ -92,14 +93,14 @@ func (_u *SysRoleUpdate) ClearCreatedBy() *SysRoleUpdate {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (_u *SysRoleUpdate) SetUpdatedBy(v int64) *SysRoleUpdate {
+func (_u *SysRoleUpdate) SetUpdatedBy(v idgen.ID) *SysRoleUpdate {
 	_u.mutation.ResetUpdatedBy()
 	_u.mutation.SetUpdatedBy(v)
 	return _u
 }
 
 // SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysRoleUpdate) SetNillableUpdatedBy(v *int64) *SysRoleUpdate {
+func (_u *SysRoleUpdate) SetNillableUpdatedBy(v *idgen.ID) *SysRoleUpdate {
 	if v != nil {
 		_u.SetUpdatedBy(*v)
 	}
@@ -107,7 +108,7 @@ func (_u *SysRoleUpdate) SetNillableUpdatedBy(v *int64) *SysRoleUpdate {
 }
 
 // AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysRoleUpdate) AddUpdatedBy(v int64) *SysRoleUpdate {
+func (_u *SysRoleUpdate) AddUpdatedBy(v idgen.ID) *SysRoleUpdate {
 	_u.mutation.AddUpdatedBy(v)
 	return _u
 }
@@ -216,14 +217,14 @@ func (_u *SysRoleUpdate) AddSortID(v int) *SysRoleUpdate {
 }
 
 // AddUserRoleIDs adds the "user_roles" edge to the SysUserRole entity by IDs.
-func (_u *SysRoleUpdate) AddUserRoleIDs(ids ...int64) *SysRoleUpdate {
+func (_u *SysRoleUpdate) AddUserRoleIDs(ids ...idgen.ID) *SysRoleUpdate {
 	_u.mutation.AddUserRoleIDs(ids...)
 	return _u
 }
 
 // AddUserRoles adds the "user_roles" edges to the SysUserRole entity.
 func (_u *SysRoleUpdate) AddUserRoles(v ...*SysUserRole) *SysRoleUpdate {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -231,14 +232,14 @@ func (_u *SysRoleUpdate) AddUserRoles(v ...*SysUserRole) *SysRoleUpdate {
 }
 
 // AddRoleMenuIDs adds the "role_menus" edge to the SysRoleMenu entity by IDs.
-func (_u *SysRoleUpdate) AddRoleMenuIDs(ids ...int64) *SysRoleUpdate {
+func (_u *SysRoleUpdate) AddRoleMenuIDs(ids ...idgen.ID) *SysRoleUpdate {
 	_u.mutation.AddRoleMenuIDs(ids...)
 	return _u
 }
 
 // AddRoleMenus adds the "role_menus" edges to the SysRoleMenu entity.
 func (_u *SysRoleUpdate) AddRoleMenus(v ...*SysRoleMenu) *SysRoleUpdate {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -257,14 +258,14 @@ func (_u *SysRoleUpdate) ClearUserRoles() *SysRoleUpdate {
 }
 
 // RemoveUserRoleIDs removes the "user_roles" edge to SysUserRole entities by IDs.
-func (_u *SysRoleUpdate) RemoveUserRoleIDs(ids ...int64) *SysRoleUpdate {
+func (_u *SysRoleUpdate) RemoveUserRoleIDs(ids ...idgen.ID) *SysRoleUpdate {
 	_u.mutation.RemoveUserRoleIDs(ids...)
 	return _u
 }
 
 // RemoveUserRoles removes "user_roles" edges to SysUserRole entities.
 func (_u *SysRoleUpdate) RemoveUserRoles(v ...*SysUserRole) *SysRoleUpdate {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -278,14 +279,14 @@ func (_u *SysRoleUpdate) ClearRoleMenus() *SysRoleUpdate {
 }
 
 // RemoveRoleMenuIDs removes the "role_menus" edge to SysRoleMenu entities by IDs.
-func (_u *SysRoleUpdate) RemoveRoleMenuIDs(ids ...int64) *SysRoleUpdate {
+func (_u *SysRoleUpdate) RemoveRoleMenuIDs(ids ...idgen.ID) *SysRoleUpdate {
 	_u.mutation.RemoveRoleMenuIDs(ids...)
 	return _u
 }
 
 // RemoveRoleMenus removes "role_menus" edges to SysRoleMenu entities.
 func (_u *SysRoleUpdate) RemoveRoleMenus(v ...*SysRoleMenu) *SysRoleUpdate {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -542,14 +543,14 @@ func (_u *SysRoleUpdateOne) SetNillableUpdatedAt(v *time.Time) *SysRoleUpdateOne
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_u *SysRoleUpdateOne) SetCreatedBy(v int64) *SysRoleUpdateOne {
+func (_u *SysRoleUpdateOne) SetCreatedBy(v idgen.ID) *SysRoleUpdateOne {
 	_u.mutation.ResetCreatedBy()
 	_u.mutation.SetCreatedBy(v)
 	return _u
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysRoleUpdateOne) SetNillableCreatedBy(v *int64) *SysRoleUpdateOne {
+func (_u *SysRoleUpdateOne) SetNillableCreatedBy(v *idgen.ID) *SysRoleUpdateOne {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
@@ -557,7 +558,7 @@ func (_u *SysRoleUpdateOne) SetNillableCreatedBy(v *int64) *SysRoleUpdateOne {
 }
 
 // AddCreatedBy adds value to the "created_by" field.
-func (_u *SysRoleUpdateOne) AddCreatedBy(v int64) *SysRoleUpdateOne {
+func (_u *SysRoleUpdateOne) AddCreatedBy(v idgen.ID) *SysRoleUpdateOne {
 	_u.mutation.AddCreatedBy(v)
 	return _u
 }
@@ -569,14 +570,14 @@ func (_u *SysRoleUpdateOne) ClearCreatedBy() *SysRoleUpdateOne {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (_u *SysRoleUpdateOne) SetUpdatedBy(v int64) *SysRoleUpdateOne {
+func (_u *SysRoleUpdateOne) SetUpdatedBy(v idgen.ID) *SysRoleUpdateOne {
 	_u.mutation.ResetUpdatedBy()
 	_u.mutation.SetUpdatedBy(v)
 	return _u
 }
 
 // SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysRoleUpdateOne) SetNillableUpdatedBy(v *int64) *SysRoleUpdateOne {
+func (_u *SysRoleUpdateOne) SetNillableUpdatedBy(v *idgen.ID) *SysRoleUpdateOne {
 	if v != nil {
 		_u.SetUpdatedBy(*v)
 	}
@@ -584,7 +585,7 @@ func (_u *SysRoleUpdateOne) SetNillableUpdatedBy(v *int64) *SysRoleUpdateOne {
 }
 
 // AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysRoleUpdateOne) AddUpdatedBy(v int64) *SysRoleUpdateOne {
+func (_u *SysRoleUpdateOne) AddUpdatedBy(v idgen.ID) *SysRoleUpdateOne {
 	_u.mutation.AddUpdatedBy(v)
 	return _u
 }
@@ -693,14 +694,14 @@ func (_u *SysRoleUpdateOne) AddSortID(v int) *SysRoleUpdateOne {
 }
 
 // AddUserRoleIDs adds the "user_roles" edge to the SysUserRole entity by IDs.
-func (_u *SysRoleUpdateOne) AddUserRoleIDs(ids ...int64) *SysRoleUpdateOne {
+func (_u *SysRoleUpdateOne) AddUserRoleIDs(ids ...idgen.ID) *SysRoleUpdateOne {
 	_u.mutation.AddUserRoleIDs(ids...)
 	return _u
 }
 
 // AddUserRoles adds the "user_roles" edges to the SysUserRole entity.
 func (_u *SysRoleUpdateOne) AddUserRoles(v ...*SysUserRole) *SysRoleUpdateOne {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -708,14 +709,14 @@ func (_u *SysRoleUpdateOne) AddUserRoles(v ...*SysUserRole) *SysRoleUpdateOne {
 }
 
 // AddRoleMenuIDs adds the "role_menus" edge to the SysRoleMenu entity by IDs.
-func (_u *SysRoleUpdateOne) AddRoleMenuIDs(ids ...int64) *SysRoleUpdateOne {
+func (_u *SysRoleUpdateOne) AddRoleMenuIDs(ids ...idgen.ID) *SysRoleUpdateOne {
 	_u.mutation.AddRoleMenuIDs(ids...)
 	return _u
 }
 
 // AddRoleMenus adds the "role_menus" edges to the SysRoleMenu entity.
 func (_u *SysRoleUpdateOne) AddRoleMenus(v ...*SysRoleMenu) *SysRoleUpdateOne {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -734,14 +735,14 @@ func (_u *SysRoleUpdateOne) ClearUserRoles() *SysRoleUpdateOne {
 }
 
 // RemoveUserRoleIDs removes the "user_roles" edge to SysUserRole entities by IDs.
-func (_u *SysRoleUpdateOne) RemoveUserRoleIDs(ids ...int64) *SysRoleUpdateOne {
+func (_u *SysRoleUpdateOne) RemoveUserRoleIDs(ids ...idgen.ID) *SysRoleUpdateOne {
 	_u.mutation.RemoveUserRoleIDs(ids...)
 	return _u
 }
 
 // RemoveUserRoles removes "user_roles" edges to SysUserRole entities.
 func (_u *SysRoleUpdateOne) RemoveUserRoles(v ...*SysUserRole) *SysRoleUpdateOne {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -755,14 +756,14 @@ func (_u *SysRoleUpdateOne) ClearRoleMenus() *SysRoleUpdateOne {
 }
 
 // RemoveRoleMenuIDs removes the "role_menus" edge to SysRoleMenu entities by IDs.
-func (_u *SysRoleUpdateOne) RemoveRoleMenuIDs(ids ...int64) *SysRoleUpdateOne {
+func (_u *SysRoleUpdateOne) RemoveRoleMenuIDs(ids ...idgen.ID) *SysRoleUpdateOne {
 	_u.mutation.RemoveRoleMenuIDs(ids...)
 	return _u
 }
 
 // RemoveRoleMenus removes "role_menus" edges to SysRoleMenu entities.
 func (_u *SysRoleUpdateOne) RemoveRoleMenus(v ...*SysRoleMenu) *SysRoleUpdateOne {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}

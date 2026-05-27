@@ -31,20 +31,19 @@ func (s *Service) PublishEmail(ctx context.Context, input PublishEmailDTO) (*Pub
 	if s == nil || s.publisher == nil {
 		return nil, bizerrors.Internal("task publisher is not configured")
 	}
-	userID := strings.TrimSpace(input.UserID)
 	email := strings.TrimSpace(input.Email)
-	if userID == "" {
+	if input.UserID <= 0 {
 		return nil, bizerrors.BadRequest("userId 不能为空")
 	}
 	if email == "" {
 		return nil, bizerrors.BadRequest("email 不能为空")
 	}
 
-	bizKey := fmt.Sprintf("demo:%s:send_email", userID)
+	bizKey := fmt.Sprintf("demo:%s:send_email", input.UserID.String())
 	result, err := s.publisher.Publish(ctx, task.Task{
 		Type: sendEmailTaskType,
 		Payload: sendEmailPayload{
-			UserID: userID,
+			UserID: input.UserID,
 			Email:  email,
 		},
 		Meta: task.TaskMeta{

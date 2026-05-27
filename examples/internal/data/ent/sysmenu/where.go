@@ -8,50 +8,51 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/predicate"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id int64) predicate.SysMenu {
+func ID(id idgen.ID) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int64) predicate.SysMenu {
+func IDEQ(id idgen.ID) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int64) predicate.SysMenu {
+func IDNEQ(id idgen.ID) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int64) predicate.SysMenu {
+func IDIn(ids ...idgen.ID) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int64) predicate.SysMenu {
+func IDNotIn(ids ...idgen.ID) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int64) predicate.SysMenu {
+func IDGT(id idgen.ID) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int64) predicate.SysMenu {
+func IDGTE(id idgen.ID) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int64) predicate.SysMenu {
+func IDLT(id idgen.ID) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int64) predicate.SysMenu {
+func IDLTE(id idgen.ID) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldLTE(FieldID, id))
 }
 
@@ -71,18 +72,21 @@ func UpdatedAt(v time.Time) predicate.SysMenu {
 }
 
 // CreatedBy applies equality check predicate on the "created_by" field. It's identical to CreatedByEQ.
-func CreatedBy(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldEQ(FieldCreatedBy, v))
+func CreatedBy(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldEQ(FieldCreatedBy, vc))
 }
 
 // UpdatedBy applies equality check predicate on the "updated_by" field. It's identical to UpdatedByEQ.
-func UpdatedBy(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldEQ(FieldUpdatedBy, v))
+func UpdatedBy(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldEQ(FieldUpdatedBy, vc))
 }
 
 // ParentID applies equality check predicate on the "parent_id" field. It's identical to ParentIDEQ.
-func ParentID(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldEQ(FieldParentID, v))
+func ParentID(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldEQ(FieldParentID, vc))
 }
 
 // AppID applies equality check predicate on the "app_id" field. It's identical to AppIDEQ.
@@ -266,43 +270,57 @@ func UpdatedAtLTE(v time.Time) predicate.SysMenu {
 }
 
 // CreatedByEQ applies the EQ predicate on the "created_by" field.
-func CreatedByEQ(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldEQ(FieldCreatedBy, v))
+func CreatedByEQ(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldEQ(FieldCreatedBy, vc))
 }
 
 // CreatedByNEQ applies the NEQ predicate on the "created_by" field.
-func CreatedByNEQ(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldNEQ(FieldCreatedBy, v))
+func CreatedByNEQ(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldNEQ(FieldCreatedBy, vc))
 }
 
 // CreatedByIn applies the In predicate on the "created_by" field.
-func CreatedByIn(vs ...int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldIn(FieldCreatedBy, vs...))
+func CreatedByIn(vs ...idgen.ID) predicate.SysMenu {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysMenu(sql.FieldIn(FieldCreatedBy, v...))
 }
 
 // CreatedByNotIn applies the NotIn predicate on the "created_by" field.
-func CreatedByNotIn(vs ...int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldNotIn(FieldCreatedBy, vs...))
+func CreatedByNotIn(vs ...idgen.ID) predicate.SysMenu {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysMenu(sql.FieldNotIn(FieldCreatedBy, v...))
 }
 
 // CreatedByGT applies the GT predicate on the "created_by" field.
-func CreatedByGT(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldGT(FieldCreatedBy, v))
+func CreatedByGT(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldGT(FieldCreatedBy, vc))
 }
 
 // CreatedByGTE applies the GTE predicate on the "created_by" field.
-func CreatedByGTE(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldGTE(FieldCreatedBy, v))
+func CreatedByGTE(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldGTE(FieldCreatedBy, vc))
 }
 
 // CreatedByLT applies the LT predicate on the "created_by" field.
-func CreatedByLT(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldLT(FieldCreatedBy, v))
+func CreatedByLT(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldLT(FieldCreatedBy, vc))
 }
 
 // CreatedByLTE applies the LTE predicate on the "created_by" field.
-func CreatedByLTE(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldLTE(FieldCreatedBy, v))
+func CreatedByLTE(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldLTE(FieldCreatedBy, vc))
 }
 
 // CreatedByIsNil applies the IsNil predicate on the "created_by" field.
@@ -316,43 +334,57 @@ func CreatedByNotNil() predicate.SysMenu {
 }
 
 // UpdatedByEQ applies the EQ predicate on the "updated_by" field.
-func UpdatedByEQ(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldEQ(FieldUpdatedBy, v))
+func UpdatedByEQ(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldEQ(FieldUpdatedBy, vc))
 }
 
 // UpdatedByNEQ applies the NEQ predicate on the "updated_by" field.
-func UpdatedByNEQ(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldNEQ(FieldUpdatedBy, v))
+func UpdatedByNEQ(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldNEQ(FieldUpdatedBy, vc))
 }
 
 // UpdatedByIn applies the In predicate on the "updated_by" field.
-func UpdatedByIn(vs ...int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldIn(FieldUpdatedBy, vs...))
+func UpdatedByIn(vs ...idgen.ID) predicate.SysMenu {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysMenu(sql.FieldIn(FieldUpdatedBy, v...))
 }
 
 // UpdatedByNotIn applies the NotIn predicate on the "updated_by" field.
-func UpdatedByNotIn(vs ...int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldNotIn(FieldUpdatedBy, vs...))
+func UpdatedByNotIn(vs ...idgen.ID) predicate.SysMenu {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysMenu(sql.FieldNotIn(FieldUpdatedBy, v...))
 }
 
 // UpdatedByGT applies the GT predicate on the "updated_by" field.
-func UpdatedByGT(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldGT(FieldUpdatedBy, v))
+func UpdatedByGT(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldGT(FieldUpdatedBy, vc))
 }
 
 // UpdatedByGTE applies the GTE predicate on the "updated_by" field.
-func UpdatedByGTE(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldGTE(FieldUpdatedBy, v))
+func UpdatedByGTE(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldGTE(FieldUpdatedBy, vc))
 }
 
 // UpdatedByLT applies the LT predicate on the "updated_by" field.
-func UpdatedByLT(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldLT(FieldUpdatedBy, v))
+func UpdatedByLT(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldLT(FieldUpdatedBy, vc))
 }
 
 // UpdatedByLTE applies the LTE predicate on the "updated_by" field.
-func UpdatedByLTE(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldLTE(FieldUpdatedBy, v))
+func UpdatedByLTE(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldLTE(FieldUpdatedBy, vc))
 }
 
 // UpdatedByIsNil applies the IsNil predicate on the "updated_by" field.
@@ -366,43 +398,67 @@ func UpdatedByNotNil() predicate.SysMenu {
 }
 
 // ParentIDEQ applies the EQ predicate on the "parent_id" field.
-func ParentIDEQ(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldEQ(FieldParentID, v))
+func ParentIDEQ(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldEQ(FieldParentID, vc))
 }
 
 // ParentIDNEQ applies the NEQ predicate on the "parent_id" field.
-func ParentIDNEQ(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldNEQ(FieldParentID, v))
+func ParentIDNEQ(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldNEQ(FieldParentID, vc))
 }
 
 // ParentIDIn applies the In predicate on the "parent_id" field.
-func ParentIDIn(vs ...int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldIn(FieldParentID, vs...))
+func ParentIDIn(vs ...idgen.ID) predicate.SysMenu {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysMenu(sql.FieldIn(FieldParentID, v...))
 }
 
 // ParentIDNotIn applies the NotIn predicate on the "parent_id" field.
-func ParentIDNotIn(vs ...int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldNotIn(FieldParentID, vs...))
+func ParentIDNotIn(vs ...idgen.ID) predicate.SysMenu {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysMenu(sql.FieldNotIn(FieldParentID, v...))
 }
 
 // ParentIDGT applies the GT predicate on the "parent_id" field.
-func ParentIDGT(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldGT(FieldParentID, v))
+func ParentIDGT(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldGT(FieldParentID, vc))
 }
 
 // ParentIDGTE applies the GTE predicate on the "parent_id" field.
-func ParentIDGTE(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldGTE(FieldParentID, v))
+func ParentIDGTE(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldGTE(FieldParentID, vc))
 }
 
 // ParentIDLT applies the LT predicate on the "parent_id" field.
-func ParentIDLT(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldLT(FieldParentID, v))
+func ParentIDLT(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldLT(FieldParentID, vc))
 }
 
 // ParentIDLTE applies the LTE predicate on the "parent_id" field.
-func ParentIDLTE(v int64) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldLTE(FieldParentID, v))
+func ParentIDLTE(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldLTE(FieldParentID, vc))
+}
+
+// ParentIDIsNil applies the IsNil predicate on the "parent_id" field.
+func ParentIDIsNil() predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldIsNull(FieldParentID))
+}
+
+// ParentIDNotNil applies the NotNil predicate on the "parent_id" field.
+func ParentIDNotNil() predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldNotNull(FieldParentID))
 }
 
 // AppIDEQ applies the EQ predicate on the "app_id" field.

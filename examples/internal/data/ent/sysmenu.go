@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysmenu"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // 系统菜单与按钮权限表，统一承载菜单、目录、按钮三类资源。
@@ -17,7 +18,7 @@ type SysMenu struct {
 	config `json:"-"`
 	// ID of the ent.
 	// 雪花算法生成的主键 ID。
-	ID int64 `json:"id,omitempty"`
+	ID idgen.ID `json:"id,omitempty"`
 	// 逻辑删除时间，NULL 表示未删除。
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// 创建时间。
@@ -25,11 +26,11 @@ type SysMenu struct {
 	// 最后更新时间。
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// 创建人用户 ID。
-	CreatedBy *int64 `json:"created_by,omitempty"`
+	CreatedBy *idgen.ID `json:"created_by,omitempty"`
 	// 最后更新人用户 ID。
-	UpdatedBy *int64 `json:"updated_by,omitempty"`
-	// 父级菜单 ID，0 表示顶级目录。
-	ParentID int64 `json:"parent_id,omitempty"`
+	UpdatedBy *idgen.ID `json:"updated_by,omitempty"`
+	// 父级菜单 ID，NULL 表示顶级目录。
+	ParentID *idgen.ID `json:"parent_id,omitempty"`
 	// 所属应用编码，用于多应用场景区分菜单树。
 	AppID *string `json:"app_id,omitempty"`
 	// 菜单或按钮展示标题。
@@ -103,11 +104,11 @@ func (_m *SysMenu) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case sysmenu.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value.Valid {
+				_m.ID = idgen.ID(value.Int64)
 			}
-			_m.ID = int64(value.Int64)
 		case sysmenu.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
@@ -131,21 +132,22 @@ func (_m *SysMenu) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field created_by", values[i])
 			} else if value.Valid {
-				_m.CreatedBy = new(int64)
-				*_m.CreatedBy = value.Int64
+				_m.CreatedBy = new(idgen.ID)
+				*_m.CreatedBy = idgen.ID(value.Int64)
 			}
 		case sysmenu.FieldUpdatedBy:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_by", values[i])
 			} else if value.Valid {
-				_m.UpdatedBy = new(int64)
-				*_m.UpdatedBy = value.Int64
+				_m.UpdatedBy = new(idgen.ID)
+				*_m.UpdatedBy = idgen.ID(value.Int64)
 			}
 		case sysmenu.FieldParentID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field parent_id", values[i])
 			} else if value.Valid {
-				_m.ParentID = value.Int64
+				_m.ParentID = new(idgen.ID)
+				*_m.ParentID = idgen.ID(value.Int64)
 			}
 		case sysmenu.FieldAppID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -274,8 +276,10 @@ func (_m *SysMenu) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("parent_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.ParentID))
+	if v := _m.ParentID; v != nil {
+		builder.WriteString("parent_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := _m.AppID; v != nil {
 		builder.WriteString("app_id=")

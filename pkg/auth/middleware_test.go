@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // staticRouteSecurityLookup 始终返回同一份安全元信息，用于 JWT 中间件单元测试。
@@ -54,7 +55,7 @@ func TestJWTMiddlewareRejectsBlacklistedToken(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pair, err := manager.IssueTokenPair(t.Context(), Principal{UserID: 1001, Roles: []string{"admin"}})
+	pair, err := manager.IssueTokenPair(t.Context(), Principal{UserID: idgen.New(1001), Roles: []string{"admin"}})
 	require.NoError(t, err)
 
 	claims, err := manager.parse(pair.AccessToken, TokenTypeAccess)
@@ -85,7 +86,7 @@ func TestAuthorizationMiddlewareRejectsUnregisteredAPIRoute(t *testing.T) {
 	engine := gin.New()
 	engine.Use(func(c *gin.Context) {
 		ctx := WithPrincipal(c.Request.Context(), Principal{
-			UserID: 1001,
+			UserID: idgen.New(1001),
 			Roles:  []string{"admin"},
 		})
 		c.Request = c.Request.WithContext(ctx)
@@ -131,7 +132,7 @@ func TestAuthorizationMiddlewareAllowsAuthenticatedRouteWithoutPermission(t *tes
 	engine := gin.New()
 	engine.Use(func(c *gin.Context) {
 		ctx := WithPrincipal(c.Request.Context(), Principal{
-			UserID: 1001,
+			UserID: idgen.New(1001),
 			Roles:  []string{"viewer"},
 		})
 		c.Request = c.Request.WithContext(ctx)
@@ -159,7 +160,7 @@ func TestAuthorizationMiddlewareRejectsUnknownAccessMode(t *testing.T) {
 	engine := gin.New()
 	engine.Use(func(c *gin.Context) {
 		ctx := WithPrincipal(c.Request.Context(), Principal{
-			UserID: 1001,
+			UserID: idgen.New(1001),
 			Roles:  []string{"admin"},
 		})
 		c.Request = c.Request.WithContext(ctx)

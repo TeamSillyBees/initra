@@ -9,6 +9,7 @@ import (
 	"{{ .ModulePath }}/internal/data/ent/sysuser"
 	"{{ .ModulePath }}/internal/data/ent/sysuserrole"
 	"{{ .ModulePath }}/internal/modules/bizerrors"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // Repository 使用 Ent Client 实现 auth 模块身份仓储。
@@ -39,7 +40,7 @@ func (r *Repository) FindByUsername(ctx context.Context, username string) (*Iden
 }
 
 // FindByID 根据用户 ID 读取身份信息。
-func (r *Repository) FindByID(ctx context.Context, id int64) (*Identity, error) {
+func (r *Repository) FindByID(ctx context.Context, id idgen.ID) (*Identity, error) {
 	record, err := r.client.SysUser.Query().
 		Where(
 			sysuser.ID(id),
@@ -71,7 +72,7 @@ func (r *Repository) toIdentity(ctx context.Context, record *appent.SysUser) (*I
 	}, nil
 }
 
-func (r *Repository) loadRoleCodes(ctx context.Context, userID int64) ([]string, error) {
+func (r *Repository) loadRoleCodes(ctx context.Context, userID idgen.ID) ([]string, error) {
 	var rows []struct {
 		Code string `json:"code"`
 	}

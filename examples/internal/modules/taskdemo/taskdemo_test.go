@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/task"
 )
 
@@ -13,7 +14,7 @@ func TestServicePublishEmail(t *testing.T) {
 	service := NewService(publisher)
 
 	result, err := service.PublishEmail(context.Background(), PublishEmailDTO{
-		UserID:  "1001",
+		UserID:  idgen.New(1001),
 		Email:   "alice@example.com",
 		TraceID: "trace-1",
 	})

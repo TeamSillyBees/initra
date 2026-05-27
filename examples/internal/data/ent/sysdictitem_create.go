@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysdictcollection"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysdictitem"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysDictItemCreate is the builder for creating a SysDictItem entity.
@@ -48,13 +49,13 @@ func (_c *SysDictItemCreate) SetUpdatedAt(v time.Time) *SysDictItemCreate {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_c *SysDictItemCreate) SetCreatedBy(v int64) *SysDictItemCreate {
+func (_c *SysDictItemCreate) SetCreatedBy(v idgen.ID) *SysDictItemCreate {
 	_c.mutation.SetCreatedBy(v)
 	return _c
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_c *SysDictItemCreate) SetNillableCreatedBy(v *int64) *SysDictItemCreate {
+func (_c *SysDictItemCreate) SetNillableCreatedBy(v *idgen.ID) *SysDictItemCreate {
 	if v != nil {
 		_c.SetCreatedBy(*v)
 	}
@@ -62,13 +63,13 @@ func (_c *SysDictItemCreate) SetNillableCreatedBy(v *int64) *SysDictItemCreate {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (_c *SysDictItemCreate) SetUpdatedBy(v int64) *SysDictItemCreate {
+func (_c *SysDictItemCreate) SetUpdatedBy(v idgen.ID) *SysDictItemCreate {
 	_c.mutation.SetUpdatedBy(v)
 	return _c
 }
 
 // SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_c *SysDictItemCreate) SetNillableUpdatedBy(v *int64) *SysDictItemCreate {
+func (_c *SysDictItemCreate) SetNillableUpdatedBy(v *idgen.ID) *SysDictItemCreate {
 	if v != nil {
 		_c.SetUpdatedBy(*v)
 	}
@@ -76,7 +77,7 @@ func (_c *SysDictItemCreate) SetNillableUpdatedBy(v *int64) *SysDictItemCreate {
 }
 
 // SetCollectionID sets the "collection_id" field.
-func (_c *SysDictItemCreate) SetCollectionID(v int64) *SysDictItemCreate {
+func (_c *SysDictItemCreate) SetCollectionID(v idgen.ID) *SysDictItemCreate {
 	_c.mutation.SetCollectionID(v)
 	return _c
 }
@@ -170,8 +171,16 @@ func (_c *SysDictItemCreate) SetNillableSortID(v *int) *SysDictItemCreate {
 }
 
 // SetID sets the "id" field.
-func (_c *SysDictItemCreate) SetID(v int64) *SysDictItemCreate {
+func (_c *SysDictItemCreate) SetID(v idgen.ID) *SysDictItemCreate {
 	_c.mutation.SetID(v)
+	return _c
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (_c *SysDictItemCreate) SetNillableID(v *idgen.ID) *SysDictItemCreate {
+	if v != nil {
+		_c.SetID(*v)
+	}
 	return _c
 }
 
@@ -231,6 +240,10 @@ func (_c *SysDictItemCreate) defaults() {
 		v := sysdictitem.DefaultSortID
 		_c.mutation.SetSortID(v)
 	}
+	if _, ok := _c.mutation.ID(); !ok {
+		v := sysdictitem.DefaultID()
+		_c.mutation.SetID(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -245,7 +258,7 @@ func (_c *SysDictItemCreate) check() error {
 		return &ValidationError{Name: "collection_id", err: errors.New(`ent: missing required field "SysDictItem.collection_id"`)}
 	}
 	if v, ok := _c.mutation.CollectionID(); ok {
-		if err := sysdictitem.CollectionIDValidator(v); err != nil {
+		if err := sysdictitem.CollectionIDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "collection_id", err: fmt.Errorf(`ent: validator failed for field "SysDictItem.collection_id": %w`, err)}
 		}
 	}
@@ -291,7 +304,7 @@ func (_c *SysDictItemCreate) check() error {
 		return &ValidationError{Name: "sort_id", err: errors.New(`ent: missing required field "SysDictItem.sort_id"`)}
 	}
 	if v, ok := _c.mutation.ID(); ok {
-		if err := sysdictitem.IDValidator(v); err != nil {
+		if err := sysdictitem.IDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "SysDictItem.id": %w`, err)}
 		}
 	}
@@ -314,7 +327,7 @@ func (_c *SysDictItemCreate) sqlSave(ctx context.Context) (*SysDictItem, error) 
 	}
 	if _spec.ID.Value != _node.ID {
 		id := _spec.ID.Value.(int64)
-		_node.ID = int64(id)
+		_node.ID = idgen.ID(id)
 	}
 	_c.mutation.id = &_node.ID
 	_c.mutation.done = true
@@ -449,7 +462,7 @@ func (_c *SysDictItemCreateBulk) Save(ctx context.Context) ([]*SysDictItem, erro
 				mutation.id = &nodes[i].ID
 				if specs[i].ID.Value != nil && nodes[i].ID == 0 {
 					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int64(id)
+					nodes[i].ID = idgen.ID(id)
 				}
 				mutation.done = true
 				return nodes[i], nil

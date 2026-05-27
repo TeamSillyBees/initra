@@ -63,11 +63,13 @@ go run ./cmd/server
 - `casbin`：权限模型和策略文件。
 - `cache`、`idgen`、`storage`、`task`：缓存、雪花 ID、文件存储和任务队列配置。
 
+业务 ID 统一使用 `github.com/teamsillybees/initra/pkg/idgen.ID`。Ent 主键、外键、auth user ID、REST path params、service/repo 入参和 JSON VO 不使用 `int64` 或 `string` 表达业务 ID；REST/OpenAPI 对外暴露为 JSON string，示例形如 `"1771234567890123456"`。只有对接雪花 ID 生成器、第三方库、手写 SQL 参数或底层基础设施时才调用 `Int64()`。
+
 配置打印前会走脱敏逻辑。密码、Token、Secret、Access Key、Authorization 和带密码的 DSN 不应明文进入日志。
 
 ## 数据库与迁移
 
-`internal/data/schema` 是数据库结构主源；`db/migrations` 是版本化迁移历史；`db/seeds` 保存初始化数据。
+`internal/data/schema` 是数据库结构主源；`db/migrations` 是版本化迁移历史；`db/seeds` 保存初始化数据。Ent schema 复用 `pkg/entx/mixin` 中的 ID、审计、软删除和乐观锁 mixin，不在业务项目内复制本地 mixin。
 
 ```powershell
 go generate ./internal/data

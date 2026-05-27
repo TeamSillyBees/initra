@@ -1,8 +1,10 @@
 package auth
 
+import "github.com/teamsillybees/initra/pkg/idgen"
+
 // Identity 描述 auth 模块关心的最小用户身份聚合。
 type Identity struct {
-	UserID       int64
+	UserID       idgen.ID
 	Username     string
 	Nickname     string
 	PasswordHash string

@@ -7,12 +7,13 @@ import (
 
 	"{{ .ModulePath }}/internal/modules/bizerrors"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // identityRepo 定义 auth 模块读取身份信息所需的最小能力。
 type identityRepo interface {
 	FindByUsername(ctx context.Context, username string) (*Identity, error)
-	FindByID(ctx context.Context, id int64) (*Identity, error)
+	FindByID(ctx context.Context, id idgen.ID) (*Identity, error)
 }
 
 // passwordVerifier 抽象密码校验行为。
@@ -104,7 +105,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (platformaut
 }
 
 // Me 查询当前登录用户信息。
-func (s *Service) Me(ctx context.Context, userID int64) (*Identity, error) {
+func (s *Service) Me(ctx context.Context, userID idgen.ID) (*Identity, error) {
 	identity, err := s.repo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, err

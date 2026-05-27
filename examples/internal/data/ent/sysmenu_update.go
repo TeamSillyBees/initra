@@ -14,6 +14,7 @@ import (
 	"github.com/teamsillybees/initra/examples/internal/data/ent/predicate"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysmenu"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrolemenu"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysMenuUpdate is the builder for updating SysMenu entities.
@@ -64,14 +65,14 @@ func (_u *SysMenuUpdate) SetNillableUpdatedAt(v *time.Time) *SysMenuUpdate {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_u *SysMenuUpdate) SetCreatedBy(v int64) *SysMenuUpdate {
+func (_u *SysMenuUpdate) SetCreatedBy(v idgen.ID) *SysMenuUpdate {
 	_u.mutation.ResetCreatedBy()
 	_u.mutation.SetCreatedBy(v)
 	return _u
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysMenuUpdate) SetNillableCreatedBy(v *int64) *SysMenuUpdate {
+func (_u *SysMenuUpdate) SetNillableCreatedBy(v *idgen.ID) *SysMenuUpdate {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
@@ -79,7 +80,7 @@ func (_u *SysMenuUpdate) SetNillableCreatedBy(v *int64) *SysMenuUpdate {
 }
 
 // AddCreatedBy adds value to the "created_by" field.
-func (_u *SysMenuUpdate) AddCreatedBy(v int64) *SysMenuUpdate {
+func (_u *SysMenuUpdate) AddCreatedBy(v idgen.ID) *SysMenuUpdate {
 	_u.mutation.AddCreatedBy(v)
 	return _u
 }
@@ -91,14 +92,14 @@ func (_u *SysMenuUpdate) ClearCreatedBy() *SysMenuUpdate {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (_u *SysMenuUpdate) SetUpdatedBy(v int64) *SysMenuUpdate {
+func (_u *SysMenuUpdate) SetUpdatedBy(v idgen.ID) *SysMenuUpdate {
 	_u.mutation.ResetUpdatedBy()
 	_u.mutation.SetUpdatedBy(v)
 	return _u
 }
 
 // SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysMenuUpdate) SetNillableUpdatedBy(v *int64) *SysMenuUpdate {
+func (_u *SysMenuUpdate) SetNillableUpdatedBy(v *idgen.ID) *SysMenuUpdate {
 	if v != nil {
 		_u.SetUpdatedBy(*v)
 	}
@@ -106,7 +107,7 @@ func (_u *SysMenuUpdate) SetNillableUpdatedBy(v *int64) *SysMenuUpdate {
 }
 
 // AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysMenuUpdate) AddUpdatedBy(v int64) *SysMenuUpdate {
+func (_u *SysMenuUpdate) AddUpdatedBy(v idgen.ID) *SysMenuUpdate {
 	_u.mutation.AddUpdatedBy(v)
 	return _u
 }
@@ -118,14 +119,14 @@ func (_u *SysMenuUpdate) ClearUpdatedBy() *SysMenuUpdate {
 }
 
 // SetParentID sets the "parent_id" field.
-func (_u *SysMenuUpdate) SetParentID(v int64) *SysMenuUpdate {
+func (_u *SysMenuUpdate) SetParentID(v idgen.ID) *SysMenuUpdate {
 	_u.mutation.ResetParentID()
 	_u.mutation.SetParentID(v)
 	return _u
 }
 
 // SetNillableParentID sets the "parent_id" field if the given value is not nil.
-func (_u *SysMenuUpdate) SetNillableParentID(v *int64) *SysMenuUpdate {
+func (_u *SysMenuUpdate) SetNillableParentID(v *idgen.ID) *SysMenuUpdate {
 	if v != nil {
 		_u.SetParentID(*v)
 	}
@@ -133,8 +134,14 @@ func (_u *SysMenuUpdate) SetNillableParentID(v *int64) *SysMenuUpdate {
 }
 
 // AddParentID adds value to the "parent_id" field.
-func (_u *SysMenuUpdate) AddParentID(v int64) *SysMenuUpdate {
+func (_u *SysMenuUpdate) AddParentID(v idgen.ID) *SysMenuUpdate {
 	_u.mutation.AddParentID(v)
+	return _u
+}
+
+// ClearParentID clears the value of the "parent_id" field.
+func (_u *SysMenuUpdate) ClearParentID() *SysMenuUpdate {
+	_u.mutation.ClearParentID()
 	return _u
 }
 
@@ -323,14 +330,14 @@ func (_u *SysMenuUpdate) AddSortID(v int) *SysMenuUpdate {
 }
 
 // AddRoleMenuIDs adds the "role_menus" edge to the SysRoleMenu entity by IDs.
-func (_u *SysMenuUpdate) AddRoleMenuIDs(ids ...int64) *SysMenuUpdate {
+func (_u *SysMenuUpdate) AddRoleMenuIDs(ids ...idgen.ID) *SysMenuUpdate {
 	_u.mutation.AddRoleMenuIDs(ids...)
 	return _u
 }
 
 // AddRoleMenus adds the "role_menus" edges to the SysRoleMenu entity.
 func (_u *SysMenuUpdate) AddRoleMenus(v ...*SysRoleMenu) *SysMenuUpdate {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -349,14 +356,14 @@ func (_u *SysMenuUpdate) ClearRoleMenus() *SysMenuUpdate {
 }
 
 // RemoveRoleMenuIDs removes the "role_menus" edge to SysRoleMenu entities by IDs.
-func (_u *SysMenuUpdate) RemoveRoleMenuIDs(ids ...int64) *SysMenuUpdate {
+func (_u *SysMenuUpdate) RemoveRoleMenuIDs(ids ...idgen.ID) *SysMenuUpdate {
 	_u.mutation.RemoveRoleMenuIDs(ids...)
 	return _u
 }
 
 // RemoveRoleMenus removes "role_menus" edges to SysRoleMenu entities.
 func (_u *SysMenuUpdate) RemoveRoleMenus(v ...*SysRoleMenu) *SysMenuUpdate {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -459,6 +466,9 @@ func (_u *SysMenuUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.AddedParentID(); ok {
 		_spec.AddField(sysmenu.FieldParentID, field.TypeInt64, value)
+	}
+	if _u.mutation.ParentIDCleared() {
+		_spec.ClearField(sysmenu.FieldParentID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.AppID(); ok {
 		_spec.SetField(sysmenu.FieldAppID, field.TypeString, value)
@@ -611,14 +621,14 @@ func (_u *SysMenuUpdateOne) SetNillableUpdatedAt(v *time.Time) *SysMenuUpdateOne
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_u *SysMenuUpdateOne) SetCreatedBy(v int64) *SysMenuUpdateOne {
+func (_u *SysMenuUpdateOne) SetCreatedBy(v idgen.ID) *SysMenuUpdateOne {
 	_u.mutation.ResetCreatedBy()
 	_u.mutation.SetCreatedBy(v)
 	return _u
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysMenuUpdateOne) SetNillableCreatedBy(v *int64) *SysMenuUpdateOne {
+func (_u *SysMenuUpdateOne) SetNillableCreatedBy(v *idgen.ID) *SysMenuUpdateOne {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
@@ -626,7 +636,7 @@ func (_u *SysMenuUpdateOne) SetNillableCreatedBy(v *int64) *SysMenuUpdateOne {
 }
 
 // AddCreatedBy adds value to the "created_by" field.
-func (_u *SysMenuUpdateOne) AddCreatedBy(v int64) *SysMenuUpdateOne {
+func (_u *SysMenuUpdateOne) AddCreatedBy(v idgen.ID) *SysMenuUpdateOne {
 	_u.mutation.AddCreatedBy(v)
 	return _u
 }
@@ -638,14 +648,14 @@ func (_u *SysMenuUpdateOne) ClearCreatedBy() *SysMenuUpdateOne {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (_u *SysMenuUpdateOne) SetUpdatedBy(v int64) *SysMenuUpdateOne {
+func (_u *SysMenuUpdateOne) SetUpdatedBy(v idgen.ID) *SysMenuUpdateOne {
 	_u.mutation.ResetUpdatedBy()
 	_u.mutation.SetUpdatedBy(v)
 	return _u
 }
 
 // SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysMenuUpdateOne) SetNillableUpdatedBy(v *int64) *SysMenuUpdateOne {
+func (_u *SysMenuUpdateOne) SetNillableUpdatedBy(v *idgen.ID) *SysMenuUpdateOne {
 	if v != nil {
 		_u.SetUpdatedBy(*v)
 	}
@@ -653,7 +663,7 @@ func (_u *SysMenuUpdateOne) SetNillableUpdatedBy(v *int64) *SysMenuUpdateOne {
 }
 
 // AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysMenuUpdateOne) AddUpdatedBy(v int64) *SysMenuUpdateOne {
+func (_u *SysMenuUpdateOne) AddUpdatedBy(v idgen.ID) *SysMenuUpdateOne {
 	_u.mutation.AddUpdatedBy(v)
 	return _u
 }
@@ -665,14 +675,14 @@ func (_u *SysMenuUpdateOne) ClearUpdatedBy() *SysMenuUpdateOne {
 }
 
 // SetParentID sets the "parent_id" field.
-func (_u *SysMenuUpdateOne) SetParentID(v int64) *SysMenuUpdateOne {
+func (_u *SysMenuUpdateOne) SetParentID(v idgen.ID) *SysMenuUpdateOne {
 	_u.mutation.ResetParentID()
 	_u.mutation.SetParentID(v)
 	return _u
 }
 
 // SetNillableParentID sets the "parent_id" field if the given value is not nil.
-func (_u *SysMenuUpdateOne) SetNillableParentID(v *int64) *SysMenuUpdateOne {
+func (_u *SysMenuUpdateOne) SetNillableParentID(v *idgen.ID) *SysMenuUpdateOne {
 	if v != nil {
 		_u.SetParentID(*v)
 	}
@@ -680,8 +690,14 @@ func (_u *SysMenuUpdateOne) SetNillableParentID(v *int64) *SysMenuUpdateOne {
 }
 
 // AddParentID adds value to the "parent_id" field.
-func (_u *SysMenuUpdateOne) AddParentID(v int64) *SysMenuUpdateOne {
+func (_u *SysMenuUpdateOne) AddParentID(v idgen.ID) *SysMenuUpdateOne {
 	_u.mutation.AddParentID(v)
+	return _u
+}
+
+// ClearParentID clears the value of the "parent_id" field.
+func (_u *SysMenuUpdateOne) ClearParentID() *SysMenuUpdateOne {
+	_u.mutation.ClearParentID()
 	return _u
 }
 
@@ -870,14 +886,14 @@ func (_u *SysMenuUpdateOne) AddSortID(v int) *SysMenuUpdateOne {
 }
 
 // AddRoleMenuIDs adds the "role_menus" edge to the SysRoleMenu entity by IDs.
-func (_u *SysMenuUpdateOne) AddRoleMenuIDs(ids ...int64) *SysMenuUpdateOne {
+func (_u *SysMenuUpdateOne) AddRoleMenuIDs(ids ...idgen.ID) *SysMenuUpdateOne {
 	_u.mutation.AddRoleMenuIDs(ids...)
 	return _u
 }
 
 // AddRoleMenus adds the "role_menus" edges to the SysRoleMenu entity.
 func (_u *SysMenuUpdateOne) AddRoleMenus(v ...*SysRoleMenu) *SysMenuUpdateOne {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -896,14 +912,14 @@ func (_u *SysMenuUpdateOne) ClearRoleMenus() *SysMenuUpdateOne {
 }
 
 // RemoveRoleMenuIDs removes the "role_menus" edge to SysRoleMenu entities by IDs.
-func (_u *SysMenuUpdateOne) RemoveRoleMenuIDs(ids ...int64) *SysMenuUpdateOne {
+func (_u *SysMenuUpdateOne) RemoveRoleMenuIDs(ids ...idgen.ID) *SysMenuUpdateOne {
 	_u.mutation.RemoveRoleMenuIDs(ids...)
 	return _u
 }
 
 // RemoveRoleMenus removes "role_menus" edges to SysRoleMenu entities.
 func (_u *SysMenuUpdateOne) RemoveRoleMenus(v ...*SysRoleMenu) *SysMenuUpdateOne {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1036,6 +1052,9 @@ func (_u *SysMenuUpdateOne) sqlSave(ctx context.Context) (_node *SysMenu, err er
 	}
 	if value, ok := _u.mutation.AddedParentID(); ok {
 		_spec.AddField(sysmenu.FieldParentID, field.TypeInt64, value)
+	}
+	if _u.mutation.ParentIDCleared() {
+		_spec.ClearField(sysmenu.FieldParentID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.AppID(); ok {
 		_spec.SetField(sysmenu.FieldAppID, field.TypeString, value)

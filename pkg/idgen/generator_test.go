@@ -14,7 +14,7 @@ func TestGeneratorGeneratesUniquePositiveIDs(t *testing.T) {
 	first := generator.NextID()
 	second := generator.NextID()
 
-	require.Positive(t, first)
-	require.Positive(t, second)
+	require.Positive(t, first.Int64())
+	require.Positive(t, second.Int64())
 	require.NotEqual(t, first, second)
 }

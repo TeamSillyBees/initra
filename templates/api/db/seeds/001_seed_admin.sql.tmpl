@@ -24,8 +24,8 @@ INSERT INTO sys_role (
     0,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP,
-    0,
-    0
+    NULL,
+    NULL
 ),
 (
     1000000000102,
@@ -37,8 +37,8 @@ INSERT INTO sys_role (
     10,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP,
-    0,
-    0
+    NULL,
+    NULL
 )
 ON CONFLICT (code) DO NOTHING;
 
@@ -70,8 +70,8 @@ INSERT INTO sys_user (
     0,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP,
-    0,
-    0
+    NULL,
+    NULL
 )
 ON CONFLICT (username) DO NOTHING;
 
@@ -86,7 +86,7 @@ SELECT
     1000000000201,
     su.id,
     sr.id,
-    0,
+    NULL,
     CURRENT_TIMESTAMP
 FROM sys_user AS su
 INNER JOIN sys_role AS sr ON sr.code = 'admin'

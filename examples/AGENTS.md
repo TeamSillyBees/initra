@@ -40,6 +40,8 @@ initra migrate hash
 - 包名保持简短、清晰、全小写；一个业务模块一个 package。
 - 不引入不必要的抽象。只有在减少真实重复、隔离复杂度或匹配现有模式时才新增抽象。
 - 共享能力优先放入项目内清晰的公共 package 或复用 `github.com/teamsillybees/initra/pkg/*`，不要通过业务模块之间互相 import 具体实现来复用逻辑。
+- 业务 ID 统一使用 `github.com/teamsillybees/initra/pkg/idgen.ID`。Ent 主键、外键、auth user ID、REST path params、service/repo 入参和 JSON VO 不再使用 `int64` 或 `string` 表达业务 ID；对外 JSON/OpenAPI ID 暴露为字符串。仅在对接雪花 ID 生成器、第三方库、手写 SQL 参数或极少数底层基础设施场景调用 `Int64()`。
+- Ent schema 统一复用 `github.com/teamsillybees/initra/pkg/entx/mixin` 中的 ID、审计、软删除和乐观锁 mixin，业务项目不要复制本地 schema mixin。
 - 禁止在业务模块中随意使用 `panic` 或吞掉错误；错误应向上返回并保留足够上下文。
 - 业务专属错误码集中放在 `internal/modules/bizerrors` 或业务约定的错误包中，通过统一错误工厂创建。
 

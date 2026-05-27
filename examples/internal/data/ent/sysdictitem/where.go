@@ -8,50 +8,51 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/predicate"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id int64) predicate.SysDictItem {
+func ID(id idgen.ID) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int64) predicate.SysDictItem {
+func IDEQ(id idgen.ID) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int64) predicate.SysDictItem {
+func IDNEQ(id idgen.ID) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int64) predicate.SysDictItem {
+func IDIn(ids ...idgen.ID) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int64) predicate.SysDictItem {
+func IDNotIn(ids ...idgen.ID) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int64) predicate.SysDictItem {
+func IDGT(id idgen.ID) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int64) predicate.SysDictItem {
+func IDGTE(id idgen.ID) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int64) predicate.SysDictItem {
+func IDLT(id idgen.ID) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int64) predicate.SysDictItem {
+func IDLTE(id idgen.ID) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldLTE(FieldID, id))
 }
 
@@ -71,18 +72,21 @@ func UpdatedAt(v time.Time) predicate.SysDictItem {
 }
 
 // CreatedBy applies equality check predicate on the "created_by" field. It's identical to CreatedByEQ.
-func CreatedBy(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldEQ(FieldCreatedBy, v))
+func CreatedBy(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldEQ(FieldCreatedBy, vc))
 }
 
 // UpdatedBy applies equality check predicate on the "updated_by" field. It's identical to UpdatedByEQ.
-func UpdatedBy(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldEQ(FieldUpdatedBy, v))
+func UpdatedBy(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldEQ(FieldUpdatedBy, vc))
 }
 
 // CollectionID applies equality check predicate on the "collection_id" field. It's identical to CollectionIDEQ.
-func CollectionID(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldEQ(FieldCollectionID, v))
+func CollectionID(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldEQ(FieldCollectionID, vc))
 }
 
 // CollectionCode applies equality check predicate on the "collection_code" field. It's identical to CollectionCodeEQ.
@@ -251,43 +255,57 @@ func UpdatedAtLTE(v time.Time) predicate.SysDictItem {
 }
 
 // CreatedByEQ applies the EQ predicate on the "created_by" field.
-func CreatedByEQ(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldEQ(FieldCreatedBy, v))
+func CreatedByEQ(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldEQ(FieldCreatedBy, vc))
 }
 
 // CreatedByNEQ applies the NEQ predicate on the "created_by" field.
-func CreatedByNEQ(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldNEQ(FieldCreatedBy, v))
+func CreatedByNEQ(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldNEQ(FieldCreatedBy, vc))
 }
 
 // CreatedByIn applies the In predicate on the "created_by" field.
-func CreatedByIn(vs ...int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldIn(FieldCreatedBy, vs...))
+func CreatedByIn(vs ...idgen.ID) predicate.SysDictItem {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysDictItem(sql.FieldIn(FieldCreatedBy, v...))
 }
 
 // CreatedByNotIn applies the NotIn predicate on the "created_by" field.
-func CreatedByNotIn(vs ...int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldNotIn(FieldCreatedBy, vs...))
+func CreatedByNotIn(vs ...idgen.ID) predicate.SysDictItem {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysDictItem(sql.FieldNotIn(FieldCreatedBy, v...))
 }
 
 // CreatedByGT applies the GT predicate on the "created_by" field.
-func CreatedByGT(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldGT(FieldCreatedBy, v))
+func CreatedByGT(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldGT(FieldCreatedBy, vc))
 }
 
 // CreatedByGTE applies the GTE predicate on the "created_by" field.
-func CreatedByGTE(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldGTE(FieldCreatedBy, v))
+func CreatedByGTE(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldGTE(FieldCreatedBy, vc))
 }
 
 // CreatedByLT applies the LT predicate on the "created_by" field.
-func CreatedByLT(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldLT(FieldCreatedBy, v))
+func CreatedByLT(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldLT(FieldCreatedBy, vc))
 }
 
 // CreatedByLTE applies the LTE predicate on the "created_by" field.
-func CreatedByLTE(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldLTE(FieldCreatedBy, v))
+func CreatedByLTE(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldLTE(FieldCreatedBy, vc))
 }
 
 // CreatedByIsNil applies the IsNil predicate on the "created_by" field.
@@ -301,43 +319,57 @@ func CreatedByNotNil() predicate.SysDictItem {
 }
 
 // UpdatedByEQ applies the EQ predicate on the "updated_by" field.
-func UpdatedByEQ(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldEQ(FieldUpdatedBy, v))
+func UpdatedByEQ(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldEQ(FieldUpdatedBy, vc))
 }
 
 // UpdatedByNEQ applies the NEQ predicate on the "updated_by" field.
-func UpdatedByNEQ(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldNEQ(FieldUpdatedBy, v))
+func UpdatedByNEQ(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldNEQ(FieldUpdatedBy, vc))
 }
 
 // UpdatedByIn applies the In predicate on the "updated_by" field.
-func UpdatedByIn(vs ...int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldIn(FieldUpdatedBy, vs...))
+func UpdatedByIn(vs ...idgen.ID) predicate.SysDictItem {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysDictItem(sql.FieldIn(FieldUpdatedBy, v...))
 }
 
 // UpdatedByNotIn applies the NotIn predicate on the "updated_by" field.
-func UpdatedByNotIn(vs ...int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldNotIn(FieldUpdatedBy, vs...))
+func UpdatedByNotIn(vs ...idgen.ID) predicate.SysDictItem {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysDictItem(sql.FieldNotIn(FieldUpdatedBy, v...))
 }
 
 // UpdatedByGT applies the GT predicate on the "updated_by" field.
-func UpdatedByGT(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldGT(FieldUpdatedBy, v))
+func UpdatedByGT(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldGT(FieldUpdatedBy, vc))
 }
 
 // UpdatedByGTE applies the GTE predicate on the "updated_by" field.
-func UpdatedByGTE(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldGTE(FieldUpdatedBy, v))
+func UpdatedByGTE(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldGTE(FieldUpdatedBy, vc))
 }
 
 // UpdatedByLT applies the LT predicate on the "updated_by" field.
-func UpdatedByLT(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldLT(FieldUpdatedBy, v))
+func UpdatedByLT(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldLT(FieldUpdatedBy, vc))
 }
 
 // UpdatedByLTE applies the LTE predicate on the "updated_by" field.
-func UpdatedByLTE(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldLTE(FieldUpdatedBy, v))
+func UpdatedByLTE(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldLTE(FieldUpdatedBy, vc))
 }
 
 // UpdatedByIsNil applies the IsNil predicate on the "updated_by" field.
@@ -351,23 +383,33 @@ func UpdatedByNotNil() predicate.SysDictItem {
 }
 
 // CollectionIDEQ applies the EQ predicate on the "collection_id" field.
-func CollectionIDEQ(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldEQ(FieldCollectionID, v))
+func CollectionIDEQ(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldEQ(FieldCollectionID, vc))
 }
 
 // CollectionIDNEQ applies the NEQ predicate on the "collection_id" field.
-func CollectionIDNEQ(v int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldNEQ(FieldCollectionID, v))
+func CollectionIDNEQ(v idgen.ID) predicate.SysDictItem {
+	vc := int64(v)
+	return predicate.SysDictItem(sql.FieldNEQ(FieldCollectionID, vc))
 }
 
 // CollectionIDIn applies the In predicate on the "collection_id" field.
-func CollectionIDIn(vs ...int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldIn(FieldCollectionID, vs...))
+func CollectionIDIn(vs ...idgen.ID) predicate.SysDictItem {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysDictItem(sql.FieldIn(FieldCollectionID, v...))
 }
 
 // CollectionIDNotIn applies the NotIn predicate on the "collection_id" field.
-func CollectionIDNotIn(vs ...int64) predicate.SysDictItem {
-	return predicate.SysDictItem(sql.FieldNotIn(FieldCollectionID, vs...))
+func CollectionIDNotIn(vs ...idgen.ID) predicate.SysDictItem {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysDictItem(sql.FieldNotIn(FieldCollectionID, v...))
 }
 
 // CollectionCodeEQ applies the EQ predicate on the "collection_code" field.

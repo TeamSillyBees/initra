@@ -20,6 +20,7 @@ import (
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrolemenu"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysuser"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysuserrole"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 const (
@@ -46,14 +47,14 @@ type SysConfigMutation struct {
 	config
 	op            Op
 	typ           string
-	id            *int64
+	id            *idgen.ID
 	deleted_at    *time.Time
 	created_at    *time.Time
 	updated_at    *time.Time
-	created_by    *int64
-	addcreated_by *int64
-	updated_by    *int64
-	addupdated_by *int64
+	created_by    *idgen.ID
+	addcreated_by *idgen.ID
+	updated_by    *idgen.ID
+	addupdated_by *idgen.ID
 	config_key    *string
 	config_value  *string
 	config_desc   *string
@@ -86,7 +87,7 @@ func newSysConfigMutation(c config, op Op, opts ...sysconfigOption) *SysConfigMu
 }
 
 // withSysConfigID sets the ID field of the mutation.
-func withSysConfigID(id int64) sysconfigOption {
+func withSysConfigID(id idgen.ID) sysconfigOption {
 	return func(m *SysConfigMutation) {
 		var (
 			err   error
@@ -138,13 +139,13 @@ func (m SysConfigMutation) Tx() (*Tx, error) {
 
 // SetID sets the value of the id field. Note that this
 // operation is only accepted on creation of SysConfig entities.
-func (m *SysConfigMutation) SetID(id int64) {
+func (m *SysConfigMutation) SetID(id idgen.ID) {
 	m.id = &id
 }
 
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *SysConfigMutation) ID() (id int64, exists bool) {
+func (m *SysConfigMutation) ID() (id idgen.ID, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -155,12 +156,12 @@ func (m *SysConfigMutation) ID() (id int64, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *SysConfigMutation) IDs(ctx context.Context) ([]int64, error) {
+func (m *SysConfigMutation) IDs(ctx context.Context) ([]idgen.ID, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []int64{id}, nil
+			return []idgen.ID{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):
@@ -292,13 +293,13 @@ func (m *SysConfigMutation) ResetUpdatedAt() {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (m *SysConfigMutation) SetCreatedBy(i int64) {
+func (m *SysConfigMutation) SetCreatedBy(i idgen.ID) {
 	m.created_by = &i
 	m.addcreated_by = nil
 }
 
 // CreatedBy returns the value of the "created_by" field in the mutation.
-func (m *SysConfigMutation) CreatedBy() (r int64, exists bool) {
+func (m *SysConfigMutation) CreatedBy() (r idgen.ID, exists bool) {
 	v := m.created_by
 	if v == nil {
 		return
@@ -309,7 +310,7 @@ func (m *SysConfigMutation) CreatedBy() (r int64, exists bool) {
 // OldCreatedBy returns the old "created_by" field's value of the SysConfig entity.
 // If the SysConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysConfigMutation) OldCreatedBy(ctx context.Context) (v *int64, err error) {
+func (m *SysConfigMutation) OldCreatedBy(ctx context.Context) (v *idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCreatedBy is only allowed on UpdateOne operations")
 	}
@@ -324,7 +325,7 @@ func (m *SysConfigMutation) OldCreatedBy(ctx context.Context) (v *int64, err err
 }
 
 // AddCreatedBy adds i to the "created_by" field.
-func (m *SysConfigMutation) AddCreatedBy(i int64) {
+func (m *SysConfigMutation) AddCreatedBy(i idgen.ID) {
 	if m.addcreated_by != nil {
 		*m.addcreated_by += i
 	} else {
@@ -333,7 +334,7 @@ func (m *SysConfigMutation) AddCreatedBy(i int64) {
 }
 
 // AddedCreatedBy returns the value that was added to the "created_by" field in this mutation.
-func (m *SysConfigMutation) AddedCreatedBy() (r int64, exists bool) {
+func (m *SysConfigMutation) AddedCreatedBy() (r idgen.ID, exists bool) {
 	v := m.addcreated_by
 	if v == nil {
 		return
@@ -362,13 +363,13 @@ func (m *SysConfigMutation) ResetCreatedBy() {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (m *SysConfigMutation) SetUpdatedBy(i int64) {
+func (m *SysConfigMutation) SetUpdatedBy(i idgen.ID) {
 	m.updated_by = &i
 	m.addupdated_by = nil
 }
 
 // UpdatedBy returns the value of the "updated_by" field in the mutation.
-func (m *SysConfigMutation) UpdatedBy() (r int64, exists bool) {
+func (m *SysConfigMutation) UpdatedBy() (r idgen.ID, exists bool) {
 	v := m.updated_by
 	if v == nil {
 		return
@@ -379,7 +380,7 @@ func (m *SysConfigMutation) UpdatedBy() (r int64, exists bool) {
 // OldUpdatedBy returns the old "updated_by" field's value of the SysConfig entity.
 // If the SysConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysConfigMutation) OldUpdatedBy(ctx context.Context) (v *int64, err error) {
+func (m *SysConfigMutation) OldUpdatedBy(ctx context.Context) (v *idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUpdatedBy is only allowed on UpdateOne operations")
 	}
@@ -394,7 +395,7 @@ func (m *SysConfigMutation) OldUpdatedBy(ctx context.Context) (v *int64, err err
 }
 
 // AddUpdatedBy adds i to the "updated_by" field.
-func (m *SysConfigMutation) AddUpdatedBy(i int64) {
+func (m *SysConfigMutation) AddUpdatedBy(i idgen.ID) {
 	if m.addupdated_by != nil {
 		*m.addupdated_by += i
 	} else {
@@ -403,7 +404,7 @@ func (m *SysConfigMutation) AddUpdatedBy(i int64) {
 }
 
 // AddedUpdatedBy returns the value that was added to the "updated_by" field in this mutation.
-func (m *SysConfigMutation) AddedUpdatedBy() (r int64, exists bool) {
+func (m *SysConfigMutation) AddedUpdatedBy() (r idgen.ID, exists bool) {
 	v := m.addupdated_by
 	if v == nil {
 		return
@@ -797,14 +798,14 @@ func (m *SysConfigMutation) SetField(name string, value ent.Value) error {
 		m.SetUpdatedAt(v)
 		return nil
 	case sysconfig.FieldCreatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedBy(v)
 		return nil
 	case sysconfig.FieldUpdatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -886,14 +887,14 @@ func (m *SysConfigMutation) AddedField(name string) (ent.Value, bool) {
 func (m *SysConfigMutation) AddField(name string, value ent.Value) error {
 	switch name {
 	case sysconfig.FieldCreatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddCreatedBy(v)
 		return nil
 	case sysconfig.FieldUpdatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -1047,14 +1048,14 @@ type SysDictCollectionMutation struct {
 	config
 	op             Op
 	typ            string
-	id             *int64
+	id             *idgen.ID
 	deleted_at     *time.Time
 	created_at     *time.Time
 	updated_at     *time.Time
-	created_by     *int64
-	addcreated_by  *int64
-	updated_by     *int64
-	addupdated_by  *int64
+	created_by     *idgen.ID
+	addcreated_by  *idgen.ID
+	updated_by     *idgen.ID
+	addupdated_by  *idgen.ID
 	code           *string
 	name           *string
 	is_enable      *bool
@@ -1065,8 +1066,8 @@ type SysDictCollectionMutation struct {
 	sort_id        *int
 	addsort_id     *int
 	clearedFields  map[string]struct{}
-	items          map[int64]struct{}
-	removeditems   map[int64]struct{}
+	items          map[idgen.ID]struct{}
+	removeditems   map[idgen.ID]struct{}
 	cleareditems   bool
 	done           bool
 	oldValue       func(context.Context) (*SysDictCollection, error)
@@ -1093,7 +1094,7 @@ func newSysDictCollectionMutation(c config, op Op, opts ...sysdictcollectionOpti
 }
 
 // withSysDictCollectionID sets the ID field of the mutation.
-func withSysDictCollectionID(id int64) sysdictcollectionOption {
+func withSysDictCollectionID(id idgen.ID) sysdictcollectionOption {
 	return func(m *SysDictCollectionMutation) {
 		var (
 			err   error
@@ -1145,13 +1146,13 @@ func (m SysDictCollectionMutation) Tx() (*Tx, error) {
 
 // SetID sets the value of the id field. Note that this
 // operation is only accepted on creation of SysDictCollection entities.
-func (m *SysDictCollectionMutation) SetID(id int64) {
+func (m *SysDictCollectionMutation) SetID(id idgen.ID) {
 	m.id = &id
 }
 
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *SysDictCollectionMutation) ID() (id int64, exists bool) {
+func (m *SysDictCollectionMutation) ID() (id idgen.ID, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -1162,12 +1163,12 @@ func (m *SysDictCollectionMutation) ID() (id int64, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *SysDictCollectionMutation) IDs(ctx context.Context) ([]int64, error) {
+func (m *SysDictCollectionMutation) IDs(ctx context.Context) ([]idgen.ID, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []int64{id}, nil
+			return []idgen.ID{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):
@@ -1299,13 +1300,13 @@ func (m *SysDictCollectionMutation) ResetUpdatedAt() {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (m *SysDictCollectionMutation) SetCreatedBy(i int64) {
+func (m *SysDictCollectionMutation) SetCreatedBy(i idgen.ID) {
 	m.created_by = &i
 	m.addcreated_by = nil
 }
 
 // CreatedBy returns the value of the "created_by" field in the mutation.
-func (m *SysDictCollectionMutation) CreatedBy() (r int64, exists bool) {
+func (m *SysDictCollectionMutation) CreatedBy() (r idgen.ID, exists bool) {
 	v := m.created_by
 	if v == nil {
 		return
@@ -1316,7 +1317,7 @@ func (m *SysDictCollectionMutation) CreatedBy() (r int64, exists bool) {
 // OldCreatedBy returns the old "created_by" field's value of the SysDictCollection entity.
 // If the SysDictCollection object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysDictCollectionMutation) OldCreatedBy(ctx context.Context) (v *int64, err error) {
+func (m *SysDictCollectionMutation) OldCreatedBy(ctx context.Context) (v *idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCreatedBy is only allowed on UpdateOne operations")
 	}
@@ -1331,7 +1332,7 @@ func (m *SysDictCollectionMutation) OldCreatedBy(ctx context.Context) (v *int64,
 }
 
 // AddCreatedBy adds i to the "created_by" field.
-func (m *SysDictCollectionMutation) AddCreatedBy(i int64) {
+func (m *SysDictCollectionMutation) AddCreatedBy(i idgen.ID) {
 	if m.addcreated_by != nil {
 		*m.addcreated_by += i
 	} else {
@@ -1340,7 +1341,7 @@ func (m *SysDictCollectionMutation) AddCreatedBy(i int64) {
 }
 
 // AddedCreatedBy returns the value that was added to the "created_by" field in this mutation.
-func (m *SysDictCollectionMutation) AddedCreatedBy() (r int64, exists bool) {
+func (m *SysDictCollectionMutation) AddedCreatedBy() (r idgen.ID, exists bool) {
 	v := m.addcreated_by
 	if v == nil {
 		return
@@ -1369,13 +1370,13 @@ func (m *SysDictCollectionMutation) ResetCreatedBy() {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (m *SysDictCollectionMutation) SetUpdatedBy(i int64) {
+func (m *SysDictCollectionMutation) SetUpdatedBy(i idgen.ID) {
 	m.updated_by = &i
 	m.addupdated_by = nil
 }
 
 // UpdatedBy returns the value of the "updated_by" field in the mutation.
-func (m *SysDictCollectionMutation) UpdatedBy() (r int64, exists bool) {
+func (m *SysDictCollectionMutation) UpdatedBy() (r idgen.ID, exists bool) {
 	v := m.updated_by
 	if v == nil {
 		return
@@ -1386,7 +1387,7 @@ func (m *SysDictCollectionMutation) UpdatedBy() (r int64, exists bool) {
 // OldUpdatedBy returns the old "updated_by" field's value of the SysDictCollection entity.
 // If the SysDictCollection object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysDictCollectionMutation) OldUpdatedBy(ctx context.Context) (v *int64, err error) {
+func (m *SysDictCollectionMutation) OldUpdatedBy(ctx context.Context) (v *idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUpdatedBy is only allowed on UpdateOne operations")
 	}
@@ -1401,7 +1402,7 @@ func (m *SysDictCollectionMutation) OldUpdatedBy(ctx context.Context) (v *int64,
 }
 
 // AddUpdatedBy adds i to the "updated_by" field.
-func (m *SysDictCollectionMutation) AddUpdatedBy(i int64) {
+func (m *SysDictCollectionMutation) AddUpdatedBy(i idgen.ID) {
 	if m.addupdated_by != nil {
 		*m.addupdated_by += i
 	} else {
@@ -1410,7 +1411,7 @@ func (m *SysDictCollectionMutation) AddUpdatedBy(i int64) {
 }
 
 // AddedUpdatedBy returns the value that was added to the "updated_by" field in this mutation.
-func (m *SysDictCollectionMutation) AddedUpdatedBy() (r int64, exists bool) {
+func (m *SysDictCollectionMutation) AddedUpdatedBy() (r idgen.ID, exists bool) {
 	v := m.addupdated_by
 	if v == nil {
 		return
@@ -1758,9 +1759,9 @@ func (m *SysDictCollectionMutation) ResetSortID() {
 }
 
 // AddItemIDs adds the "items" edge to the SysDictItem entity by ids.
-func (m *SysDictCollectionMutation) AddItemIDs(ids ...int64) {
+func (m *SysDictCollectionMutation) AddItemIDs(ids ...idgen.ID) {
 	if m.items == nil {
-		m.items = make(map[int64]struct{})
+		m.items = make(map[idgen.ID]struct{})
 	}
 	for i := range ids {
 		m.items[ids[i]] = struct{}{}
@@ -1778,9 +1779,9 @@ func (m *SysDictCollectionMutation) ItemsCleared() bool {
 }
 
 // RemoveItemIDs removes the "items" edge to the SysDictItem entity by IDs.
-func (m *SysDictCollectionMutation) RemoveItemIDs(ids ...int64) {
+func (m *SysDictCollectionMutation) RemoveItemIDs(ids ...idgen.ID) {
 	if m.removeditems == nil {
-		m.removeditems = make(map[int64]struct{})
+		m.removeditems = make(map[idgen.ID]struct{})
 	}
 	for i := range ids {
 		delete(m.items, ids[i])
@@ -1789,7 +1790,7 @@ func (m *SysDictCollectionMutation) RemoveItemIDs(ids ...int64) {
 }
 
 // RemovedItems returns the removed IDs of the "items" edge to the SysDictItem entity.
-func (m *SysDictCollectionMutation) RemovedItemsIDs() (ids []int64) {
+func (m *SysDictCollectionMutation) RemovedItemsIDs() (ids []idgen.ID) {
 	for id := range m.removeditems {
 		ids = append(ids, id)
 	}
@@ -1797,7 +1798,7 @@ func (m *SysDictCollectionMutation) RemovedItemsIDs() (ids []int64) {
 }
 
 // ItemsIDs returns the "items" edge IDs in the mutation.
-func (m *SysDictCollectionMutation) ItemsIDs() (ids []int64) {
+func (m *SysDictCollectionMutation) ItemsIDs() (ids []idgen.ID) {
 	for id := range m.items {
 		ids = append(ids, id)
 	}
@@ -1978,14 +1979,14 @@ func (m *SysDictCollectionMutation) SetField(name string, value ent.Value) error
 		m.SetUpdatedAt(v)
 		return nil
 	case sysdictcollection.FieldCreatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedBy(v)
 		return nil
 	case sysdictcollection.FieldUpdatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -2086,14 +2087,14 @@ func (m *SysDictCollectionMutation) AddedField(name string) (ent.Value, bool) {
 func (m *SysDictCollectionMutation) AddField(name string, value ent.Value) error {
 	switch name {
 	case sysdictcollection.FieldCreatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddCreatedBy(v)
 		return nil
 	case sysdictcollection.FieldUpdatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -2302,14 +2303,14 @@ type SysDictItemMutation struct {
 	config
 	op                Op
 	typ               string
-	id                *int64
+	id                *idgen.ID
 	deleted_at        *time.Time
 	created_at        *time.Time
 	updated_at        *time.Time
-	created_by        *int64
-	addcreated_by     *int64
-	updated_by        *int64
-	addupdated_by     *int64
+	created_by        *idgen.ID
+	addcreated_by     *idgen.ID
+	updated_by        *idgen.ID
+	addupdated_by     *idgen.ID
 	collection_code   *string
 	code              *string
 	parent_code       *string
@@ -2320,7 +2321,7 @@ type SysDictItemMutation struct {
 	sort_id           *int
 	addsort_id        *int
 	clearedFields     map[string]struct{}
-	collection        *int64
+	collection        *idgen.ID
 	clearedcollection bool
 	done              bool
 	oldValue          func(context.Context) (*SysDictItem, error)
@@ -2347,7 +2348,7 @@ func newSysDictItemMutation(c config, op Op, opts ...sysdictitemOption) *SysDict
 }
 
 // withSysDictItemID sets the ID field of the mutation.
-func withSysDictItemID(id int64) sysdictitemOption {
+func withSysDictItemID(id idgen.ID) sysdictitemOption {
 	return func(m *SysDictItemMutation) {
 		var (
 			err   error
@@ -2399,13 +2400,13 @@ func (m SysDictItemMutation) Tx() (*Tx, error) {
 
 // SetID sets the value of the id field. Note that this
 // operation is only accepted on creation of SysDictItem entities.
-func (m *SysDictItemMutation) SetID(id int64) {
+func (m *SysDictItemMutation) SetID(id idgen.ID) {
 	m.id = &id
 }
 
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *SysDictItemMutation) ID() (id int64, exists bool) {
+func (m *SysDictItemMutation) ID() (id idgen.ID, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -2416,12 +2417,12 @@ func (m *SysDictItemMutation) ID() (id int64, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *SysDictItemMutation) IDs(ctx context.Context) ([]int64, error) {
+func (m *SysDictItemMutation) IDs(ctx context.Context) ([]idgen.ID, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []int64{id}, nil
+			return []idgen.ID{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):
@@ -2553,13 +2554,13 @@ func (m *SysDictItemMutation) ResetUpdatedAt() {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (m *SysDictItemMutation) SetCreatedBy(i int64) {
+func (m *SysDictItemMutation) SetCreatedBy(i idgen.ID) {
 	m.created_by = &i
 	m.addcreated_by = nil
 }
 
 // CreatedBy returns the value of the "created_by" field in the mutation.
-func (m *SysDictItemMutation) CreatedBy() (r int64, exists bool) {
+func (m *SysDictItemMutation) CreatedBy() (r idgen.ID, exists bool) {
 	v := m.created_by
 	if v == nil {
 		return
@@ -2570,7 +2571,7 @@ func (m *SysDictItemMutation) CreatedBy() (r int64, exists bool) {
 // OldCreatedBy returns the old "created_by" field's value of the SysDictItem entity.
 // If the SysDictItem object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysDictItemMutation) OldCreatedBy(ctx context.Context) (v *int64, err error) {
+func (m *SysDictItemMutation) OldCreatedBy(ctx context.Context) (v *idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCreatedBy is only allowed on UpdateOne operations")
 	}
@@ -2585,7 +2586,7 @@ func (m *SysDictItemMutation) OldCreatedBy(ctx context.Context) (v *int64, err e
 }
 
 // AddCreatedBy adds i to the "created_by" field.
-func (m *SysDictItemMutation) AddCreatedBy(i int64) {
+func (m *SysDictItemMutation) AddCreatedBy(i idgen.ID) {
 	if m.addcreated_by != nil {
 		*m.addcreated_by += i
 	} else {
@@ -2594,7 +2595,7 @@ func (m *SysDictItemMutation) AddCreatedBy(i int64) {
 }
 
 // AddedCreatedBy returns the value that was added to the "created_by" field in this mutation.
-func (m *SysDictItemMutation) AddedCreatedBy() (r int64, exists bool) {
+func (m *SysDictItemMutation) AddedCreatedBy() (r idgen.ID, exists bool) {
 	v := m.addcreated_by
 	if v == nil {
 		return
@@ -2623,13 +2624,13 @@ func (m *SysDictItemMutation) ResetCreatedBy() {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (m *SysDictItemMutation) SetUpdatedBy(i int64) {
+func (m *SysDictItemMutation) SetUpdatedBy(i idgen.ID) {
 	m.updated_by = &i
 	m.addupdated_by = nil
 }
 
 // UpdatedBy returns the value of the "updated_by" field in the mutation.
-func (m *SysDictItemMutation) UpdatedBy() (r int64, exists bool) {
+func (m *SysDictItemMutation) UpdatedBy() (r idgen.ID, exists bool) {
 	v := m.updated_by
 	if v == nil {
 		return
@@ -2640,7 +2641,7 @@ func (m *SysDictItemMutation) UpdatedBy() (r int64, exists bool) {
 // OldUpdatedBy returns the old "updated_by" field's value of the SysDictItem entity.
 // If the SysDictItem object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysDictItemMutation) OldUpdatedBy(ctx context.Context) (v *int64, err error) {
+func (m *SysDictItemMutation) OldUpdatedBy(ctx context.Context) (v *idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUpdatedBy is only allowed on UpdateOne operations")
 	}
@@ -2655,7 +2656,7 @@ func (m *SysDictItemMutation) OldUpdatedBy(ctx context.Context) (v *int64, err e
 }
 
 // AddUpdatedBy adds i to the "updated_by" field.
-func (m *SysDictItemMutation) AddUpdatedBy(i int64) {
+func (m *SysDictItemMutation) AddUpdatedBy(i idgen.ID) {
 	if m.addupdated_by != nil {
 		*m.addupdated_by += i
 	} else {
@@ -2664,7 +2665,7 @@ func (m *SysDictItemMutation) AddUpdatedBy(i int64) {
 }
 
 // AddedUpdatedBy returns the value that was added to the "updated_by" field in this mutation.
-func (m *SysDictItemMutation) AddedUpdatedBy() (r int64, exists bool) {
+func (m *SysDictItemMutation) AddedUpdatedBy() (r idgen.ID, exists bool) {
 	v := m.addupdated_by
 	if v == nil {
 		return
@@ -2693,12 +2694,12 @@ func (m *SysDictItemMutation) ResetUpdatedBy() {
 }
 
 // SetCollectionID sets the "collection_id" field.
-func (m *SysDictItemMutation) SetCollectionID(i int64) {
+func (m *SysDictItemMutation) SetCollectionID(i idgen.ID) {
 	m.collection = &i
 }
 
 // CollectionID returns the value of the "collection_id" field in the mutation.
-func (m *SysDictItemMutation) CollectionID() (r int64, exists bool) {
+func (m *SysDictItemMutation) CollectionID() (r idgen.ID, exists bool) {
 	v := m.collection
 	if v == nil {
 		return
@@ -2709,7 +2710,7 @@ func (m *SysDictItemMutation) CollectionID() (r int64, exists bool) {
 // OldCollectionID returns the old "collection_id" field's value of the SysDictItem entity.
 // If the SysDictItem object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysDictItemMutation) OldCollectionID(ctx context.Context) (v int64, err error) {
+func (m *SysDictItemMutation) OldCollectionID(ctx context.Context) (v idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCollectionID is only allowed on UpdateOne operations")
 	}
@@ -3063,7 +3064,7 @@ func (m *SysDictItemMutation) CollectionCleared() bool {
 // CollectionIDs returns the "collection" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
 // CollectionID instead. It exists only for internal usage by the builders.
-func (m *SysDictItemMutation) CollectionIDs() (ids []int64) {
+func (m *SysDictItemMutation) CollectionIDs() (ids []idgen.ID) {
 	if id := m.collection; id != nil {
 		ids = append(ids, *id)
 	}
@@ -3257,21 +3258,21 @@ func (m *SysDictItemMutation) SetField(name string, value ent.Value) error {
 		m.SetUpdatedAt(v)
 		return nil
 	case sysdictitem.FieldCreatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedBy(v)
 		return nil
 	case sysdictitem.FieldUpdatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedBy(v)
 		return nil
 	case sysdictitem.FieldCollectionID:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -3374,14 +3375,14 @@ func (m *SysDictItemMutation) AddedField(name string) (ent.Value, bool) {
 func (m *SysDictItemMutation) AddField(name string, value ent.Value) error {
 	switch name {
 	case sysdictitem.FieldCreatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddCreatedBy(v)
 		return nil
 	case sysdictitem.FieldUpdatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -3573,16 +3574,16 @@ type SysMenuMutation struct {
 	config
 	op                Op
 	typ               string
-	id                *int64
+	id                *idgen.ID
 	deleted_at        *time.Time
 	created_at        *time.Time
 	updated_at        *time.Time
-	created_by        *int64
-	addcreated_by     *int64
-	updated_by        *int64
-	addupdated_by     *int64
-	parent_id         *int64
-	addparent_id      *int64
+	created_by        *idgen.ID
+	addcreated_by     *idgen.ID
+	updated_by        *idgen.ID
+	addupdated_by     *idgen.ID
+	parent_id         *idgen.ID
+	addparent_id      *idgen.ID
 	app_id            *string
 	title             *string
 	menu_type         *int16
@@ -3596,8 +3597,8 @@ type SysMenuMutation struct {
 	sort_id           *int
 	addsort_id        *int
 	clearedFields     map[string]struct{}
-	role_menus        map[int64]struct{}
-	removedrole_menus map[int64]struct{}
+	role_menus        map[idgen.ID]struct{}
+	removedrole_menus map[idgen.ID]struct{}
 	clearedrole_menus bool
 	done              bool
 	oldValue          func(context.Context) (*SysMenu, error)
@@ -3624,7 +3625,7 @@ func newSysMenuMutation(c config, op Op, opts ...sysmenuOption) *SysMenuMutation
 }
 
 // withSysMenuID sets the ID field of the mutation.
-func withSysMenuID(id int64) sysmenuOption {
+func withSysMenuID(id idgen.ID) sysmenuOption {
 	return func(m *SysMenuMutation) {
 		var (
 			err   error
@@ -3676,13 +3677,13 @@ func (m SysMenuMutation) Tx() (*Tx, error) {
 
 // SetID sets the value of the id field. Note that this
 // operation is only accepted on creation of SysMenu entities.
-func (m *SysMenuMutation) SetID(id int64) {
+func (m *SysMenuMutation) SetID(id idgen.ID) {
 	m.id = &id
 }
 
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *SysMenuMutation) ID() (id int64, exists bool) {
+func (m *SysMenuMutation) ID() (id idgen.ID, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -3693,12 +3694,12 @@ func (m *SysMenuMutation) ID() (id int64, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *SysMenuMutation) IDs(ctx context.Context) ([]int64, error) {
+func (m *SysMenuMutation) IDs(ctx context.Context) ([]idgen.ID, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []int64{id}, nil
+			return []idgen.ID{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):
@@ -3830,13 +3831,13 @@ func (m *SysMenuMutation) ResetUpdatedAt() {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (m *SysMenuMutation) SetCreatedBy(i int64) {
+func (m *SysMenuMutation) SetCreatedBy(i idgen.ID) {
 	m.created_by = &i
 	m.addcreated_by = nil
 }
 
 // CreatedBy returns the value of the "created_by" field in the mutation.
-func (m *SysMenuMutation) CreatedBy() (r int64, exists bool) {
+func (m *SysMenuMutation) CreatedBy() (r idgen.ID, exists bool) {
 	v := m.created_by
 	if v == nil {
 		return
@@ -3847,7 +3848,7 @@ func (m *SysMenuMutation) CreatedBy() (r int64, exists bool) {
 // OldCreatedBy returns the old "created_by" field's value of the SysMenu entity.
 // If the SysMenu object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysMenuMutation) OldCreatedBy(ctx context.Context) (v *int64, err error) {
+func (m *SysMenuMutation) OldCreatedBy(ctx context.Context) (v *idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCreatedBy is only allowed on UpdateOne operations")
 	}
@@ -3862,7 +3863,7 @@ func (m *SysMenuMutation) OldCreatedBy(ctx context.Context) (v *int64, err error
 }
 
 // AddCreatedBy adds i to the "created_by" field.
-func (m *SysMenuMutation) AddCreatedBy(i int64) {
+func (m *SysMenuMutation) AddCreatedBy(i idgen.ID) {
 	if m.addcreated_by != nil {
 		*m.addcreated_by += i
 	} else {
@@ -3871,7 +3872,7 @@ func (m *SysMenuMutation) AddCreatedBy(i int64) {
 }
 
 // AddedCreatedBy returns the value that was added to the "created_by" field in this mutation.
-func (m *SysMenuMutation) AddedCreatedBy() (r int64, exists bool) {
+func (m *SysMenuMutation) AddedCreatedBy() (r idgen.ID, exists bool) {
 	v := m.addcreated_by
 	if v == nil {
 		return
@@ -3900,13 +3901,13 @@ func (m *SysMenuMutation) ResetCreatedBy() {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (m *SysMenuMutation) SetUpdatedBy(i int64) {
+func (m *SysMenuMutation) SetUpdatedBy(i idgen.ID) {
 	m.updated_by = &i
 	m.addupdated_by = nil
 }
 
 // UpdatedBy returns the value of the "updated_by" field in the mutation.
-func (m *SysMenuMutation) UpdatedBy() (r int64, exists bool) {
+func (m *SysMenuMutation) UpdatedBy() (r idgen.ID, exists bool) {
 	v := m.updated_by
 	if v == nil {
 		return
@@ -3917,7 +3918,7 @@ func (m *SysMenuMutation) UpdatedBy() (r int64, exists bool) {
 // OldUpdatedBy returns the old "updated_by" field's value of the SysMenu entity.
 // If the SysMenu object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysMenuMutation) OldUpdatedBy(ctx context.Context) (v *int64, err error) {
+func (m *SysMenuMutation) OldUpdatedBy(ctx context.Context) (v *idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUpdatedBy is only allowed on UpdateOne operations")
 	}
@@ -3932,7 +3933,7 @@ func (m *SysMenuMutation) OldUpdatedBy(ctx context.Context) (v *int64, err error
 }
 
 // AddUpdatedBy adds i to the "updated_by" field.
-func (m *SysMenuMutation) AddUpdatedBy(i int64) {
+func (m *SysMenuMutation) AddUpdatedBy(i idgen.ID) {
 	if m.addupdated_by != nil {
 		*m.addupdated_by += i
 	} else {
@@ -3941,7 +3942,7 @@ func (m *SysMenuMutation) AddUpdatedBy(i int64) {
 }
 
 // AddedUpdatedBy returns the value that was added to the "updated_by" field in this mutation.
-func (m *SysMenuMutation) AddedUpdatedBy() (r int64, exists bool) {
+func (m *SysMenuMutation) AddedUpdatedBy() (r idgen.ID, exists bool) {
 	v := m.addupdated_by
 	if v == nil {
 		return
@@ -3970,13 +3971,13 @@ func (m *SysMenuMutation) ResetUpdatedBy() {
 }
 
 // SetParentID sets the "parent_id" field.
-func (m *SysMenuMutation) SetParentID(i int64) {
+func (m *SysMenuMutation) SetParentID(i idgen.ID) {
 	m.parent_id = &i
 	m.addparent_id = nil
 }
 
 // ParentID returns the value of the "parent_id" field in the mutation.
-func (m *SysMenuMutation) ParentID() (r int64, exists bool) {
+func (m *SysMenuMutation) ParentID() (r idgen.ID, exists bool) {
 	v := m.parent_id
 	if v == nil {
 		return
@@ -3987,7 +3988,7 @@ func (m *SysMenuMutation) ParentID() (r int64, exists bool) {
 // OldParentID returns the old "parent_id" field's value of the SysMenu entity.
 // If the SysMenu object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysMenuMutation) OldParentID(ctx context.Context) (v int64, err error) {
+func (m *SysMenuMutation) OldParentID(ctx context.Context) (v *idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldParentID is only allowed on UpdateOne operations")
 	}
@@ -4002,7 +4003,7 @@ func (m *SysMenuMutation) OldParentID(ctx context.Context) (v int64, err error) 
 }
 
 // AddParentID adds i to the "parent_id" field.
-func (m *SysMenuMutation) AddParentID(i int64) {
+func (m *SysMenuMutation) AddParentID(i idgen.ID) {
 	if m.addparent_id != nil {
 		*m.addparent_id += i
 	} else {
@@ -4011,7 +4012,7 @@ func (m *SysMenuMutation) AddParentID(i int64) {
 }
 
 // AddedParentID returns the value that was added to the "parent_id" field in this mutation.
-func (m *SysMenuMutation) AddedParentID() (r int64, exists bool) {
+func (m *SysMenuMutation) AddedParentID() (r idgen.ID, exists bool) {
 	v := m.addparent_id
 	if v == nil {
 		return
@@ -4019,10 +4020,24 @@ func (m *SysMenuMutation) AddedParentID() (r int64, exists bool) {
 	return *v, true
 }
 
+// ClearParentID clears the value of the "parent_id" field.
+func (m *SysMenuMutation) ClearParentID() {
+	m.parent_id = nil
+	m.addparent_id = nil
+	m.clearedFields[sysmenu.FieldParentID] = struct{}{}
+}
+
+// ParentIDCleared returns if the "parent_id" field was cleared in this mutation.
+func (m *SysMenuMutation) ParentIDCleared() bool {
+	_, ok := m.clearedFields[sysmenu.FieldParentID]
+	return ok
+}
+
 // ResetParentID resets all changes to the "parent_id" field.
 func (m *SysMenuMutation) ResetParentID() {
 	m.parent_id = nil
 	m.addparent_id = nil
+	delete(m.clearedFields, sysmenu.FieldParentID)
 }
 
 // SetAppID sets the "app_id" field.
@@ -4491,9 +4506,9 @@ func (m *SysMenuMutation) ResetSortID() {
 }
 
 // AddRoleMenuIDs adds the "role_menus" edge to the SysRoleMenu entity by ids.
-func (m *SysMenuMutation) AddRoleMenuIDs(ids ...int64) {
+func (m *SysMenuMutation) AddRoleMenuIDs(ids ...idgen.ID) {
 	if m.role_menus == nil {
-		m.role_menus = make(map[int64]struct{})
+		m.role_menus = make(map[idgen.ID]struct{})
 	}
 	for i := range ids {
 		m.role_menus[ids[i]] = struct{}{}
@@ -4511,9 +4526,9 @@ func (m *SysMenuMutation) RoleMenusCleared() bool {
 }
 
 // RemoveRoleMenuIDs removes the "role_menus" edge to the SysRoleMenu entity by IDs.
-func (m *SysMenuMutation) RemoveRoleMenuIDs(ids ...int64) {
+func (m *SysMenuMutation) RemoveRoleMenuIDs(ids ...idgen.ID) {
 	if m.removedrole_menus == nil {
-		m.removedrole_menus = make(map[int64]struct{})
+		m.removedrole_menus = make(map[idgen.ID]struct{})
 	}
 	for i := range ids {
 		delete(m.role_menus, ids[i])
@@ -4522,7 +4537,7 @@ func (m *SysMenuMutation) RemoveRoleMenuIDs(ids ...int64) {
 }
 
 // RemovedRoleMenus returns the removed IDs of the "role_menus" edge to the SysRoleMenu entity.
-func (m *SysMenuMutation) RemovedRoleMenusIDs() (ids []int64) {
+func (m *SysMenuMutation) RemovedRoleMenusIDs() (ids []idgen.ID) {
 	for id := range m.removedrole_menus {
 		ids = append(ids, id)
 	}
@@ -4530,7 +4545,7 @@ func (m *SysMenuMutation) RemovedRoleMenusIDs() (ids []int64) {
 }
 
 // RoleMenusIDs returns the "role_menus" edge IDs in the mutation.
-func (m *SysMenuMutation) RoleMenusIDs() (ids []int64) {
+func (m *SysMenuMutation) RoleMenusIDs() (ids []idgen.ID) {
 	for id := range m.role_menus {
 		ids = append(ids, id)
 	}
@@ -4739,21 +4754,21 @@ func (m *SysMenuMutation) SetField(name string, value ent.Value) error {
 		m.SetUpdatedAt(v)
 		return nil
 	case sysmenu.FieldCreatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedBy(v)
 		return nil
 	case sysmenu.FieldUpdatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedBy(v)
 		return nil
 	case sysmenu.FieldParentID:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -4880,21 +4895,21 @@ func (m *SysMenuMutation) AddedField(name string) (ent.Value, bool) {
 func (m *SysMenuMutation) AddField(name string, value ent.Value) error {
 	switch name {
 	case sysmenu.FieldCreatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddCreatedBy(v)
 		return nil
 	case sysmenu.FieldUpdatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddUpdatedBy(v)
 		return nil
 	case sysmenu.FieldParentID:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -4930,6 +4945,9 @@ func (m *SysMenuMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(sysmenu.FieldUpdatedBy) {
 		fields = append(fields, sysmenu.FieldUpdatedBy)
+	}
+	if m.FieldCleared(sysmenu.FieldParentID) {
+		fields = append(fields, sysmenu.FieldParentID)
 	}
 	if m.FieldCleared(sysmenu.FieldAppID) {
 		fields = append(fields, sysmenu.FieldAppID)
@@ -4968,6 +4986,9 @@ func (m *SysMenuMutation) ClearField(name string) error {
 		return nil
 	case sysmenu.FieldUpdatedBy:
 		m.ClearUpdatedBy()
+		return nil
+	case sysmenu.FieldParentID:
+		m.ClearParentID()
 		return nil
 	case sysmenu.FieldAppID:
 		m.ClearAppID()
@@ -5133,14 +5154,14 @@ type SysRoleMutation struct {
 	config
 	op                Op
 	typ               string
-	id                *int64
+	id                *idgen.ID
 	deleted_at        *time.Time
 	created_at        *time.Time
 	updated_at        *time.Time
-	created_by        *int64
-	addcreated_by     *int64
-	updated_by        *int64
-	addupdated_by     *int64
+	created_by        *idgen.ID
+	addcreated_by     *idgen.ID
+	updated_by        *idgen.ID
+	addupdated_by     *idgen.ID
 	code              *string
 	name              *string
 	remark            *string
@@ -5149,11 +5170,11 @@ type SysRoleMutation struct {
 	sort_id           *int
 	addsort_id        *int
 	clearedFields     map[string]struct{}
-	user_roles        map[int64]struct{}
-	removeduser_roles map[int64]struct{}
+	user_roles        map[idgen.ID]struct{}
+	removeduser_roles map[idgen.ID]struct{}
 	cleareduser_roles bool
-	role_menus        map[int64]struct{}
-	removedrole_menus map[int64]struct{}
+	role_menus        map[idgen.ID]struct{}
+	removedrole_menus map[idgen.ID]struct{}
 	clearedrole_menus bool
 	done              bool
 	oldValue          func(context.Context) (*SysRole, error)
@@ -5180,7 +5201,7 @@ func newSysRoleMutation(c config, op Op, opts ...sysroleOption) *SysRoleMutation
 }
 
 // withSysRoleID sets the ID field of the mutation.
-func withSysRoleID(id int64) sysroleOption {
+func withSysRoleID(id idgen.ID) sysroleOption {
 	return func(m *SysRoleMutation) {
 		var (
 			err   error
@@ -5232,13 +5253,13 @@ func (m SysRoleMutation) Tx() (*Tx, error) {
 
 // SetID sets the value of the id field. Note that this
 // operation is only accepted on creation of SysRole entities.
-func (m *SysRoleMutation) SetID(id int64) {
+func (m *SysRoleMutation) SetID(id idgen.ID) {
 	m.id = &id
 }
 
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *SysRoleMutation) ID() (id int64, exists bool) {
+func (m *SysRoleMutation) ID() (id idgen.ID, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -5249,12 +5270,12 @@ func (m *SysRoleMutation) ID() (id int64, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *SysRoleMutation) IDs(ctx context.Context) ([]int64, error) {
+func (m *SysRoleMutation) IDs(ctx context.Context) ([]idgen.ID, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []int64{id}, nil
+			return []idgen.ID{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):
@@ -5386,13 +5407,13 @@ func (m *SysRoleMutation) ResetUpdatedAt() {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (m *SysRoleMutation) SetCreatedBy(i int64) {
+func (m *SysRoleMutation) SetCreatedBy(i idgen.ID) {
 	m.created_by = &i
 	m.addcreated_by = nil
 }
 
 // CreatedBy returns the value of the "created_by" field in the mutation.
-func (m *SysRoleMutation) CreatedBy() (r int64, exists bool) {
+func (m *SysRoleMutation) CreatedBy() (r idgen.ID, exists bool) {
 	v := m.created_by
 	if v == nil {
 		return
@@ -5403,7 +5424,7 @@ func (m *SysRoleMutation) CreatedBy() (r int64, exists bool) {
 // OldCreatedBy returns the old "created_by" field's value of the SysRole entity.
 // If the SysRole object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysRoleMutation) OldCreatedBy(ctx context.Context) (v *int64, err error) {
+func (m *SysRoleMutation) OldCreatedBy(ctx context.Context) (v *idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCreatedBy is only allowed on UpdateOne operations")
 	}
@@ -5418,7 +5439,7 @@ func (m *SysRoleMutation) OldCreatedBy(ctx context.Context) (v *int64, err error
 }
 
 // AddCreatedBy adds i to the "created_by" field.
-func (m *SysRoleMutation) AddCreatedBy(i int64) {
+func (m *SysRoleMutation) AddCreatedBy(i idgen.ID) {
 	if m.addcreated_by != nil {
 		*m.addcreated_by += i
 	} else {
@@ -5427,7 +5448,7 @@ func (m *SysRoleMutation) AddCreatedBy(i int64) {
 }
 
 // AddedCreatedBy returns the value that was added to the "created_by" field in this mutation.
-func (m *SysRoleMutation) AddedCreatedBy() (r int64, exists bool) {
+func (m *SysRoleMutation) AddedCreatedBy() (r idgen.ID, exists bool) {
 	v := m.addcreated_by
 	if v == nil {
 		return
@@ -5456,13 +5477,13 @@ func (m *SysRoleMutation) ResetCreatedBy() {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (m *SysRoleMutation) SetUpdatedBy(i int64) {
+func (m *SysRoleMutation) SetUpdatedBy(i idgen.ID) {
 	m.updated_by = &i
 	m.addupdated_by = nil
 }
 
 // UpdatedBy returns the value of the "updated_by" field in the mutation.
-func (m *SysRoleMutation) UpdatedBy() (r int64, exists bool) {
+func (m *SysRoleMutation) UpdatedBy() (r idgen.ID, exists bool) {
 	v := m.updated_by
 	if v == nil {
 		return
@@ -5473,7 +5494,7 @@ func (m *SysRoleMutation) UpdatedBy() (r int64, exists bool) {
 // OldUpdatedBy returns the old "updated_by" field's value of the SysRole entity.
 // If the SysRole object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysRoleMutation) OldUpdatedBy(ctx context.Context) (v *int64, err error) {
+func (m *SysRoleMutation) OldUpdatedBy(ctx context.Context) (v *idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUpdatedBy is only allowed on UpdateOne operations")
 	}
@@ -5488,7 +5509,7 @@ func (m *SysRoleMutation) OldUpdatedBy(ctx context.Context) (v *int64, err error
 }
 
 // AddUpdatedBy adds i to the "updated_by" field.
-func (m *SysRoleMutation) AddUpdatedBy(i int64) {
+func (m *SysRoleMutation) AddUpdatedBy(i idgen.ID) {
 	if m.addupdated_by != nil {
 		*m.addupdated_by += i
 	} else {
@@ -5497,7 +5518,7 @@ func (m *SysRoleMutation) AddUpdatedBy(i int64) {
 }
 
 // AddedUpdatedBy returns the value that was added to the "updated_by" field in this mutation.
-func (m *SysRoleMutation) AddedUpdatedBy() (r int64, exists bool) {
+func (m *SysRoleMutation) AddedUpdatedBy() (r idgen.ID, exists bool) {
 	v := m.addupdated_by
 	if v == nil {
 		return
@@ -5775,9 +5796,9 @@ func (m *SysRoleMutation) ResetSortID() {
 }
 
 // AddUserRoleIDs adds the "user_roles" edge to the SysUserRole entity by ids.
-func (m *SysRoleMutation) AddUserRoleIDs(ids ...int64) {
+func (m *SysRoleMutation) AddUserRoleIDs(ids ...idgen.ID) {
 	if m.user_roles == nil {
-		m.user_roles = make(map[int64]struct{})
+		m.user_roles = make(map[idgen.ID]struct{})
 	}
 	for i := range ids {
 		m.user_roles[ids[i]] = struct{}{}
@@ -5795,9 +5816,9 @@ func (m *SysRoleMutation) UserRolesCleared() bool {
 }
 
 // RemoveUserRoleIDs removes the "user_roles" edge to the SysUserRole entity by IDs.
-func (m *SysRoleMutation) RemoveUserRoleIDs(ids ...int64) {
+func (m *SysRoleMutation) RemoveUserRoleIDs(ids ...idgen.ID) {
 	if m.removeduser_roles == nil {
-		m.removeduser_roles = make(map[int64]struct{})
+		m.removeduser_roles = make(map[idgen.ID]struct{})
 	}
 	for i := range ids {
 		delete(m.user_roles, ids[i])
@@ -5806,7 +5827,7 @@ func (m *SysRoleMutation) RemoveUserRoleIDs(ids ...int64) {
 }
 
 // RemovedUserRoles returns the removed IDs of the "user_roles" edge to the SysUserRole entity.
-func (m *SysRoleMutation) RemovedUserRolesIDs() (ids []int64) {
+func (m *SysRoleMutation) RemovedUserRolesIDs() (ids []idgen.ID) {
 	for id := range m.removeduser_roles {
 		ids = append(ids, id)
 	}
@@ -5814,7 +5835,7 @@ func (m *SysRoleMutation) RemovedUserRolesIDs() (ids []int64) {
 }
 
 // UserRolesIDs returns the "user_roles" edge IDs in the mutation.
-func (m *SysRoleMutation) UserRolesIDs() (ids []int64) {
+func (m *SysRoleMutation) UserRolesIDs() (ids []idgen.ID) {
 	for id := range m.user_roles {
 		ids = append(ids, id)
 	}
@@ -5829,9 +5850,9 @@ func (m *SysRoleMutation) ResetUserRoles() {
 }
 
 // AddRoleMenuIDs adds the "role_menus" edge to the SysRoleMenu entity by ids.
-func (m *SysRoleMutation) AddRoleMenuIDs(ids ...int64) {
+func (m *SysRoleMutation) AddRoleMenuIDs(ids ...idgen.ID) {
 	if m.role_menus == nil {
-		m.role_menus = make(map[int64]struct{})
+		m.role_menus = make(map[idgen.ID]struct{})
 	}
 	for i := range ids {
 		m.role_menus[ids[i]] = struct{}{}
@@ -5849,9 +5870,9 @@ func (m *SysRoleMutation) RoleMenusCleared() bool {
 }
 
 // RemoveRoleMenuIDs removes the "role_menus" edge to the SysRoleMenu entity by IDs.
-func (m *SysRoleMutation) RemoveRoleMenuIDs(ids ...int64) {
+func (m *SysRoleMutation) RemoveRoleMenuIDs(ids ...idgen.ID) {
 	if m.removedrole_menus == nil {
-		m.removedrole_menus = make(map[int64]struct{})
+		m.removedrole_menus = make(map[idgen.ID]struct{})
 	}
 	for i := range ids {
 		delete(m.role_menus, ids[i])
@@ -5860,7 +5881,7 @@ func (m *SysRoleMutation) RemoveRoleMenuIDs(ids ...int64) {
 }
 
 // RemovedRoleMenus returns the removed IDs of the "role_menus" edge to the SysRoleMenu entity.
-func (m *SysRoleMutation) RemovedRoleMenusIDs() (ids []int64) {
+func (m *SysRoleMutation) RemovedRoleMenusIDs() (ids []idgen.ID) {
 	for id := range m.removedrole_menus {
 		ids = append(ids, id)
 	}
@@ -5868,7 +5889,7 @@ func (m *SysRoleMutation) RemovedRoleMenusIDs() (ids []int64) {
 }
 
 // RoleMenusIDs returns the "role_menus" edge IDs in the mutation.
-func (m *SysRoleMutation) RoleMenusIDs() (ids []int64) {
+func (m *SysRoleMutation) RoleMenusIDs() (ids []idgen.ID) {
 	for id := range m.role_menus {
 		ids = append(ids, id)
 	}
@@ -6042,14 +6063,14 @@ func (m *SysRoleMutation) SetField(name string, value ent.Value) error {
 		m.SetUpdatedAt(v)
 		return nil
 	case sysrole.FieldCreatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedBy(v)
 		return nil
 	case sysrole.FieldUpdatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -6138,14 +6159,14 @@ func (m *SysRoleMutation) AddedField(name string) (ent.Value, bool) {
 func (m *SysRoleMutation) AddField(name string, value ent.Value) error {
 	switch name {
 	case sysrole.FieldCreatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddCreatedBy(v)
 		return nil
 	case sysrole.FieldUpdatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -6364,15 +6385,15 @@ type SysRoleMenuMutation struct {
 	config
 	op            Op
 	typ           string
-	id            *int64
+	id            *idgen.ID
 	deleted_at    *time.Time
-	created_by    *int64
-	addcreated_by *int64
+	created_by    *idgen.ID
+	addcreated_by *idgen.ID
 	created_at    *time.Time
 	clearedFields map[string]struct{}
-	role          *int64
+	role          *idgen.ID
 	clearedrole   bool
-	menu          *int64
+	menu          *idgen.ID
 	clearedmenu   bool
 	done          bool
 	oldValue      func(context.Context) (*SysRoleMenu, error)
@@ -6399,7 +6420,7 @@ func newSysRoleMenuMutation(c config, op Op, opts ...sysrolemenuOption) *SysRole
 }
 
 // withSysRoleMenuID sets the ID field of the mutation.
-func withSysRoleMenuID(id int64) sysrolemenuOption {
+func withSysRoleMenuID(id idgen.ID) sysrolemenuOption {
 	return func(m *SysRoleMenuMutation) {
 		var (
 			err   error
@@ -6451,13 +6472,13 @@ func (m SysRoleMenuMutation) Tx() (*Tx, error) {
 
 // SetID sets the value of the id field. Note that this
 // operation is only accepted on creation of SysRoleMenu entities.
-func (m *SysRoleMenuMutation) SetID(id int64) {
+func (m *SysRoleMenuMutation) SetID(id idgen.ID) {
 	m.id = &id
 }
 
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *SysRoleMenuMutation) ID() (id int64, exists bool) {
+func (m *SysRoleMenuMutation) ID() (id idgen.ID, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -6468,12 +6489,12 @@ func (m *SysRoleMenuMutation) ID() (id int64, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *SysRoleMenuMutation) IDs(ctx context.Context) ([]int64, error) {
+func (m *SysRoleMenuMutation) IDs(ctx context.Context) ([]idgen.ID, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []int64{id}, nil
+			return []idgen.ID{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):
@@ -6533,12 +6554,12 @@ func (m *SysRoleMenuMutation) ResetDeletedAt() {
 }
 
 // SetRoleID sets the "role_id" field.
-func (m *SysRoleMenuMutation) SetRoleID(i int64) {
+func (m *SysRoleMenuMutation) SetRoleID(i idgen.ID) {
 	m.role = &i
 }
 
 // RoleID returns the value of the "role_id" field in the mutation.
-func (m *SysRoleMenuMutation) RoleID() (r int64, exists bool) {
+func (m *SysRoleMenuMutation) RoleID() (r idgen.ID, exists bool) {
 	v := m.role
 	if v == nil {
 		return
@@ -6549,7 +6570,7 @@ func (m *SysRoleMenuMutation) RoleID() (r int64, exists bool) {
 // OldRoleID returns the old "role_id" field's value of the SysRoleMenu entity.
 // If the SysRoleMenu object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysRoleMenuMutation) OldRoleID(ctx context.Context) (v int64, err error) {
+func (m *SysRoleMenuMutation) OldRoleID(ctx context.Context) (v idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldRoleID is only allowed on UpdateOne operations")
 	}
@@ -6569,12 +6590,12 @@ func (m *SysRoleMenuMutation) ResetRoleID() {
 }
 
 // SetMenuID sets the "menu_id" field.
-func (m *SysRoleMenuMutation) SetMenuID(i int64) {
+func (m *SysRoleMenuMutation) SetMenuID(i idgen.ID) {
 	m.menu = &i
 }
 
 // MenuID returns the value of the "menu_id" field in the mutation.
-func (m *SysRoleMenuMutation) MenuID() (r int64, exists bool) {
+func (m *SysRoleMenuMutation) MenuID() (r idgen.ID, exists bool) {
 	v := m.menu
 	if v == nil {
 		return
@@ -6585,7 +6606,7 @@ func (m *SysRoleMenuMutation) MenuID() (r int64, exists bool) {
 // OldMenuID returns the old "menu_id" field's value of the SysRoleMenu entity.
 // If the SysRoleMenu object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysRoleMenuMutation) OldMenuID(ctx context.Context) (v int64, err error) {
+func (m *SysRoleMenuMutation) OldMenuID(ctx context.Context) (v idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldMenuID is only allowed on UpdateOne operations")
 	}
@@ -6605,13 +6626,13 @@ func (m *SysRoleMenuMutation) ResetMenuID() {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (m *SysRoleMenuMutation) SetCreatedBy(i int64) {
+func (m *SysRoleMenuMutation) SetCreatedBy(i idgen.ID) {
 	m.created_by = &i
 	m.addcreated_by = nil
 }
 
 // CreatedBy returns the value of the "created_by" field in the mutation.
-func (m *SysRoleMenuMutation) CreatedBy() (r int64, exists bool) {
+func (m *SysRoleMenuMutation) CreatedBy() (r idgen.ID, exists bool) {
 	v := m.created_by
 	if v == nil {
 		return
@@ -6622,7 +6643,7 @@ func (m *SysRoleMenuMutation) CreatedBy() (r int64, exists bool) {
 // OldCreatedBy returns the old "created_by" field's value of the SysRoleMenu entity.
 // If the SysRoleMenu object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysRoleMenuMutation) OldCreatedBy(ctx context.Context) (v *int64, err error) {
+func (m *SysRoleMenuMutation) OldCreatedBy(ctx context.Context) (v *idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCreatedBy is only allowed on UpdateOne operations")
 	}
@@ -6637,7 +6658,7 @@ func (m *SysRoleMenuMutation) OldCreatedBy(ctx context.Context) (v *int64, err e
 }
 
 // AddCreatedBy adds i to the "created_by" field.
-func (m *SysRoleMenuMutation) AddCreatedBy(i int64) {
+func (m *SysRoleMenuMutation) AddCreatedBy(i idgen.ID) {
 	if m.addcreated_by != nil {
 		*m.addcreated_by += i
 	} else {
@@ -6646,7 +6667,7 @@ func (m *SysRoleMenuMutation) AddCreatedBy(i int64) {
 }
 
 // AddedCreatedBy returns the value that was added to the "created_by" field in this mutation.
-func (m *SysRoleMenuMutation) AddedCreatedBy() (r int64, exists bool) {
+func (m *SysRoleMenuMutation) AddedCreatedBy() (r idgen.ID, exists bool) {
 	v := m.addcreated_by
 	if v == nil {
 		return
@@ -6724,7 +6745,7 @@ func (m *SysRoleMenuMutation) RoleCleared() bool {
 // RoleIDs returns the "role" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
 // RoleID instead. It exists only for internal usage by the builders.
-func (m *SysRoleMenuMutation) RoleIDs() (ids []int64) {
+func (m *SysRoleMenuMutation) RoleIDs() (ids []idgen.ID) {
 	if id := m.role; id != nil {
 		ids = append(ids, *id)
 	}
@@ -6751,7 +6772,7 @@ func (m *SysRoleMenuMutation) MenuCleared() bool {
 // MenuIDs returns the "menu" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
 // MenuID instead. It exists only for internal usage by the builders.
-func (m *SysRoleMenuMutation) MenuIDs() (ids []int64) {
+func (m *SysRoleMenuMutation) MenuIDs() (ids []idgen.ID) {
 	if id := m.menu; id != nil {
 		ids = append(ids, *id)
 	}
@@ -6868,21 +6889,21 @@ func (m *SysRoleMenuMutation) SetField(name string, value ent.Value) error {
 		m.SetDeletedAt(v)
 		return nil
 	case sysrolemenu.FieldRoleID:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetRoleID(v)
 		return nil
 	case sysrolemenu.FieldMenuID:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMenuID(v)
 		return nil
 	case sysrolemenu.FieldCreatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -6926,7 +6947,7 @@ func (m *SysRoleMenuMutation) AddedField(name string) (ent.Value, bool) {
 func (m *SysRoleMenuMutation) AddField(name string, value ent.Value) error {
 	switch name {
 	case sysrolemenu.FieldCreatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -7090,14 +7111,14 @@ type SysUserMutation struct {
 	config
 	op                Op
 	typ               string
-	id                *int64
+	id                *idgen.ID
 	deleted_at        *time.Time
 	created_at        *time.Time
 	updated_at        *time.Time
-	created_by        *int64
-	addcreated_by     *int64
-	updated_by        *int64
-	addupdated_by     *int64
+	created_by        *idgen.ID
+	addcreated_by     *idgen.ID
+	updated_by        *idgen.ID
+	addupdated_by     *idgen.ID
 	username          *string
 	password_hash     *string
 	nickname          *string
@@ -7109,8 +7130,8 @@ type SysUserMutation struct {
 	sort_id           *int
 	addsort_id        *int
 	clearedFields     map[string]struct{}
-	user_roles        map[int64]struct{}
-	removeduser_roles map[int64]struct{}
+	user_roles        map[idgen.ID]struct{}
+	removeduser_roles map[idgen.ID]struct{}
 	cleareduser_roles bool
 	done              bool
 	oldValue          func(context.Context) (*SysUser, error)
@@ -7137,7 +7158,7 @@ func newSysUserMutation(c config, op Op, opts ...sysuserOption) *SysUserMutation
 }
 
 // withSysUserID sets the ID field of the mutation.
-func withSysUserID(id int64) sysuserOption {
+func withSysUserID(id idgen.ID) sysuserOption {
 	return func(m *SysUserMutation) {
 		var (
 			err   error
@@ -7189,13 +7210,13 @@ func (m SysUserMutation) Tx() (*Tx, error) {
 
 // SetID sets the value of the id field. Note that this
 // operation is only accepted on creation of SysUser entities.
-func (m *SysUserMutation) SetID(id int64) {
+func (m *SysUserMutation) SetID(id idgen.ID) {
 	m.id = &id
 }
 
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *SysUserMutation) ID() (id int64, exists bool) {
+func (m *SysUserMutation) ID() (id idgen.ID, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -7206,12 +7227,12 @@ func (m *SysUserMutation) ID() (id int64, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *SysUserMutation) IDs(ctx context.Context) ([]int64, error) {
+func (m *SysUserMutation) IDs(ctx context.Context) ([]idgen.ID, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []int64{id}, nil
+			return []idgen.ID{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):
@@ -7343,13 +7364,13 @@ func (m *SysUserMutation) ResetUpdatedAt() {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (m *SysUserMutation) SetCreatedBy(i int64) {
+func (m *SysUserMutation) SetCreatedBy(i idgen.ID) {
 	m.created_by = &i
 	m.addcreated_by = nil
 }
 
 // CreatedBy returns the value of the "created_by" field in the mutation.
-func (m *SysUserMutation) CreatedBy() (r int64, exists bool) {
+func (m *SysUserMutation) CreatedBy() (r idgen.ID, exists bool) {
 	v := m.created_by
 	if v == nil {
 		return
@@ -7360,7 +7381,7 @@ func (m *SysUserMutation) CreatedBy() (r int64, exists bool) {
 // OldCreatedBy returns the old "created_by" field's value of the SysUser entity.
 // If the SysUser object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysUserMutation) OldCreatedBy(ctx context.Context) (v *int64, err error) {
+func (m *SysUserMutation) OldCreatedBy(ctx context.Context) (v *idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCreatedBy is only allowed on UpdateOne operations")
 	}
@@ -7375,7 +7396,7 @@ func (m *SysUserMutation) OldCreatedBy(ctx context.Context) (v *int64, err error
 }
 
 // AddCreatedBy adds i to the "created_by" field.
-func (m *SysUserMutation) AddCreatedBy(i int64) {
+func (m *SysUserMutation) AddCreatedBy(i idgen.ID) {
 	if m.addcreated_by != nil {
 		*m.addcreated_by += i
 	} else {
@@ -7384,7 +7405,7 @@ func (m *SysUserMutation) AddCreatedBy(i int64) {
 }
 
 // AddedCreatedBy returns the value that was added to the "created_by" field in this mutation.
-func (m *SysUserMutation) AddedCreatedBy() (r int64, exists bool) {
+func (m *SysUserMutation) AddedCreatedBy() (r idgen.ID, exists bool) {
 	v := m.addcreated_by
 	if v == nil {
 		return
@@ -7413,13 +7434,13 @@ func (m *SysUserMutation) ResetCreatedBy() {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (m *SysUserMutation) SetUpdatedBy(i int64) {
+func (m *SysUserMutation) SetUpdatedBy(i idgen.ID) {
 	m.updated_by = &i
 	m.addupdated_by = nil
 }
 
 // UpdatedBy returns the value of the "updated_by" field in the mutation.
-func (m *SysUserMutation) UpdatedBy() (r int64, exists bool) {
+func (m *SysUserMutation) UpdatedBy() (r idgen.ID, exists bool) {
 	v := m.updated_by
 	if v == nil {
 		return
@@ -7430,7 +7451,7 @@ func (m *SysUserMutation) UpdatedBy() (r int64, exists bool) {
 // OldUpdatedBy returns the old "updated_by" field's value of the SysUser entity.
 // If the SysUser object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysUserMutation) OldUpdatedBy(ctx context.Context) (v *int64, err error) {
+func (m *SysUserMutation) OldUpdatedBy(ctx context.Context) (v *idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUpdatedBy is only allowed on UpdateOne operations")
 	}
@@ -7445,7 +7466,7 @@ func (m *SysUserMutation) OldUpdatedBy(ctx context.Context) (v *int64, err error
 }
 
 // AddUpdatedBy adds i to the "updated_by" field.
-func (m *SysUserMutation) AddUpdatedBy(i int64) {
+func (m *SysUserMutation) AddUpdatedBy(i idgen.ID) {
 	if m.addupdated_by != nil {
 		*m.addupdated_by += i
 	} else {
@@ -7454,7 +7475,7 @@ func (m *SysUserMutation) AddUpdatedBy(i int64) {
 }
 
 // AddedUpdatedBy returns the value that was added to the "updated_by" field in this mutation.
-func (m *SysUserMutation) AddedUpdatedBy() (r int64, exists bool) {
+func (m *SysUserMutation) AddedUpdatedBy() (r idgen.ID, exists bool) {
 	v := m.addupdated_by
 	if v == nil {
 		return
@@ -7879,9 +7900,9 @@ func (m *SysUserMutation) ResetSortID() {
 }
 
 // AddUserRoleIDs adds the "user_roles" edge to the SysUserRole entity by ids.
-func (m *SysUserMutation) AddUserRoleIDs(ids ...int64) {
+func (m *SysUserMutation) AddUserRoleIDs(ids ...idgen.ID) {
 	if m.user_roles == nil {
-		m.user_roles = make(map[int64]struct{})
+		m.user_roles = make(map[idgen.ID]struct{})
 	}
 	for i := range ids {
 		m.user_roles[ids[i]] = struct{}{}
@@ -7899,9 +7920,9 @@ func (m *SysUserMutation) UserRolesCleared() bool {
 }
 
 // RemoveUserRoleIDs removes the "user_roles" edge to the SysUserRole entity by IDs.
-func (m *SysUserMutation) RemoveUserRoleIDs(ids ...int64) {
+func (m *SysUserMutation) RemoveUserRoleIDs(ids ...idgen.ID) {
 	if m.removeduser_roles == nil {
-		m.removeduser_roles = make(map[int64]struct{})
+		m.removeduser_roles = make(map[idgen.ID]struct{})
 	}
 	for i := range ids {
 		delete(m.user_roles, ids[i])
@@ -7910,7 +7931,7 @@ func (m *SysUserMutation) RemoveUserRoleIDs(ids ...int64) {
 }
 
 // RemovedUserRoles returns the removed IDs of the "user_roles" edge to the SysUserRole entity.
-func (m *SysUserMutation) RemovedUserRolesIDs() (ids []int64) {
+func (m *SysUserMutation) RemovedUserRolesIDs() (ids []idgen.ID) {
 	for id := range m.removeduser_roles {
 		ids = append(ids, id)
 	}
@@ -7918,7 +7939,7 @@ func (m *SysUserMutation) RemovedUserRolesIDs() (ids []int64) {
 }
 
 // UserRolesIDs returns the "user_roles" edge IDs in the mutation.
-func (m *SysUserMutation) UserRolesIDs() (ids []int64) {
+func (m *SysUserMutation) UserRolesIDs() (ids []idgen.ID) {
 	for id := range m.user_roles {
 		ids = append(ids, id)
 	}
@@ -8113,14 +8134,14 @@ func (m *SysUserMutation) SetField(name string, value ent.Value) error {
 		m.SetUpdatedAt(v)
 		return nil
 	case sysuser.FieldCreatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedBy(v)
 		return nil
 	case sysuser.FieldUpdatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -8230,14 +8251,14 @@ func (m *SysUserMutation) AddedField(name string) (ent.Value, bool) {
 func (m *SysUserMutation) AddField(name string, value ent.Value) error {
 	switch name {
 	case sysuser.FieldCreatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddCreatedBy(v)
 		return nil
 	case sysuser.FieldUpdatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -8457,15 +8478,15 @@ type SysUserRoleMutation struct {
 	config
 	op            Op
 	typ           string
-	id            *int64
+	id            *idgen.ID
 	deleted_at    *time.Time
-	created_by    *int64
-	addcreated_by *int64
+	created_by    *idgen.ID
+	addcreated_by *idgen.ID
 	created_at    *time.Time
 	clearedFields map[string]struct{}
-	user          *int64
+	user          *idgen.ID
 	cleareduser   bool
-	role          *int64
+	role          *idgen.ID
 	clearedrole   bool
 	done          bool
 	oldValue      func(context.Context) (*SysUserRole, error)
@@ -8492,7 +8513,7 @@ func newSysUserRoleMutation(c config, op Op, opts ...sysuserroleOption) *SysUser
 }
 
 // withSysUserRoleID sets the ID field of the mutation.
-func withSysUserRoleID(id int64) sysuserroleOption {
+func withSysUserRoleID(id idgen.ID) sysuserroleOption {
 	return func(m *SysUserRoleMutation) {
 		var (
 			err   error
@@ -8544,13 +8565,13 @@ func (m SysUserRoleMutation) Tx() (*Tx, error) {
 
 // SetID sets the value of the id field. Note that this
 // operation is only accepted on creation of SysUserRole entities.
-func (m *SysUserRoleMutation) SetID(id int64) {
+func (m *SysUserRoleMutation) SetID(id idgen.ID) {
 	m.id = &id
 }
 
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *SysUserRoleMutation) ID() (id int64, exists bool) {
+func (m *SysUserRoleMutation) ID() (id idgen.ID, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -8561,12 +8582,12 @@ func (m *SysUserRoleMutation) ID() (id int64, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *SysUserRoleMutation) IDs(ctx context.Context) ([]int64, error) {
+func (m *SysUserRoleMutation) IDs(ctx context.Context) ([]idgen.ID, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []int64{id}, nil
+			return []idgen.ID{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):
@@ -8626,12 +8647,12 @@ func (m *SysUserRoleMutation) ResetDeletedAt() {
 }
 
 // SetUserID sets the "user_id" field.
-func (m *SysUserRoleMutation) SetUserID(i int64) {
+func (m *SysUserRoleMutation) SetUserID(i idgen.ID) {
 	m.user = &i
 }
 
 // UserID returns the value of the "user_id" field in the mutation.
-func (m *SysUserRoleMutation) UserID() (r int64, exists bool) {
+func (m *SysUserRoleMutation) UserID() (r idgen.ID, exists bool) {
 	v := m.user
 	if v == nil {
 		return
@@ -8642,7 +8663,7 @@ func (m *SysUserRoleMutation) UserID() (r int64, exists bool) {
 // OldUserID returns the old "user_id" field's value of the SysUserRole entity.
 // If the SysUserRole object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysUserRoleMutation) OldUserID(ctx context.Context) (v int64, err error) {
+func (m *SysUserRoleMutation) OldUserID(ctx context.Context) (v idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
 	}
@@ -8662,12 +8683,12 @@ func (m *SysUserRoleMutation) ResetUserID() {
 }
 
 // SetRoleID sets the "role_id" field.
-func (m *SysUserRoleMutation) SetRoleID(i int64) {
+func (m *SysUserRoleMutation) SetRoleID(i idgen.ID) {
 	m.role = &i
 }
 
 // RoleID returns the value of the "role_id" field in the mutation.
-func (m *SysUserRoleMutation) RoleID() (r int64, exists bool) {
+func (m *SysUserRoleMutation) RoleID() (r idgen.ID, exists bool) {
 	v := m.role
 	if v == nil {
 		return
@@ -8678,7 +8699,7 @@ func (m *SysUserRoleMutation) RoleID() (r int64, exists bool) {
 // OldRoleID returns the old "role_id" field's value of the SysUserRole entity.
 // If the SysUserRole object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysUserRoleMutation) OldRoleID(ctx context.Context) (v int64, err error) {
+func (m *SysUserRoleMutation) OldRoleID(ctx context.Context) (v idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldRoleID is only allowed on UpdateOne operations")
 	}
@@ -8698,13 +8719,13 @@ func (m *SysUserRoleMutation) ResetRoleID() {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (m *SysUserRoleMutation) SetCreatedBy(i int64) {
+func (m *SysUserRoleMutation) SetCreatedBy(i idgen.ID) {
 	m.created_by = &i
 	m.addcreated_by = nil
 }
 
 // CreatedBy returns the value of the "created_by" field in the mutation.
-func (m *SysUserRoleMutation) CreatedBy() (r int64, exists bool) {
+func (m *SysUserRoleMutation) CreatedBy() (r idgen.ID, exists bool) {
 	v := m.created_by
 	if v == nil {
 		return
@@ -8715,7 +8736,7 @@ func (m *SysUserRoleMutation) CreatedBy() (r int64, exists bool) {
 // OldCreatedBy returns the old "created_by" field's value of the SysUserRole entity.
 // If the SysUserRole object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SysUserRoleMutation) OldCreatedBy(ctx context.Context) (v *int64, err error) {
+func (m *SysUserRoleMutation) OldCreatedBy(ctx context.Context) (v *idgen.ID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCreatedBy is only allowed on UpdateOne operations")
 	}
@@ -8730,7 +8751,7 @@ func (m *SysUserRoleMutation) OldCreatedBy(ctx context.Context) (v *int64, err e
 }
 
 // AddCreatedBy adds i to the "created_by" field.
-func (m *SysUserRoleMutation) AddCreatedBy(i int64) {
+func (m *SysUserRoleMutation) AddCreatedBy(i idgen.ID) {
 	if m.addcreated_by != nil {
 		*m.addcreated_by += i
 	} else {
@@ -8739,7 +8760,7 @@ func (m *SysUserRoleMutation) AddCreatedBy(i int64) {
 }
 
 // AddedCreatedBy returns the value that was added to the "created_by" field in this mutation.
-func (m *SysUserRoleMutation) AddedCreatedBy() (r int64, exists bool) {
+func (m *SysUserRoleMutation) AddedCreatedBy() (r idgen.ID, exists bool) {
 	v := m.addcreated_by
 	if v == nil {
 		return
@@ -8817,7 +8838,7 @@ func (m *SysUserRoleMutation) UserCleared() bool {
 // UserIDs returns the "user" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
 // UserID instead. It exists only for internal usage by the builders.
-func (m *SysUserRoleMutation) UserIDs() (ids []int64) {
+func (m *SysUserRoleMutation) UserIDs() (ids []idgen.ID) {
 	if id := m.user; id != nil {
 		ids = append(ids, *id)
 	}
@@ -8844,7 +8865,7 @@ func (m *SysUserRoleMutation) RoleCleared() bool {
 // RoleIDs returns the "role" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
 // RoleID instead. It exists only for internal usage by the builders.
-func (m *SysUserRoleMutation) RoleIDs() (ids []int64) {
+func (m *SysUserRoleMutation) RoleIDs() (ids []idgen.ID) {
 	if id := m.role; id != nil {
 		ids = append(ids, *id)
 	}
@@ -8961,21 +8982,21 @@ func (m *SysUserRoleMutation) SetField(name string, value ent.Value) error {
 		m.SetDeletedAt(v)
 		return nil
 	case sysuserrole.FieldUserID:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUserID(v)
 		return nil
 	case sysuserrole.FieldRoleID:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetRoleID(v)
 		return nil
 	case sysuserrole.FieldCreatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -9019,7 +9040,7 @@ func (m *SysUserRoleMutation) AddedField(name string) (ent.Value, bool) {
 func (m *SysUserRoleMutation) AddField(name string, value ent.Value) error {
 	switch name {
 	case sysuserrole.FieldCreatedBy:
-		v, ok := value.(int64)
+		v, ok := value.(idgen.ID)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

@@ -6,7 +6,7 @@ import (
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/field"
 
-	schemamixin "{{ .ModulePath }}/internal/data/schema/mixin"
+	entxmixin "github.com/teamsillybees/initra/pkg/entx/mixin"
 )
 
 // SysConfig 系统配置表，用于集中存放可在后台维护的运行时配置。
@@ -17,9 +17,9 @@ type SysConfig struct {
 // Mixin 返回系统配置表通用字段。
 func (SysConfig) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		schemamixin.ID{},
-		schemamixin.SoftDelete{},
-		schemamixin.Audit{},
+		entxmixin.ID{},
+		entxmixin.SoftDelete{},
+		entxmixin.Audit{},
 	}
 }
 

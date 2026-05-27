@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/predicate"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysconfig"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysConfigUpdate is the builder for updating SysConfig entities.
@@ -63,14 +64,14 @@ func (_u *SysConfigUpdate) SetNillableUpdatedAt(v *time.Time) *SysConfigUpdate {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_u *SysConfigUpdate) SetCreatedBy(v int64) *SysConfigUpdate {
+func (_u *SysConfigUpdate) SetCreatedBy(v idgen.ID) *SysConfigUpdate {
 	_u.mutation.ResetCreatedBy()
 	_u.mutation.SetCreatedBy(v)
 	return _u
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysConfigUpdate) SetNillableCreatedBy(v *int64) *SysConfigUpdate {
+func (_u *SysConfigUpdate) SetNillableCreatedBy(v *idgen.ID) *SysConfigUpdate {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
@@ -78,7 +79,7 @@ func (_u *SysConfigUpdate) SetNillableCreatedBy(v *int64) *SysConfigUpdate {
 }
 
 // AddCreatedBy adds value to the "created_by" field.
-func (_u *SysConfigUpdate) AddCreatedBy(v int64) *SysConfigUpdate {
+func (_u *SysConfigUpdate) AddCreatedBy(v idgen.ID) *SysConfigUpdate {
 	_u.mutation.AddCreatedBy(v)
 	return _u
 }
@@ -90,14 +91,14 @@ func (_u *SysConfigUpdate) ClearCreatedBy() *SysConfigUpdate {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (_u *SysConfigUpdate) SetUpdatedBy(v int64) *SysConfigUpdate {
+func (_u *SysConfigUpdate) SetUpdatedBy(v idgen.ID) *SysConfigUpdate {
 	_u.mutation.ResetUpdatedBy()
 	_u.mutation.SetUpdatedBy(v)
 	return _u
 }
 
 // SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysConfigUpdate) SetNillableUpdatedBy(v *int64) *SysConfigUpdate {
+func (_u *SysConfigUpdate) SetNillableUpdatedBy(v *idgen.ID) *SysConfigUpdate {
 	if v != nil {
 		_u.SetUpdatedBy(*v)
 	}
@@ -105,7 +106,7 @@ func (_u *SysConfigUpdate) SetNillableUpdatedBy(v *int64) *SysConfigUpdate {
 }
 
 // AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysConfigUpdate) AddUpdatedBy(v int64) *SysConfigUpdate {
+func (_u *SysConfigUpdate) AddUpdatedBy(v idgen.ID) *SysConfigUpdate {
 	_u.mutation.AddUpdatedBy(v)
 	return _u
 }
@@ -356,14 +357,14 @@ func (_u *SysConfigUpdateOne) SetNillableUpdatedAt(v *time.Time) *SysConfigUpdat
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_u *SysConfigUpdateOne) SetCreatedBy(v int64) *SysConfigUpdateOne {
+func (_u *SysConfigUpdateOne) SetCreatedBy(v idgen.ID) *SysConfigUpdateOne {
 	_u.mutation.ResetCreatedBy()
 	_u.mutation.SetCreatedBy(v)
 	return _u
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysConfigUpdateOne) SetNillableCreatedBy(v *int64) *SysConfigUpdateOne {
+func (_u *SysConfigUpdateOne) SetNillableCreatedBy(v *idgen.ID) *SysConfigUpdateOne {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
@@ -371,7 +372,7 @@ func (_u *SysConfigUpdateOne) SetNillableCreatedBy(v *int64) *SysConfigUpdateOne
 }
 
 // AddCreatedBy adds value to the "created_by" field.
-func (_u *SysConfigUpdateOne) AddCreatedBy(v int64) *SysConfigUpdateOne {
+func (_u *SysConfigUpdateOne) AddCreatedBy(v idgen.ID) *SysConfigUpdateOne {
 	_u.mutation.AddCreatedBy(v)
 	return _u
 }
@@ -383,14 +384,14 @@ func (_u *SysConfigUpdateOne) ClearCreatedBy() *SysConfigUpdateOne {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (_u *SysConfigUpdateOne) SetUpdatedBy(v int64) *SysConfigUpdateOne {
+func (_u *SysConfigUpdateOne) SetUpdatedBy(v idgen.ID) *SysConfigUpdateOne {
 	_u.mutation.ResetUpdatedBy()
 	_u.mutation.SetUpdatedBy(v)
 	return _u
 }
 
 // SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysConfigUpdateOne) SetNillableUpdatedBy(v *int64) *SysConfigUpdateOne {
+func (_u *SysConfigUpdateOne) SetNillableUpdatedBy(v *idgen.ID) *SysConfigUpdateOne {
 	if v != nil {
 		_u.SetUpdatedBy(*v)
 	}
@@ -398,7 +399,7 @@ func (_u *SysConfigUpdateOne) SetNillableUpdatedBy(v *int64) *SysConfigUpdateOne
 }
 
 // AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysConfigUpdateOne) AddUpdatedBy(v int64) *SysConfigUpdateOne {
+func (_u *SysConfigUpdateOne) AddUpdatedBy(v idgen.ID) *SysConfigUpdateOne {
 	_u.mutation.AddUpdatedBy(v)
 	return _u
 }

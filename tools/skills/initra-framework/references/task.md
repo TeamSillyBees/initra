@@ -39,6 +39,7 @@ type taskPublisher interface {
 发布外部副作用任务时必须声明 `biz_key`：
 
 ```go
+userIDText := userID.String()
 result, err := publisher.Publish(ctx, task.Task{
 	Type: "demo:send_email",
 	Payload: sendEmailPayload{
@@ -48,7 +49,7 @@ result, err := publisher.Publish(ctx, task.Task{
 	Meta: task.TaskMeta{
 		Module:         "demo",
 		Owner:          "platform",
-		BizKey:         "demo:" + userID + ":send_email",
+		BizKey:         "demo:" + userIDText + ":send_email",
 		BizKeyRequired: true,
 		SideEffect:     true,
 		Idempotent:     true,

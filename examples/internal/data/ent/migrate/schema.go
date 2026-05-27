@@ -130,7 +130,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
 		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
 		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
-		{Name: "parent_id", Type: field.TypeInt64, Comment: "父级菜单 ID，0 表示顶级目录。", Default: 0},
+		{Name: "parent_id", Type: field.TypeInt64, Nullable: true, Comment: "父级菜单 ID，NULL 表示顶级目录。"},
 		{Name: "app_id", Type: field.TypeString, Nullable: true, Size: 64, Comment: "所属应用编码，用于多应用场景区分菜单树。"},
 		{Name: "title", Type: field.TypeString, Size: 128, Comment: "菜单或按钮展示标题。"},
 		{Name: "menu_type", Type: field.TypeInt16, Comment: "资源类型：0-菜单，1-按钮，2-目录。"},

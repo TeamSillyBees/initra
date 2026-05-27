@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysmenu"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrolemenu"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysMenuCreate is the builder for creating a SysMenu entity.
@@ -48,13 +49,13 @@ func (_c *SysMenuCreate) SetUpdatedAt(v time.Time) *SysMenuCreate {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_c *SysMenuCreate) SetCreatedBy(v int64) *SysMenuCreate {
+func (_c *SysMenuCreate) SetCreatedBy(v idgen.ID) *SysMenuCreate {
 	_c.mutation.SetCreatedBy(v)
 	return _c
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_c *SysMenuCreate) SetNillableCreatedBy(v *int64) *SysMenuCreate {
+func (_c *SysMenuCreate) SetNillableCreatedBy(v *idgen.ID) *SysMenuCreate {
 	if v != nil {
 		_c.SetCreatedBy(*v)
 	}
@@ -62,13 +63,13 @@ func (_c *SysMenuCreate) SetNillableCreatedBy(v *int64) *SysMenuCreate {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (_c *SysMenuCreate) SetUpdatedBy(v int64) *SysMenuCreate {
+func (_c *SysMenuCreate) SetUpdatedBy(v idgen.ID) *SysMenuCreate {
 	_c.mutation.SetUpdatedBy(v)
 	return _c
 }
 
 // SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_c *SysMenuCreate) SetNillableUpdatedBy(v *int64) *SysMenuCreate {
+func (_c *SysMenuCreate) SetNillableUpdatedBy(v *idgen.ID) *SysMenuCreate {
 	if v != nil {
 		_c.SetUpdatedBy(*v)
 	}
@@ -76,13 +77,13 @@ func (_c *SysMenuCreate) SetNillableUpdatedBy(v *int64) *SysMenuCreate {
 }
 
 // SetParentID sets the "parent_id" field.
-func (_c *SysMenuCreate) SetParentID(v int64) *SysMenuCreate {
+func (_c *SysMenuCreate) SetParentID(v idgen.ID) *SysMenuCreate {
 	_c.mutation.SetParentID(v)
 	return _c
 }
 
 // SetNillableParentID sets the "parent_id" field if the given value is not nil.
-func (_c *SysMenuCreate) SetNillableParentID(v *int64) *SysMenuCreate {
+func (_c *SysMenuCreate) SetNillableParentID(v *idgen.ID) *SysMenuCreate {
 	if v != nil {
 		_c.SetParentID(*v)
 	}
@@ -214,20 +215,28 @@ func (_c *SysMenuCreate) SetNillableSortID(v *int) *SysMenuCreate {
 }
 
 // SetID sets the "id" field.
-func (_c *SysMenuCreate) SetID(v int64) *SysMenuCreate {
+func (_c *SysMenuCreate) SetID(v idgen.ID) *SysMenuCreate {
 	_c.mutation.SetID(v)
 	return _c
 }
 
+// SetNillableID sets the "id" field if the given value is not nil.
+func (_c *SysMenuCreate) SetNillableID(v *idgen.ID) *SysMenuCreate {
+	if v != nil {
+		_c.SetID(*v)
+	}
+	return _c
+}
+
 // AddRoleMenuIDs adds the "role_menus" edge to the SysRoleMenu entity by IDs.
-func (_c *SysMenuCreate) AddRoleMenuIDs(ids ...int64) *SysMenuCreate {
+func (_c *SysMenuCreate) AddRoleMenuIDs(ids ...idgen.ID) *SysMenuCreate {
 	_c.mutation.AddRoleMenuIDs(ids...)
 	return _c
 }
 
 // AddRoleMenus adds the "role_menus" edges to the SysRoleMenu entity.
 func (_c *SysMenuCreate) AddRoleMenus(v ...*SysRoleMenu) *SysMenuCreate {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -269,10 +278,6 @@ func (_c *SysMenuCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *SysMenuCreate) defaults() {
-	if _, ok := _c.mutation.ParentID(); !ok {
-		v := sysmenu.DefaultParentID
-		_c.mutation.SetParentID(v)
-	}
 	if _, ok := _c.mutation.IsVisible(); !ok {
 		v := sysmenu.DefaultIsVisible
 		_c.mutation.SetIsVisible(v)
@@ -285,6 +290,10 @@ func (_c *SysMenuCreate) defaults() {
 		v := sysmenu.DefaultSortID
 		_c.mutation.SetSortID(v)
 	}
+	if _, ok := _c.mutation.ID(); !ok {
+		v := sysmenu.DefaultID()
+		_c.mutation.SetID(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -294,9 +303,6 @@ func (_c *SysMenuCreate) check() error {
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SysMenu.updated_at"`)}
-	}
-	if _, ok := _c.mutation.ParentID(); !ok {
-		return &ValidationError{Name: "parent_id", err: errors.New(`ent: missing required field "SysMenu.parent_id"`)}
 	}
 	if v, ok := _c.mutation.AppID(); ok {
 		if err := sysmenu.AppIDValidator(v); err != nil {
@@ -334,7 +340,7 @@ func (_c *SysMenuCreate) check() error {
 		return &ValidationError{Name: "sort_id", err: errors.New(`ent: missing required field "SysMenu.sort_id"`)}
 	}
 	if v, ok := _c.mutation.ID(); ok {
-		if err := sysmenu.IDValidator(v); err != nil {
+		if err := sysmenu.IDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "SysMenu.id": %w`, err)}
 		}
 	}
@@ -354,7 +360,7 @@ func (_c *SysMenuCreate) sqlSave(ctx context.Context) (*SysMenu, error) {
 	}
 	if _spec.ID.Value != _node.ID {
 		id := _spec.ID.Value.(int64)
-		_node.ID = int64(id)
+		_node.ID = idgen.ID(id)
 	}
 	_c.mutation.id = &_node.ID
 	_c.mutation.done = true
@@ -392,7 +398,7 @@ func (_c *SysMenuCreate) createSpec() (*SysMenu, *sqlgraph.CreateSpec) {
 	}
 	if value, ok := _c.mutation.ParentID(); ok {
 		_spec.SetField(sysmenu.FieldParentID, field.TypeInt64, value)
-		_node.ParentID = value
+		_node.ParentID = &value
 	}
 	if value, ok := _c.mutation.AppID(); ok {
 		_spec.SetField(sysmenu.FieldAppID, field.TypeString, value)
@@ -500,7 +506,7 @@ func (_c *SysMenuCreateBulk) Save(ctx context.Context) ([]*SysMenu, error) {
 				mutation.id = &nodes[i].ID
 				if specs[i].ID.Value != nil && nodes[i].ID == 0 {
 					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int64(id)
+					nodes[i].ID = idgen.ID(id)
 				}
 				mutation.done = true
 				return nodes[i], nil

@@ -7,7 +7,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 
-	schemamixin "{{ .ModulePath }}/internal/data/schema/mixin"
+	entxmixin "github.com/teamsillybees/initra/pkg/entx/mixin"
 )
 
 // SysDictCollection 系统字典集表，用于定义一类字典的元信息。
@@ -18,9 +18,9 @@ type SysDictCollection struct {
 // Mixin 返回系统字典集表通用字段。
 func (SysDictCollection) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		schemamixin.ID{},
-		schemamixin.SoftDelete{},
-		schemamixin.Audit{},
+		entxmixin.ID{},
+		entxmixin.SoftDelete{},
+		entxmixin.Audit{},
 	}
 }
 

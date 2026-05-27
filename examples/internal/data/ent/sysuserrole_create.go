@@ -13,6 +13,7 @@ import (
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrole"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysuser"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysuserrole"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysUserRoleCreate is the builder for creating a SysUserRole entity.
@@ -37,25 +38,25 @@ func (_c *SysUserRoleCreate) SetNillableDeletedAt(v *time.Time) *SysUserRoleCrea
 }
 
 // SetUserID sets the "user_id" field.
-func (_c *SysUserRoleCreate) SetUserID(v int64) *SysUserRoleCreate {
+func (_c *SysUserRoleCreate) SetUserID(v idgen.ID) *SysUserRoleCreate {
 	_c.mutation.SetUserID(v)
 	return _c
 }
 
 // SetRoleID sets the "role_id" field.
-func (_c *SysUserRoleCreate) SetRoleID(v int64) *SysUserRoleCreate {
+func (_c *SysUserRoleCreate) SetRoleID(v idgen.ID) *SysUserRoleCreate {
 	_c.mutation.SetRoleID(v)
 	return _c
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_c *SysUserRoleCreate) SetCreatedBy(v int64) *SysUserRoleCreate {
+func (_c *SysUserRoleCreate) SetCreatedBy(v idgen.ID) *SysUserRoleCreate {
 	_c.mutation.SetCreatedBy(v)
 	return _c
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_c *SysUserRoleCreate) SetNillableCreatedBy(v *int64) *SysUserRoleCreate {
+func (_c *SysUserRoleCreate) SetNillableCreatedBy(v *idgen.ID) *SysUserRoleCreate {
 	if v != nil {
 		_c.SetCreatedBy(*v)
 	}
@@ -69,8 +70,16 @@ func (_c *SysUserRoleCreate) SetCreatedAt(v time.Time) *SysUserRoleCreate {
 }
 
 // SetID sets the "id" field.
-func (_c *SysUserRoleCreate) SetID(v int64) *SysUserRoleCreate {
+func (_c *SysUserRoleCreate) SetID(v idgen.ID) *SysUserRoleCreate {
 	_c.mutation.SetID(v)
+	return _c
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (_c *SysUserRoleCreate) SetNillableID(v *idgen.ID) *SysUserRoleCreate {
+	if v != nil {
+		_c.SetID(*v)
+	}
 	return _c
 }
 
@@ -91,6 +100,7 @@ func (_c *SysUserRoleCreate) Mutation() *SysUserRoleMutation {
 
 // Save creates the SysUserRole in the database.
 func (_c *SysUserRoleCreate) Save(ctx context.Context) (*SysUserRole, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -116,13 +126,21 @@ func (_c *SysUserRoleCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_c *SysUserRoleCreate) defaults() {
+	if _, ok := _c.mutation.ID(); !ok {
+		v := sysuserrole.DefaultID()
+		_c.mutation.SetID(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_c *SysUserRoleCreate) check() error {
 	if _, ok := _c.mutation.UserID(); !ok {
 		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "SysUserRole.user_id"`)}
 	}
 	if v, ok := _c.mutation.UserID(); ok {
-		if err := sysuserrole.UserIDValidator(v); err != nil {
+		if err := sysuserrole.UserIDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "user_id", err: fmt.Errorf(`ent: validator failed for field "SysUserRole.user_id": %w`, err)}
 		}
 	}
@@ -130,7 +148,7 @@ func (_c *SysUserRoleCreate) check() error {
 		return &ValidationError{Name: "role_id", err: errors.New(`ent: missing required field "SysUserRole.role_id"`)}
 	}
 	if v, ok := _c.mutation.RoleID(); ok {
-		if err := sysuserrole.RoleIDValidator(v); err != nil {
+		if err := sysuserrole.RoleIDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "role_id", err: fmt.Errorf(`ent: validator failed for field "SysUserRole.role_id": %w`, err)}
 		}
 	}
@@ -138,7 +156,7 @@ func (_c *SysUserRoleCreate) check() error {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "SysUserRole.created_at"`)}
 	}
 	if v, ok := _c.mutation.ID(); ok {
-		if err := sysuserrole.IDValidator(v); err != nil {
+		if err := sysuserrole.IDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "SysUserRole.id": %w`, err)}
 		}
 	}
@@ -164,7 +182,7 @@ func (_c *SysUserRoleCreate) sqlSave(ctx context.Context) (*SysUserRole, error) 
 	}
 	if _spec.ID.Value != _node.ID {
 		id := _spec.ID.Value.(int64)
-		_node.ID = int64(id)
+		_node.ID = idgen.ID(id)
 	}
 	_c.mutation.id = &_node.ID
 	_c.mutation.done = true
@@ -247,6 +265,7 @@ func (_c *SysUserRoleCreateBulk) Save(ctx context.Context) ([]*SysUserRole, erro
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*SysUserRoleMutation)
 				if !ok {
@@ -275,7 +294,7 @@ func (_c *SysUserRoleCreateBulk) Save(ctx context.Context) ([]*SysUserRole, erro
 				mutation.id = &nodes[i].ID
 				if specs[i].ID.Value != nil && nodes[i].ID == 0 {
 					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int64(id)
+					nodes[i].ID = idgen.ID(id)
 				}
 				mutation.done = true
 				return nodes[i], nil

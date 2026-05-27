@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysuser"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysuserrole"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysUserCreate is the builder for creating a SysUser entity.
@@ -48,13 +49,13 @@ func (_c *SysUserCreate) SetUpdatedAt(v time.Time) *SysUserCreate {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_c *SysUserCreate) SetCreatedBy(v int64) *SysUserCreate {
+func (_c *SysUserCreate) SetCreatedBy(v idgen.ID) *SysUserCreate {
 	_c.mutation.SetCreatedBy(v)
 	return _c
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_c *SysUserCreate) SetNillableCreatedBy(v *int64) *SysUserCreate {
+func (_c *SysUserCreate) SetNillableCreatedBy(v *idgen.ID) *SysUserCreate {
 	if v != nil {
 		_c.SetCreatedBy(*v)
 	}
@@ -62,13 +63,13 @@ func (_c *SysUserCreate) SetNillableCreatedBy(v *int64) *SysUserCreate {
 }
 
 // SetUpdatedBy sets the "updated_by" field.
-func (_c *SysUserCreate) SetUpdatedBy(v int64) *SysUserCreate {
+func (_c *SysUserCreate) SetUpdatedBy(v idgen.ID) *SysUserCreate {
 	_c.mutation.SetUpdatedBy(v)
 	return _c
 }
 
 // SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_c *SysUserCreate) SetNillableUpdatedBy(v *int64) *SysUserCreate {
+func (_c *SysUserCreate) SetNillableUpdatedBy(v *idgen.ID) *SysUserCreate {
 	if v != nil {
 		_c.SetUpdatedBy(*v)
 	}
@@ -186,20 +187,28 @@ func (_c *SysUserCreate) SetNillableSortID(v *int) *SysUserCreate {
 }
 
 // SetID sets the "id" field.
-func (_c *SysUserCreate) SetID(v int64) *SysUserCreate {
+func (_c *SysUserCreate) SetID(v idgen.ID) *SysUserCreate {
 	_c.mutation.SetID(v)
 	return _c
 }
 
+// SetNillableID sets the "id" field if the given value is not nil.
+func (_c *SysUserCreate) SetNillableID(v *idgen.ID) *SysUserCreate {
+	if v != nil {
+		_c.SetID(*v)
+	}
+	return _c
+}
+
 // AddUserRoleIDs adds the "user_roles" edge to the SysUserRole entity by IDs.
-func (_c *SysUserCreate) AddUserRoleIDs(ids ...int64) *SysUserCreate {
+func (_c *SysUserCreate) AddUserRoleIDs(ids ...idgen.ID) *SysUserCreate {
 	_c.mutation.AddUserRoleIDs(ids...)
 	return _c
 }
 
 // AddUserRoles adds the "user_roles" edges to the SysUserRole entity.
 func (_c *SysUserCreate) AddUserRoles(v ...*SysUserRole) *SysUserCreate {
-	ids := make([]int64, len(v))
+	ids := make([]idgen.ID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -253,6 +262,10 @@ func (_c *SysUserCreate) defaults() {
 		v := sysuser.DefaultSortID
 		_c.mutation.SetSortID(v)
 	}
+	if _, ok := _c.mutation.ID(); !ok {
+		v := sysuser.DefaultID()
+		_c.mutation.SetID(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -304,7 +317,7 @@ func (_c *SysUserCreate) check() error {
 		return &ValidationError{Name: "sort_id", err: errors.New(`ent: missing required field "SysUser.sort_id"`)}
 	}
 	if v, ok := _c.mutation.ID(); ok {
-		if err := sysuser.IDValidator(v); err != nil {
+		if err := sysuser.IDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "SysUser.id": %w`, err)}
 		}
 	}
@@ -324,7 +337,7 @@ func (_c *SysUserCreate) sqlSave(ctx context.Context) (*SysUser, error) {
 	}
 	if _spec.ID.Value != _node.ID {
 		id := _spec.ID.Value.(int64)
-		_node.ID = int64(id)
+		_node.ID = idgen.ID(id)
 	}
 	_c.mutation.id = &_node.ID
 	_c.mutation.done = true
@@ -462,7 +475,7 @@ func (_c *SysUserCreateBulk) Save(ctx context.Context) ([]*SysUser, error) {
 				mutation.id = &nodes[i].ID
 				if specs[i].ID.Value != nil && nodes[i].ID == 0 {
 					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int64(id)
+					nodes[i].ID = idgen.ID(id)
 				}
 				mutation.done = true
 				return nodes[i], nil

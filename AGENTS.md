@@ -56,6 +56,8 @@ go run ./cmd/initra new $target --type api --module example.com/demo-api --repla
 - 包名保持简短、清晰、全小写；一个业务模块一个 package。
 - 不引入不必要的抽象。只有在减少真实重复、隔离复杂度或匹配现有模式时才新增抽象。
 - 共享能力放入 `pkg/*`，不要通过业务模块之间互相 import 来复用逻辑。
+- 业务 ID 统一使用 `pkg/idgen.ID`。Ent 主键、外键、auth user ID、REST path params、service/repo 入参和 JSON VO 不再使用 `int64` 或 `string` 表达业务 ID；对外 JSON/OpenAPI ID 暴露为字符串。仅在对接雪花 ID 生成器、第三方库、手写 SQL 参数或极少数底层基础设施场景调用 `Int64()`。
+- Ent schema 统一复用 `pkg/entx/mixin` 中的 ID、审计、软删除和乐观锁 mixin，生成项目不要复制本地 schema mixin。
 - Redis 业务能力优先使用 `pkg/redisx` 的 client、Key Builder、缓存、Lua registry、SCAN+UNLINK 和 redislock 短锁；禁止生产使用 `KEYS`，禁止记录密码、token、验证码、session value。
 - 文件与对象存储业务能力优先使用 `pkg/storage` 的统一接口和 `pkg/storage/provider` 工厂；业务模块不要直接依赖云厂商 SDK。
 - 任务队列业务能力优先使用 `pkg/task` 的 `Publisher`、`Worker`、`Registry`、`Scheduler`、`Task` 和 `TaskMeta`；业务代码不得直接 import `github.com/hibiken/asynq`，Asynq 类型只允许出现在 `pkg/task/asynqadapter`。

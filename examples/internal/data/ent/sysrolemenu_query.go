@@ -15,6 +15,7 @@ import (
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysmenu"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrole"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrolemenu"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysRoleMenuQuery is the builder for querying SysRoleMenu entities.
@@ -130,8 +131,8 @@ func (_q *SysRoleMenuQuery) FirstX(ctx context.Context) *SysRoleMenu {
 
 // FirstID returns the first SysRoleMenu ID from the query.
 // Returns a *NotFoundError when no SysRoleMenu ID was found.
-func (_q *SysRoleMenuQuery) FirstID(ctx context.Context) (id int64, err error) {
-	var ids []int64
+func (_q *SysRoleMenuQuery) FirstID(ctx context.Context) (id idgen.ID, err error) {
+	var ids []idgen.ID
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
@@ -143,7 +144,7 @@ func (_q *SysRoleMenuQuery) FirstID(ctx context.Context) (id int64, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *SysRoleMenuQuery) FirstIDX(ctx context.Context) int64 {
+func (_q *SysRoleMenuQuery) FirstIDX(ctx context.Context) idgen.ID {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -181,8 +182,8 @@ func (_q *SysRoleMenuQuery) OnlyX(ctx context.Context) *SysRoleMenu {
 // OnlyID is like Only, but returns the only SysRoleMenu ID in the query.
 // Returns a *NotSingularError when more than one SysRoleMenu ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *SysRoleMenuQuery) OnlyID(ctx context.Context) (id int64, err error) {
-	var ids []int64
+func (_q *SysRoleMenuQuery) OnlyID(ctx context.Context) (id idgen.ID, err error) {
+	var ids []idgen.ID
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
@@ -198,7 +199,7 @@ func (_q *SysRoleMenuQuery) OnlyID(ctx context.Context) (id int64, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *SysRoleMenuQuery) OnlyIDX(ctx context.Context) int64 {
+func (_q *SysRoleMenuQuery) OnlyIDX(ctx context.Context) idgen.ID {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -226,7 +227,7 @@ func (_q *SysRoleMenuQuery) AllX(ctx context.Context) []*SysRoleMenu {
 }
 
 // IDs executes the query and returns a list of SysRoleMenu IDs.
-func (_q *SysRoleMenuQuery) IDs(ctx context.Context) (ids []int64, err error) {
+func (_q *SysRoleMenuQuery) IDs(ctx context.Context) (ids []idgen.ID, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
@@ -238,7 +239,7 @@ func (_q *SysRoleMenuQuery) IDs(ctx context.Context) (ids []int64, err error) {
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *SysRoleMenuQuery) IDsX(ctx context.Context) []int64 {
+func (_q *SysRoleMenuQuery) IDsX(ctx context.Context) []idgen.ID {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -445,8 +446,8 @@ func (_q *SysRoleMenuQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 }
 
 func (_q *SysRoleMenuQuery) loadRole(ctx context.Context, query *SysRoleQuery, nodes []*SysRoleMenu, init func(*SysRoleMenu), assign func(*SysRoleMenu, *SysRole)) error {
-	ids := make([]int64, 0, len(nodes))
-	nodeids := make(map[int64][]*SysRoleMenu)
+	ids := make([]idgen.ID, 0, len(nodes))
+	nodeids := make(map[idgen.ID][]*SysRoleMenu)
 	for i := range nodes {
 		fk := nodes[i].RoleID
 		if _, ok := nodeids[fk]; !ok {
@@ -474,8 +475,8 @@ func (_q *SysRoleMenuQuery) loadRole(ctx context.Context, query *SysRoleQuery, n
 	return nil
 }
 func (_q *SysRoleMenuQuery) loadMenu(ctx context.Context, query *SysMenuQuery, nodes []*SysRoleMenu, init func(*SysRoleMenu), assign func(*SysRoleMenu, *SysMenu)) error {
-	ids := make([]int64, 0, len(nodes))
-	nodeids := make(map[int64][]*SysRoleMenu)
+	ids := make([]idgen.ID, 0, len(nodes))
+	nodeids := make(map[idgen.ID][]*SysRoleMenu)
 	for i := range nodes {
 		fk := nodes[i].MenuID
 		if _, ok := nodeids[fk]; !ok {

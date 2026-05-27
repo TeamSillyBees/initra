@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // 示例业务错误码独立于框架公共错误码，避免业务语义泄漏到 pkg API。
@@ -66,7 +67,7 @@ func LoginFailed() *apperrors.AppError {
 }
 
 // UserNotFound 创建统一的用户不存在错误。
-func UserNotFound(userID int64) *apperrors.AppError {
+func UserNotFound(userID idgen.ID) *apperrors.AppError {
 	return apperrors.New(
 		CodeUserNotFound,
 		"user not found",

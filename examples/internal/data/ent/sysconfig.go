@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysconfig"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // 系统配置表，用于集中存放可在后台维护的运行时配置。
@@ -17,7 +18,7 @@ type SysConfig struct {
 	config `json:"-"`
 	// ID of the ent.
 	// 雪花算法生成的主键 ID。
-	ID int64 `json:"id,omitempty"`
+	ID idgen.ID `json:"id,omitempty"`
 	// 逻辑删除时间，NULL 表示未删除。
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// 创建时间。
@@ -25,9 +26,9 @@ type SysConfig struct {
 	// 最后更新时间。
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// 创建人用户 ID。
-	CreatedBy *int64 `json:"created_by,omitempty"`
+	CreatedBy *idgen.ID `json:"created_by,omitempty"`
 	// 最后更新人用户 ID。
-	UpdatedBy *int64 `json:"updated_by,omitempty"`
+	UpdatedBy *idgen.ID `json:"updated_by,omitempty"`
 	// 配置键，程序通过该键读取配置。
 	ConfigKey string `json:"config_key,omitempty"`
 	// 配置值。
@@ -70,11 +71,11 @@ func (_m *SysConfig) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case sysconfig.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value.Valid {
+				_m.ID = idgen.ID(value.Int64)
 			}
-			_m.ID = int64(value.Int64)
 		case sysconfig.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
@@ -98,15 +99,15 @@ func (_m *SysConfig) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field created_by", values[i])
 			} else if value.Valid {
-				_m.CreatedBy = new(int64)
-				*_m.CreatedBy = value.Int64
+				_m.CreatedBy = new(idgen.ID)
+				*_m.CreatedBy = idgen.ID(value.Int64)
 			}
 		case sysconfig.FieldUpdatedBy:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_by", values[i])
 			} else if value.Valid {
-				_m.UpdatedBy = new(int64)
-				*_m.UpdatedBy = value.Int64
+				_m.UpdatedBy = new(idgen.ID)
+				*_m.UpdatedBy = idgen.ID(value.Int64)
 			}
 		case sysconfig.FieldConfigKey:
 			if value, ok := values[i].(*sql.NullString); !ok {

@@ -8,50 +8,51 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/predicate"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id int64) predicate.SysRoleMenu {
+func ID(id idgen.ID) predicate.SysRoleMenu {
 	return predicate.SysRoleMenu(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int64) predicate.SysRoleMenu {
+func IDEQ(id idgen.ID) predicate.SysRoleMenu {
 	return predicate.SysRoleMenu(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int64) predicate.SysRoleMenu {
+func IDNEQ(id idgen.ID) predicate.SysRoleMenu {
 	return predicate.SysRoleMenu(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int64) predicate.SysRoleMenu {
+func IDIn(ids ...idgen.ID) predicate.SysRoleMenu {
 	return predicate.SysRoleMenu(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int64) predicate.SysRoleMenu {
+func IDNotIn(ids ...idgen.ID) predicate.SysRoleMenu {
 	return predicate.SysRoleMenu(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int64) predicate.SysRoleMenu {
+func IDGT(id idgen.ID) predicate.SysRoleMenu {
 	return predicate.SysRoleMenu(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int64) predicate.SysRoleMenu {
+func IDGTE(id idgen.ID) predicate.SysRoleMenu {
 	return predicate.SysRoleMenu(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int64) predicate.SysRoleMenu {
+func IDLT(id idgen.ID) predicate.SysRoleMenu {
 	return predicate.SysRoleMenu(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int64) predicate.SysRoleMenu {
+func IDLTE(id idgen.ID) predicate.SysRoleMenu {
 	return predicate.SysRoleMenu(sql.FieldLTE(FieldID, id))
 }
 
@@ -61,18 +62,21 @@ func DeletedAt(v time.Time) predicate.SysRoleMenu {
 }
 
 // RoleID applies equality check predicate on the "role_id" field. It's identical to RoleIDEQ.
-func RoleID(v int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldEQ(FieldRoleID, v))
+func RoleID(v idgen.ID) predicate.SysRoleMenu {
+	vc := int64(v)
+	return predicate.SysRoleMenu(sql.FieldEQ(FieldRoleID, vc))
 }
 
 // MenuID applies equality check predicate on the "menu_id" field. It's identical to MenuIDEQ.
-func MenuID(v int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldEQ(FieldMenuID, v))
+func MenuID(v idgen.ID) predicate.SysRoleMenu {
+	vc := int64(v)
+	return predicate.SysRoleMenu(sql.FieldEQ(FieldMenuID, vc))
 }
 
 // CreatedBy applies equality check predicate on the "created_by" field. It's identical to CreatedByEQ.
-func CreatedBy(v int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldEQ(FieldCreatedBy, v))
+func CreatedBy(v idgen.ID) predicate.SysRoleMenu {
+	vc := int64(v)
+	return predicate.SysRoleMenu(sql.FieldEQ(FieldCreatedBy, vc))
 }
 
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
@@ -131,83 +135,117 @@ func DeletedAtNotNil() predicate.SysRoleMenu {
 }
 
 // RoleIDEQ applies the EQ predicate on the "role_id" field.
-func RoleIDEQ(v int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldEQ(FieldRoleID, v))
+func RoleIDEQ(v idgen.ID) predicate.SysRoleMenu {
+	vc := int64(v)
+	return predicate.SysRoleMenu(sql.FieldEQ(FieldRoleID, vc))
 }
 
 // RoleIDNEQ applies the NEQ predicate on the "role_id" field.
-func RoleIDNEQ(v int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldNEQ(FieldRoleID, v))
+func RoleIDNEQ(v idgen.ID) predicate.SysRoleMenu {
+	vc := int64(v)
+	return predicate.SysRoleMenu(sql.FieldNEQ(FieldRoleID, vc))
 }
 
 // RoleIDIn applies the In predicate on the "role_id" field.
-func RoleIDIn(vs ...int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldIn(FieldRoleID, vs...))
+func RoleIDIn(vs ...idgen.ID) predicate.SysRoleMenu {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysRoleMenu(sql.FieldIn(FieldRoleID, v...))
 }
 
 // RoleIDNotIn applies the NotIn predicate on the "role_id" field.
-func RoleIDNotIn(vs ...int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldNotIn(FieldRoleID, vs...))
+func RoleIDNotIn(vs ...idgen.ID) predicate.SysRoleMenu {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysRoleMenu(sql.FieldNotIn(FieldRoleID, v...))
 }
 
 // MenuIDEQ applies the EQ predicate on the "menu_id" field.
-func MenuIDEQ(v int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldEQ(FieldMenuID, v))
+func MenuIDEQ(v idgen.ID) predicate.SysRoleMenu {
+	vc := int64(v)
+	return predicate.SysRoleMenu(sql.FieldEQ(FieldMenuID, vc))
 }
 
 // MenuIDNEQ applies the NEQ predicate on the "menu_id" field.
-func MenuIDNEQ(v int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldNEQ(FieldMenuID, v))
+func MenuIDNEQ(v idgen.ID) predicate.SysRoleMenu {
+	vc := int64(v)
+	return predicate.SysRoleMenu(sql.FieldNEQ(FieldMenuID, vc))
 }
 
 // MenuIDIn applies the In predicate on the "menu_id" field.
-func MenuIDIn(vs ...int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldIn(FieldMenuID, vs...))
+func MenuIDIn(vs ...idgen.ID) predicate.SysRoleMenu {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysRoleMenu(sql.FieldIn(FieldMenuID, v...))
 }
 
 // MenuIDNotIn applies the NotIn predicate on the "menu_id" field.
-func MenuIDNotIn(vs ...int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldNotIn(FieldMenuID, vs...))
+func MenuIDNotIn(vs ...idgen.ID) predicate.SysRoleMenu {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysRoleMenu(sql.FieldNotIn(FieldMenuID, v...))
 }
 
 // CreatedByEQ applies the EQ predicate on the "created_by" field.
-func CreatedByEQ(v int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldEQ(FieldCreatedBy, v))
+func CreatedByEQ(v idgen.ID) predicate.SysRoleMenu {
+	vc := int64(v)
+	return predicate.SysRoleMenu(sql.FieldEQ(FieldCreatedBy, vc))
 }
 
 // CreatedByNEQ applies the NEQ predicate on the "created_by" field.
-func CreatedByNEQ(v int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldNEQ(FieldCreatedBy, v))
+func CreatedByNEQ(v idgen.ID) predicate.SysRoleMenu {
+	vc := int64(v)
+	return predicate.SysRoleMenu(sql.FieldNEQ(FieldCreatedBy, vc))
 }
 
 // CreatedByIn applies the In predicate on the "created_by" field.
-func CreatedByIn(vs ...int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldIn(FieldCreatedBy, vs...))
+func CreatedByIn(vs ...idgen.ID) predicate.SysRoleMenu {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysRoleMenu(sql.FieldIn(FieldCreatedBy, v...))
 }
 
 // CreatedByNotIn applies the NotIn predicate on the "created_by" field.
-func CreatedByNotIn(vs ...int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldNotIn(FieldCreatedBy, vs...))
+func CreatedByNotIn(vs ...idgen.ID) predicate.SysRoleMenu {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysRoleMenu(sql.FieldNotIn(FieldCreatedBy, v...))
 }
 
 // CreatedByGT applies the GT predicate on the "created_by" field.
-func CreatedByGT(v int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldGT(FieldCreatedBy, v))
+func CreatedByGT(v idgen.ID) predicate.SysRoleMenu {
+	vc := int64(v)
+	return predicate.SysRoleMenu(sql.FieldGT(FieldCreatedBy, vc))
 }
 
 // CreatedByGTE applies the GTE predicate on the "created_by" field.
-func CreatedByGTE(v int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldGTE(FieldCreatedBy, v))
+func CreatedByGTE(v idgen.ID) predicate.SysRoleMenu {
+	vc := int64(v)
+	return predicate.SysRoleMenu(sql.FieldGTE(FieldCreatedBy, vc))
 }
 
 // CreatedByLT applies the LT predicate on the "created_by" field.
-func CreatedByLT(v int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldLT(FieldCreatedBy, v))
+func CreatedByLT(v idgen.ID) predicate.SysRoleMenu {
+	vc := int64(v)
+	return predicate.SysRoleMenu(sql.FieldLT(FieldCreatedBy, vc))
 }
 
 // CreatedByLTE applies the LTE predicate on the "created_by" field.
-func CreatedByLTE(v int64) predicate.SysRoleMenu {
-	return predicate.SysRoleMenu(sql.FieldLTE(FieldCreatedBy, v))
+func CreatedByLTE(v idgen.ID) predicate.SysRoleMenu {
+	vc := int64(v)
+	return predicate.SysRoleMenu(sql.FieldLTE(FieldCreatedBy, vc))
 }
 
 // CreatedByIsNil applies the IsNil predicate on the "created_by" field.

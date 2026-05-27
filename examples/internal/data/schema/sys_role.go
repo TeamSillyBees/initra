@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
-	schemamixin "github.com/teamsillybees/initra/examples/internal/data/schema/mixin"
+	entxmixin "github.com/teamsillybees/initra/pkg/entx/mixin"
 )
 
 // SysRole 系统角色表，用于承载后台角色定义。
@@ -19,9 +19,9 @@ type SysRole struct {
 // Mixin 返回系统角色表通用字段。
 func (SysRole) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		schemamixin.ID{},
-		schemamixin.SoftDelete{},
-		schemamixin.Audit{},
+		entxmixin.ID{},
+		entxmixin.SoftDelete{},
+		entxmixin.Audit{},
 	}
 }
 

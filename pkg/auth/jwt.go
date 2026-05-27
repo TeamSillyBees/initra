@@ -8,12 +8,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // TokenTypeAccess 表示短期访问令牌。
@@ -34,14 +34,14 @@ type JWTConfig struct {
 
 // Principal 表示当前登录用户在请求链路中的最小身份载体。
 type Principal struct {
-	UserID   int64
+	UserID   idgen.ID
 	Roles    []string
 	TenantID string
 }
 
 // Claims 是脚手架统一的 JWT Claims。
 type Claims struct {
-	UserID    int64    `json:"userId"`
+	UserID    idgen.ID `json:"userId"`
 	Roles     []string `json:"roles"`
 	TenantID  string   `json:"tenantId,omitempty"`
 	TokenType string   `json:"tokenType"`
@@ -58,7 +58,7 @@ type TokenPair struct {
 
 // RefreshTokenRecord 是服务端保存的 refresh token 状态，客户端只持有 opaque token。
 type RefreshTokenRecord struct {
-	UserID          int64     `json:"userId"`
+	UserID          idgen.ID  `json:"userId"`
 	AccessTokenID   string    `json:"accessTokenId"`
 	AccessExpiresAt time.Time `json:"accessExpiresAt"`
 }
@@ -262,7 +262,7 @@ func (m *JWTManager) issueWithID(principal Principal, tokenType string, tokenID 
 		TokenType: tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    m.issuer,
-			Subject:   strconv.FormatInt(principal.UserID, 10),
+			Subject:   principal.UserID.String(),
 			ID:        tokenID,
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
@@ -332,7 +332,7 @@ func (m *JWTManager) parse(token string, expectedType string) (*Claims, error) {
 	if claims.ID == "" {
 		return nil, fmt.Errorf("%w: token id is missing", ErrTokenInvalid)
 	}
-	if claims.Subject != strconv.FormatInt(claims.UserID, 10) {
+	if claims.Subject != claims.UserID.String() {
 		return nil, fmt.Errorf("%w: token subject mismatch", ErrTokenInvalid)
 	}
 	return claims, nil

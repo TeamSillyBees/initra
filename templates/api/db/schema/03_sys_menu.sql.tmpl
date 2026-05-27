@@ -3,7 +3,7 @@
 
 CREATE TABLE "sys_menu" (
     "id" BIGINT NOT NULL,
-    "parent_id" BIGINT NOT NULL DEFAULT 0,
+    "parent_id" BIGINT NULL,
     "app_id" VARCHAR(64) NULL,
     "title" VARCHAR(128) NOT NULL,
     "menu_type" SMALLINT NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE "sys_menu" (
 
 COMMENT ON TABLE "sys_menu" IS '系统菜单与按钮权限表，统一承载菜单、目录、按钮三类资源。';
 COMMENT ON COLUMN "sys_menu"."id" IS '雪花算法生成的主键 ID。';
-COMMENT ON COLUMN "sys_menu"."parent_id" IS '父级菜单 ID，0 表示顶级目录。';
+COMMENT ON COLUMN "sys_menu"."parent_id" IS '父级菜单 ID，NULL 表示顶级目录。';
 COMMENT ON COLUMN "sys_menu"."app_id" IS '所属应用编码，用于多应用场景区分菜单树。';
 COMMENT ON COLUMN "sys_menu"."title" IS '菜单或按钮展示标题。';
 COMMENT ON COLUMN "sys_menu"."menu_type" IS '资源类型：0-菜单，1-按钮，2-目录。';

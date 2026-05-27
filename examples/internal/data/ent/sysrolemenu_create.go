@@ -13,6 +13,7 @@ import (
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysmenu"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrole"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrolemenu"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysRoleMenuCreate is the builder for creating a SysRoleMenu entity.
@@ -37,25 +38,25 @@ func (_c *SysRoleMenuCreate) SetNillableDeletedAt(v *time.Time) *SysRoleMenuCrea
 }
 
 // SetRoleID sets the "role_id" field.
-func (_c *SysRoleMenuCreate) SetRoleID(v int64) *SysRoleMenuCreate {
+func (_c *SysRoleMenuCreate) SetRoleID(v idgen.ID) *SysRoleMenuCreate {
 	_c.mutation.SetRoleID(v)
 	return _c
 }
 
 // SetMenuID sets the "menu_id" field.
-func (_c *SysRoleMenuCreate) SetMenuID(v int64) *SysRoleMenuCreate {
+func (_c *SysRoleMenuCreate) SetMenuID(v idgen.ID) *SysRoleMenuCreate {
 	_c.mutation.SetMenuID(v)
 	return _c
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_c *SysRoleMenuCreate) SetCreatedBy(v int64) *SysRoleMenuCreate {
+func (_c *SysRoleMenuCreate) SetCreatedBy(v idgen.ID) *SysRoleMenuCreate {
 	_c.mutation.SetCreatedBy(v)
 	return _c
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_c *SysRoleMenuCreate) SetNillableCreatedBy(v *int64) *SysRoleMenuCreate {
+func (_c *SysRoleMenuCreate) SetNillableCreatedBy(v *idgen.ID) *SysRoleMenuCreate {
 	if v != nil {
 		_c.SetCreatedBy(*v)
 	}
@@ -69,8 +70,16 @@ func (_c *SysRoleMenuCreate) SetCreatedAt(v time.Time) *SysRoleMenuCreate {
 }
 
 // SetID sets the "id" field.
-func (_c *SysRoleMenuCreate) SetID(v int64) *SysRoleMenuCreate {
+func (_c *SysRoleMenuCreate) SetID(v idgen.ID) *SysRoleMenuCreate {
 	_c.mutation.SetID(v)
+	return _c
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (_c *SysRoleMenuCreate) SetNillableID(v *idgen.ID) *SysRoleMenuCreate {
+	if v != nil {
+		_c.SetID(*v)
+	}
 	return _c
 }
 
@@ -91,6 +100,7 @@ func (_c *SysRoleMenuCreate) Mutation() *SysRoleMenuMutation {
 
 // Save creates the SysRoleMenu in the database.
 func (_c *SysRoleMenuCreate) Save(ctx context.Context) (*SysRoleMenu, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -116,13 +126,21 @@ func (_c *SysRoleMenuCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_c *SysRoleMenuCreate) defaults() {
+	if _, ok := _c.mutation.ID(); !ok {
+		v := sysrolemenu.DefaultID()
+		_c.mutation.SetID(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_c *SysRoleMenuCreate) check() error {
 	if _, ok := _c.mutation.RoleID(); !ok {
 		return &ValidationError{Name: "role_id", err: errors.New(`ent: missing required field "SysRoleMenu.role_id"`)}
 	}
 	if v, ok := _c.mutation.RoleID(); ok {
-		if err := sysrolemenu.RoleIDValidator(v); err != nil {
+		if err := sysrolemenu.RoleIDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "role_id", err: fmt.Errorf(`ent: validator failed for field "SysRoleMenu.role_id": %w`, err)}
 		}
 	}
@@ -130,7 +148,7 @@ func (_c *SysRoleMenuCreate) check() error {
 		return &ValidationError{Name: "menu_id", err: errors.New(`ent: missing required field "SysRoleMenu.menu_id"`)}
 	}
 	if v, ok := _c.mutation.MenuID(); ok {
-		if err := sysrolemenu.MenuIDValidator(v); err != nil {
+		if err := sysrolemenu.MenuIDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "menu_id", err: fmt.Errorf(`ent: validator failed for field "SysRoleMenu.menu_id": %w`, err)}
 		}
 	}
@@ -138,7 +156,7 @@ func (_c *SysRoleMenuCreate) check() error {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "SysRoleMenu.created_at"`)}
 	}
 	if v, ok := _c.mutation.ID(); ok {
-		if err := sysrolemenu.IDValidator(v); err != nil {
+		if err := sysrolemenu.IDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "SysRoleMenu.id": %w`, err)}
 		}
 	}
@@ -164,7 +182,7 @@ func (_c *SysRoleMenuCreate) sqlSave(ctx context.Context) (*SysRoleMenu, error) 
 	}
 	if _spec.ID.Value != _node.ID {
 		id := _spec.ID.Value.(int64)
-		_node.ID = int64(id)
+		_node.ID = idgen.ID(id)
 	}
 	_c.mutation.id = &_node.ID
 	_c.mutation.done = true
@@ -247,6 +265,7 @@ func (_c *SysRoleMenuCreateBulk) Save(ctx context.Context) ([]*SysRoleMenu, erro
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*SysRoleMenuMutation)
 				if !ok {
@@ -275,7 +294,7 @@ func (_c *SysRoleMenuCreateBulk) Save(ctx context.Context) ([]*SysRoleMenu, erro
 				mutation.id = &nodes[i].ID
 				if specs[i].ID.Value != nil && nodes[i].ID == 0 {
 					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int64(id)
+					nodes[i].ID = idgen.ID(id)
 				}
 				mutation.done = true
 				return nodes[i], nil

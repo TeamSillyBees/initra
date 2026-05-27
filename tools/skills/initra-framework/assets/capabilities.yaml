@@ -5,6 +5,30 @@ framework:
   version: dev
 
 capabilities:
+  - id: idgen
+    title: 业务 ID 与 Ent Mixin
+    package: github.com/teamsillybees/initra/pkg/idgen
+    reference: references/id.md
+    triggers:
+      - 业务 ID
+      - 雪花 ID
+      - Ent 主键
+      - Ent 外键
+      - OpenAPI ID
+      - Huma path id
+      - schema mixin
+    entrypoints:
+      - "idgen.ID"
+      - "idgen.New(v)"
+      - "idgen.Parse(s)"
+      - "idgen.Register(injector, cfg.IDGen.Node)"
+      - "entxmixin.ID{}"
+    forbidden_patterns:
+      - 业务 ID 使用 int64
+      - 业务 ID 使用 string
+      - 业务项目复制 internal/data/schema/mixin
+      - 非底层代码调用 Int64()
+
   - id: redisx
     title: Redis 统一能力
     package: github.com/teamsillybees/initra/pkg/redisx

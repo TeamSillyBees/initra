@@ -15,6 +15,7 @@ import (
 	"github.com/teamsillybees/initra/examples/internal/data/ent/predicate"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysdictcollection"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysdictitem"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysDictCollectionQuery is the builder for querying SysDictCollection entities.
@@ -107,8 +108,8 @@ func (_q *SysDictCollectionQuery) FirstX(ctx context.Context) *SysDictCollection
 
 // FirstID returns the first SysDictCollection ID from the query.
 // Returns a *NotFoundError when no SysDictCollection ID was found.
-func (_q *SysDictCollectionQuery) FirstID(ctx context.Context) (id int64, err error) {
-	var ids []int64
+func (_q *SysDictCollectionQuery) FirstID(ctx context.Context) (id idgen.ID, err error) {
+	var ids []idgen.ID
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
@@ -120,7 +121,7 @@ func (_q *SysDictCollectionQuery) FirstID(ctx context.Context) (id int64, err er
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *SysDictCollectionQuery) FirstIDX(ctx context.Context) int64 {
+func (_q *SysDictCollectionQuery) FirstIDX(ctx context.Context) idgen.ID {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -158,8 +159,8 @@ func (_q *SysDictCollectionQuery) OnlyX(ctx context.Context) *SysDictCollection 
 // OnlyID is like Only, but returns the only SysDictCollection ID in the query.
 // Returns a *NotSingularError when more than one SysDictCollection ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *SysDictCollectionQuery) OnlyID(ctx context.Context) (id int64, err error) {
-	var ids []int64
+func (_q *SysDictCollectionQuery) OnlyID(ctx context.Context) (id idgen.ID, err error) {
+	var ids []idgen.ID
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
@@ -175,7 +176,7 @@ func (_q *SysDictCollectionQuery) OnlyID(ctx context.Context) (id int64, err err
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *SysDictCollectionQuery) OnlyIDX(ctx context.Context) int64 {
+func (_q *SysDictCollectionQuery) OnlyIDX(ctx context.Context) idgen.ID {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -203,7 +204,7 @@ func (_q *SysDictCollectionQuery) AllX(ctx context.Context) []*SysDictCollection
 }
 
 // IDs executes the query and returns a list of SysDictCollection IDs.
-func (_q *SysDictCollectionQuery) IDs(ctx context.Context) (ids []int64, err error) {
+func (_q *SysDictCollectionQuery) IDs(ctx context.Context) (ids []idgen.ID, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
@@ -215,7 +216,7 @@ func (_q *SysDictCollectionQuery) IDs(ctx context.Context) (ids []int64, err err
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *SysDictCollectionQuery) IDsX(ctx context.Context) []int64 {
+func (_q *SysDictCollectionQuery) IDsX(ctx context.Context) []idgen.ID {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -405,7 +406,7 @@ func (_q *SysDictCollectionQuery) sqlAll(ctx context.Context, hooks ...queryHook
 
 func (_q *SysDictCollectionQuery) loadItems(ctx context.Context, query *SysDictItemQuery, nodes []*SysDictCollection, init func(*SysDictCollection), assign func(*SysDictCollection, *SysDictItem)) error {
 	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int64]*SysDictCollection)
+	nodeids := make(map[idgen.ID]*SysDictCollection)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]

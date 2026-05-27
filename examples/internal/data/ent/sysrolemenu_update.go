@@ -15,6 +15,7 @@ import (
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysmenu"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrole"
 	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrolemenu"
+	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 // SysRoleMenuUpdate is the builder for updating SysRoleMenu entities.
@@ -51,13 +52,13 @@ func (_u *SysRoleMenuUpdate) ClearDeletedAt() *SysRoleMenuUpdate {
 }
 
 // SetRoleID sets the "role_id" field.
-func (_u *SysRoleMenuUpdate) SetRoleID(v int64) *SysRoleMenuUpdate {
+func (_u *SysRoleMenuUpdate) SetRoleID(v idgen.ID) *SysRoleMenuUpdate {
 	_u.mutation.SetRoleID(v)
 	return _u
 }
 
 // SetNillableRoleID sets the "role_id" field if the given value is not nil.
-func (_u *SysRoleMenuUpdate) SetNillableRoleID(v *int64) *SysRoleMenuUpdate {
+func (_u *SysRoleMenuUpdate) SetNillableRoleID(v *idgen.ID) *SysRoleMenuUpdate {
 	if v != nil {
 		_u.SetRoleID(*v)
 	}
@@ -65,13 +66,13 @@ func (_u *SysRoleMenuUpdate) SetNillableRoleID(v *int64) *SysRoleMenuUpdate {
 }
 
 // SetMenuID sets the "menu_id" field.
-func (_u *SysRoleMenuUpdate) SetMenuID(v int64) *SysRoleMenuUpdate {
+func (_u *SysRoleMenuUpdate) SetMenuID(v idgen.ID) *SysRoleMenuUpdate {
 	_u.mutation.SetMenuID(v)
 	return _u
 }
 
 // SetNillableMenuID sets the "menu_id" field if the given value is not nil.
-func (_u *SysRoleMenuUpdate) SetNillableMenuID(v *int64) *SysRoleMenuUpdate {
+func (_u *SysRoleMenuUpdate) SetNillableMenuID(v *idgen.ID) *SysRoleMenuUpdate {
 	if v != nil {
 		_u.SetMenuID(*v)
 	}
@@ -79,14 +80,14 @@ func (_u *SysRoleMenuUpdate) SetNillableMenuID(v *int64) *SysRoleMenuUpdate {
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_u *SysRoleMenuUpdate) SetCreatedBy(v int64) *SysRoleMenuUpdate {
+func (_u *SysRoleMenuUpdate) SetCreatedBy(v idgen.ID) *SysRoleMenuUpdate {
 	_u.mutation.ResetCreatedBy()
 	_u.mutation.SetCreatedBy(v)
 	return _u
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysRoleMenuUpdate) SetNillableCreatedBy(v *int64) *SysRoleMenuUpdate {
+func (_u *SysRoleMenuUpdate) SetNillableCreatedBy(v *idgen.ID) *SysRoleMenuUpdate {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
@@ -94,7 +95,7 @@ func (_u *SysRoleMenuUpdate) SetNillableCreatedBy(v *int64) *SysRoleMenuUpdate {
 }
 
 // AddCreatedBy adds value to the "created_by" field.
-func (_u *SysRoleMenuUpdate) AddCreatedBy(v int64) *SysRoleMenuUpdate {
+func (_u *SysRoleMenuUpdate) AddCreatedBy(v idgen.ID) *SysRoleMenuUpdate {
 	_u.mutation.AddCreatedBy(v)
 	return _u
 }
@@ -162,12 +163,12 @@ func (_u *SysRoleMenuUpdate) ExecX(ctx context.Context) {
 // check runs all checks and user-defined validators on the builder.
 func (_u *SysRoleMenuUpdate) check() error {
 	if v, ok := _u.mutation.RoleID(); ok {
-		if err := sysrolemenu.RoleIDValidator(v); err != nil {
+		if err := sysrolemenu.RoleIDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "role_id", err: fmt.Errorf(`ent: validator failed for field "SysRoleMenu.role_id": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.MenuID(); ok {
-		if err := sysrolemenu.MenuIDValidator(v); err != nil {
+		if err := sysrolemenu.MenuIDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "menu_id", err: fmt.Errorf(`ent: validator failed for field "SysRoleMenu.menu_id": %w`, err)}
 		}
 	}
@@ -306,13 +307,13 @@ func (_u *SysRoleMenuUpdateOne) ClearDeletedAt() *SysRoleMenuUpdateOne {
 }
 
 // SetRoleID sets the "role_id" field.
-func (_u *SysRoleMenuUpdateOne) SetRoleID(v int64) *SysRoleMenuUpdateOne {
+func (_u *SysRoleMenuUpdateOne) SetRoleID(v idgen.ID) *SysRoleMenuUpdateOne {
 	_u.mutation.SetRoleID(v)
 	return _u
 }
 
 // SetNillableRoleID sets the "role_id" field if the given value is not nil.
-func (_u *SysRoleMenuUpdateOne) SetNillableRoleID(v *int64) *SysRoleMenuUpdateOne {
+func (_u *SysRoleMenuUpdateOne) SetNillableRoleID(v *idgen.ID) *SysRoleMenuUpdateOne {
 	if v != nil {
 		_u.SetRoleID(*v)
 	}
@@ -320,13 +321,13 @@ func (_u *SysRoleMenuUpdateOne) SetNillableRoleID(v *int64) *SysRoleMenuUpdateOn
 }
 
 // SetMenuID sets the "menu_id" field.
-func (_u *SysRoleMenuUpdateOne) SetMenuID(v int64) *SysRoleMenuUpdateOne {
+func (_u *SysRoleMenuUpdateOne) SetMenuID(v idgen.ID) *SysRoleMenuUpdateOne {
 	_u.mutation.SetMenuID(v)
 	return _u
 }
 
 // SetNillableMenuID sets the "menu_id" field if the given value is not nil.
-func (_u *SysRoleMenuUpdateOne) SetNillableMenuID(v *int64) *SysRoleMenuUpdateOne {
+func (_u *SysRoleMenuUpdateOne) SetNillableMenuID(v *idgen.ID) *SysRoleMenuUpdateOne {
 	if v != nil {
 		_u.SetMenuID(*v)
 	}
@@ -334,14 +335,14 @@ func (_u *SysRoleMenuUpdateOne) SetNillableMenuID(v *int64) *SysRoleMenuUpdateOn
 }
 
 // SetCreatedBy sets the "created_by" field.
-func (_u *SysRoleMenuUpdateOne) SetCreatedBy(v int64) *SysRoleMenuUpdateOne {
+func (_u *SysRoleMenuUpdateOne) SetCreatedBy(v idgen.ID) *SysRoleMenuUpdateOne {
 	_u.mutation.ResetCreatedBy()
 	_u.mutation.SetCreatedBy(v)
 	return _u
 }
 
 // SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysRoleMenuUpdateOne) SetNillableCreatedBy(v *int64) *SysRoleMenuUpdateOne {
+func (_u *SysRoleMenuUpdateOne) SetNillableCreatedBy(v *idgen.ID) *SysRoleMenuUpdateOne {
 	if v != nil {
 		_u.SetCreatedBy(*v)
 	}
@@ -349,7 +350,7 @@ func (_u *SysRoleMenuUpdateOne) SetNillableCreatedBy(v *int64) *SysRoleMenuUpdat
 }
 
 // AddCreatedBy adds value to the "created_by" field.
-func (_u *SysRoleMenuUpdateOne) AddCreatedBy(v int64) *SysRoleMenuUpdateOne {
+func (_u *SysRoleMenuUpdateOne) AddCreatedBy(v idgen.ID) *SysRoleMenuUpdateOne {
 	_u.mutation.AddCreatedBy(v)
 	return _u
 }
@@ -430,12 +431,12 @@ func (_u *SysRoleMenuUpdateOne) ExecX(ctx context.Context) {
 // check runs all checks and user-defined validators on the builder.
 func (_u *SysRoleMenuUpdateOne) check() error {
 	if v, ok := _u.mutation.RoleID(); ok {
-		if err := sysrolemenu.RoleIDValidator(v); err != nil {
+		if err := sysrolemenu.RoleIDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "role_id", err: fmt.Errorf(`ent: validator failed for field "SysRoleMenu.role_id": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.MenuID(); ok {
-		if err := sysrolemenu.MenuIDValidator(v); err != nil {
+		if err := sysrolemenu.MenuIDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "menu_id", err: fmt.Errorf(`ent: validator failed for field "SysRoleMenu.menu_id": %w`, err)}
 		}
 	}

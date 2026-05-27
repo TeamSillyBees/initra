@@ -1,6 +1,9 @@
 package taskdemo
 
-import "github.com/teamsillybees/initra/pkg/response"
+import (
+	"github.com/teamsillybees/initra/pkg/idgen"
+	"github.com/teamsillybees/initra/pkg/response"
+)
 
 // PublishedTaskVO 是任务发布结果对外 JSON DTO。
 type PublishedTaskVO struct {
@@ -13,8 +16,8 @@ type PublishedTaskVO struct {
 
 // PublishEmailBody 是发布示例邮件任务的请求体。
 type PublishEmailBody struct {
-	UserID string `json:"userId" example:"1001" doc:"业务用户 ID"`
-	Email  string `json:"email" example:"alice@example.com" doc:"示例邮件收件地址"`
+	UserID idgen.ID `json:"userId" example:"1771234567890123456" doc:"业务用户 ID"`
+	Email  string   `json:"email" example:"alice@example.com" doc:"示例邮件收件地址"`
 }
 
 type publishEmailRequest struct {

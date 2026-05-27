@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"{{ .ModulePath }}/internal/modules/user"
 	"github.com/teamsillybees/initra/pkg/entx"
+	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/pagination"
 )
 
@@ -39,7 +40,7 @@ func TestUserRepositoryCreateUsesEntHooks(t *testing.T) {
 		IsEnable:     true,
 		SortID:       1,
 	}
-	ctx := entx.WithOperatorID(context.Background(), 9001)
+	ctx := entx.WithOperatorID(context.Background(), idgen.New(9001))
 
 	err := repo.Create(ctx, record)
 
@@ -47,8 +48,8 @@ func TestUserRepositoryCreateUsesEntHooks(t *testing.T) {
 	require.NotZero(t, record.ID)
 	require.False(t, record.CreatedAt.IsZero())
 	require.False(t, record.UpdatedAt.IsZero())
-	require.Equal(t, int64(9001), record.CreatedBy)
-	require.Equal(t, int64(9001), record.UpdatedBy)
+	require.Equal(t, idgen.New(9001), record.CreatedBy)
+	require.Equal(t, idgen.New(9001), record.UpdatedBy)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -67,10 +68,10 @@ func TestUserRepositoryFindByID(t *testing.T) {
 	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
 		WillReturnRows(sqlmock.NewRows([]string{"code"}).AddRow("admin").AddRow("viewer"))
 
-	record, err := repo.FindByID(context.Background(), 1001)
+	record, err := repo.FindByID(context.Background(), idgen.New(1001))
 
 	require.NoError(t, err)
-	require.Equal(t, int64(1001), record.ID)
+	require.Equal(t, idgen.New(1001), record.ID)
 	require.Equal(t, "Alice", record.Nickname)
 	require.Equal(t, []string{"admin", "viewer"}, record.RoleCodes)
 	require.True(t, record.IsSuperAdmin)
@@ -119,7 +120,7 @@ func TestUserRepositoryDeleteSoftDeletesUserAndRoles(t *testing.T) {
 	mock.ExpectExec(`UPDATE "sys_user_role".*`).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
-	err := repo.Delete(context.Background(), 1001, 9001)
+	err := repo.Delete(context.Background(), idgen.New(1001), idgen.New(9001))
 
 	require.NoError(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -130,7 +131,7 @@ func TestEntClientRejectsPhysicalDelete(t *testing.T) {
 	db, _, client := newMockEntClient(t)
 	defer db.Close()
 
-	err := client.SysUser.DeleteOneID(1001).Exec(context.Background())
+	err := client.SysUser.DeleteOneID(idgen.New(1001)).Exec(context.Background())
 
 	require.Error(t, err)
 	require.ErrorIs(t, err, entx.ErrPhysicalDeleteRejected)

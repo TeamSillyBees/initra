@@ -1,6 +1,9 @@
 package auth
 
-import "github.com/teamsillybees/initra/pkg/response"
+import (
+	"github.com/teamsillybees/initra/pkg/idgen"
+	"github.com/teamsillybees/initra/pkg/response"
+)
 
 // LoginBody 描述登录请求体。
 type LoginBody struct {
@@ -38,7 +41,7 @@ type RefreshVO struct {
 
 // UserIdentityVO 描述当前登录用户的公开身份信息。
 type UserIdentityVO struct {
-	UserID       int64    `json:"userId"`
+	UserID       idgen.ID `json:"userId"`
 	Username     string   `json:"username"`
 	Nickname     string   `json:"nickname"`
 	RoleCodes    []string `json:"roleCodes"`

@@ -15,7 +15,7 @@
 - 配置与依赖注入：Viper + samber/do
 - 错误处理：oops + 统一错误码
 - 日志与观测：zap + health/ready/version
-- ID 生成：snowflake 雪花 ID
+- 业务 ID：`pkg/idgen.ID` + snowflake，REST/OpenAPI 对外使用 JSON string
 - Redis 客户端：go-redis
 - 二级缓存：jetcache-go
 - 任务队列与调度：Asynq
@@ -35,20 +35,20 @@ docs/               架构与工程规范文档
 
 ## 项目模板
 
-`api` 模板生成可直接运行的 Web API 基础项目，默认包含 Gin + Huma、统一响应/错误、JWT/Casbin 中间件装配、配置加载、日志、health/ready/version 接口，以及 auth/user 基础业务模块、file 本地文件示例模块、Ent schema、seed 数据和 Atlas 配置。API 标准模板使用 Ent 作为类型安全持久化访问层，使用 Ent Mixin + Runtime Hook 实现雪花 ID、审计字段和软删除等通用自动填充能力；模板目录只保存 schema、mixin、`generate.go` 和迁移 diff 入口，`initra new` 会在渲染 API 项目后执行 `go run ./internal/data/entgenerate` 生成缺失的 Ent 代码。业务方仍可通过后续 CLI 命令追加新的模块、CRUD 样例和配置能力。
+`api` 模板生成可直接运行的 Web API 基础项目，默认包含 Gin + Huma、统一响应/错误、JWT/Casbin 中间件装配、配置加载、日志、health/ready/version 接口，以及 auth/user 基础业务模块、file 本地文件示例模块、Ent schema、seed 数据和 Atlas 配置。API 标准模板使用 Ent 作为类型安全持久化访问层，通过 `pkg/entx/mixin` + Runtime Hook 实现雪花 ID、审计字段和软删除等通用自动填充能力；模板目录只保存 schema、`generate.go` 和迁移 diff 入口，`initra new` 会在渲染 API 项目后执行 `go run ./internal/data/entgenerate` 生成缺失的 Ent 代码。业务方仍可通过后续 CLI 命令追加新的模块、CRUD 样例和配置能力。
 
 模板生成的业务项目是独立 Go module，通过 `go.mod` 引入 `github.com/teamsillybees/initra` 的可复用 Go package，不复制根仓库 `pkg/` 源码，也不依赖根仓库 `internal/`。
 
 ## 模型命名约定
 
-标准 API 项目按模块保持 flat package。HTTP 边界类型放在 `*.dto.go`：Huma/Gin 包装类型使用非导出的 `request`/`response` 后缀；查询参数使用 `Query`；请求体使用 `Body`；对外 JSON DTO 使用 `VO`；分页 JSON 输出使用 `pagination.PageVO[T]` 泛型。领域实体和 service/repo 入参放在 `*.model.go`，结构体入参统一使用 `DTO` 后缀；禁止使用 `Result` 后缀命名返回值，列表直接使用 `[]T`，分页使用 `pagination.PageResult[T]` 泛型封装。
+标准 API 项目按模块保持 flat package。HTTP 边界类型放在 `*.dto.go`：Huma/Gin 包装类型使用非导出的 `request`/`response` 后缀；查询参数使用 `Query`；请求体使用 `Body`；对外 JSON DTO 使用 `VO`；分页 JSON 输出使用 `pagination.PageVO[T]` 泛型。业务 ID 在 Ent、service/repo、auth、REST path params 和 JSON VO 中统一使用 `idgen.ID`，OpenAPI 暴露为 `type: string`，JSON 示例形如 `"1771234567890123456"`。领域实体和 service/repo 入参放在 `*.model.go`，结构体入参统一使用 `DTO` 后缀；禁止使用 `Result` 后缀命名返回值，列表直接使用 `[]T`，分页使用 `pagination.PageResult[T]` 泛型封装。
 
 ## 可复用 Go package
 
 - `pkg/config`：泛型配置加载，不绑定业务项目配置结构。
-- `pkg/logging`、`pkg/cache`、`pkg/idgen`、`pkg/database`：基础设施封装，其中 `pkg/database` 提供 SQL 连接池注册与启动 Ping 检查。
+- `pkg/logging`、`pkg/cache`、`pkg/idgen`、`pkg/database`：基础设施封装，其中 `pkg/idgen.ID` 是业务 ID 专用类型，底层为 int64、JSON/OpenAPI 为 string；`pkg/database` 提供 SQL 连接池注册与启动 Ping 检查。
 - `pkg/redisx`：Redis 基础能力封装，支持 standalone/sentinel client、Ping/readiness、Key Builder、JSON/Msgpack 缓存、TTL jitter、空值缓存、singleflight、SCAN+UNLINK、Lua script registry、基于 `github.com/bsm/redislock` 的短时间分布式锁，以及 OpenTelemetry/zap hook；不支持 cluster，不封装 KEYS。
-- `pkg/entx`：Ent 通用 Hook 和上下文工具，不依赖具体项目生成的 `internal/data/ent`。
+- `pkg/entx`：Ent 通用 Hook、上下文工具和可复用 schema mixin，不依赖具体项目生成的 `internal/data/ent`。
 - `pkg/errors`、`pkg/response`、`pkg/requestctx`：统一错误、响应、trace/request id。
 - `pkg/auth`：JWT、refresh token、Redis token store、Casbin、路由安全元信息。
 - `pkg/server`：Gin + Huma 应用与认证授权中间件装配。

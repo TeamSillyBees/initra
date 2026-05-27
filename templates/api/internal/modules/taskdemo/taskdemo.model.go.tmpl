@@ -1,8 +1,10 @@
 package taskdemo
 
+import "github.com/teamsillybees/initra/pkg/idgen"
+
 // PublishEmailDTO 是发布示例邮件任务的 service 入参。
 type PublishEmailDTO struct {
-	UserID  string
+	UserID  idgen.ID
 	Email   string
 	TraceID string
 }
@@ -17,6 +19,6 @@ type PublishedTaskResult struct {
 }
 
 type sendEmailPayload struct {
-	UserID string `json:"userId"`
-	Email  string `json:"email"`
+	UserID idgen.ID `json:"userId"`
+	Email  string   `json:"email"`
 }

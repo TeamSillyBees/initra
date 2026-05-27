@@ -23,9 +23,9 @@ platformcache.Register(injector, platformcache.Config{
 
 ```go
 type userCache interface {
-	Get(ctx context.Context, id int64) (*User, bool, error)
+	Get(ctx context.Context, id idgen.ID) (*User, bool, error)
 	Set(ctx context.Context, user *User) error
-	Delete(ctx context.Context, id int64) error
+	Delete(ctx context.Context, id idgen.ID) error
 }
 ```
 
