@@ -12,23 +12,23 @@ func TestPageQueryNormalizeFillsDefaultsAndBuildsVO(t *testing.T) {
 	params, err := pagination.PageQuery{}.Normalize()
 	require.NoError(t, err)
 
-	require.Equal(t, 1, params.Page)
-	require.Equal(t, 20, params.PageSize)
+	require.Equal(t, int32(1), params.Page)
+	require.Equal(t, int32(20), params.PageSize)
 	require.Equal(t, int64(0), params.Offset())
 	require.Equal(t, int64(20), params.Limit())
 
 	meta := pagination.NewPageMetaVO(42, params)
 	require.Equal(t, int64(42), meta.Total)
-	require.Equal(t, 1, meta.Page)
-	require.Equal(t, 20, meta.PageSize)
-	require.Equal(t, 3, meta.TotalPages)
+	require.Equal(t, int32(1), meta.Page)
+	require.Equal(t, int32(20), meta.PageSize)
+	require.Equal(t, int32(3), meta.TotalPages)
 
 	result := pagination.NewPageVO([]string{"alice"}, 42, params)
 	require.Equal(t, []string{"alice"}, result.Items)
 	require.Equal(t, int64(42), result.Total)
-	require.Equal(t, 1, result.Page)
-	require.Equal(t, 20, result.PageSize)
-	require.Equal(t, 3, result.TotalPages)
+	require.Equal(t, int32(1), result.Page)
+	require.Equal(t, int32(20), result.PageSize)
+	require.Equal(t, int32(3), result.TotalPages)
 }
 
 func TestPageQueryNormalizeUsesOptions(t *testing.T) {
@@ -39,8 +39,8 @@ func TestPageQueryNormalizeUsesOptions(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	require.Equal(t, 2, params.Page)
-	require.Equal(t, 10, params.PageSize)
+	require.Equal(t, int32(2), params.Page)
+	require.Equal(t, int32(10), params.PageSize)
 	require.Equal(t, int64(10), params.Offset())
 	require.Equal(t, int64(10), params.Limit())
 }
@@ -68,15 +68,15 @@ func TestOffsetQueryNormalizeBuildsEquivalentPageVO(t *testing.T) {
 	params, err := pagination.OffsetQuery{Offset: 40, Limit: 20}.Normalize()
 	require.NoError(t, err)
 
-	require.Equal(t, 40, params.Offset)
-	require.Equal(t, 20, params.Limit)
+	require.Equal(t, int32(40), params.Offset)
+	require.Equal(t, int32(20), params.Limit)
 
 	result := pagination.NewOffsetVO([]int{1, 2}, 95, params)
 	require.Equal(t, []int{1, 2}, result.Items)
 	require.Equal(t, int64(95), result.Total)
-	require.Equal(t, 3, result.Page)
-	require.Equal(t, 20, result.PageSize)
-	require.Equal(t, 5, result.TotalPages)
+	require.Equal(t, int32(3), result.Page)
+	require.Equal(t, int32(20), result.PageSize)
+	require.Equal(t, int32(5), result.TotalPages)
 }
 
 func TestOffsetQueryNormalizeRejectsInvalidValues(t *testing.T) {
@@ -103,13 +103,13 @@ func TestCursorQueryNormalizeAndVO(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, "next-id", params.Cursor)
-	require.Equal(t, 20, params.Limit)
+	require.Equal(t, int32(20), params.Limit)
 
 	result := pagination.NewCursorVO([]string{"alice"}, "after-alice", true, params)
 	require.Equal(t, []string{"alice"}, result.Items)
 	require.Equal(t, "after-alice", result.NextCursor)
 	require.True(t, result.HasMore)
-	require.Equal(t, 20, result.Limit)
+	require.Equal(t, int32(20), result.Limit)
 }
 
 func TestCursorQueryNormalizeRejectsInvalidLimit(t *testing.T) {
