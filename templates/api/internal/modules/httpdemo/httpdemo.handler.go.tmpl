@@ -18,21 +18,28 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) get(ctx context.Context, input *getHTTPBingoRequest) (*getHTTPBingoResponse, error) {
-	vo, err := h.service.GetHTTPBingo(ctx, input.Message, requestctx.TraceIDFromContext(ctx))
+	traceID := traceIDFromContext(ctx)
+	vo, err := h.service.GetHTTPBingo(ctx, input.Message, traceID)
 	if err != nil {
 		return nil, err
 	}
 	return &getHTTPBingoResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
+		Body: response.OK(traceID, vo),
 	}, nil
 }
 
 func (h *Handler) formPage(ctx context.Context, input *getHTTPBingoFormPageRequest) (*getHTTPBingoFormPageResponse, error) {
-	vo, err := h.service.GetHTTPBingoFormPage(ctx, requestctx.TraceIDFromContext(ctx))
+	traceID := traceIDFromContext(ctx)
+	vo, err := h.service.GetHTTPBingoFormPage(ctx, traceID)
 	if err != nil {
 		return nil, err
 	}
 	return &getHTTPBingoFormPageResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
+		Body: response.OK(traceID, vo),
 	}, nil
+}
+
+func traceIDFromContext(ctx context.Context) string {
+	traceID, _ := requestctx.TraceIDFromContext(ctx)
+	return traceID
 }

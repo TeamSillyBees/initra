@@ -10,6 +10,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/teamsillybees/initra/pkg/requestctx"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 )
 
 func TestValuesRoundTripFromContext(t *testing.T) {
@@ -17,26 +19,51 @@ func TestValuesRoundTripFromContext(t *testing.T) {
 		RequestID: "req-1",
 		TraceID:   "trace-1",
 		UserID:    "user-1",
+		Roles:     []string{"admin", "viewer"},
 		TenantID:  "tenant-1",
 		SessionID: "session-1",
 		AppID:     "app-1",
 	})
 	ctx = requestctx.WithUserID(ctx, "user-2")
 
-	require.Equal(t, "req-1", requestctx.RequestIDFromContext(ctx))
-	require.Equal(t, "trace-1", requestctx.TraceIDFromContext(ctx))
-	require.Equal(t, "user-2", requestctx.UserIDFromContext(ctx))
-	require.Equal(t, "tenant-1", requestctx.TenantIDFromContext(ctx))
-	require.Equal(t, "session-1", requestctx.SessionIDFromContext(ctx))
-	require.Equal(t, "app-1", requestctx.AppIDFromContext(ctx))
+	requestID, ok := requestctx.RequestIDFromContext(ctx)
+	require.True(t, ok)
+	require.Equal(t, "req-1", requestID)
+	traceID, ok := requestctx.TraceIDFromContext(ctx)
+	require.True(t, ok)
+	require.Equal(t, "trace-1", traceID)
+	userID, ok := requestctx.UserIDFromContext(ctx)
+	require.True(t, ok)
+	require.Equal(t, "user-2", userID)
+	roles, ok := requestctx.RolesFromContext(ctx)
+	require.True(t, ok)
+	require.Equal(t, []string{"admin", "viewer"}, roles)
+	tenantID, ok := requestctx.TenantIDFromContext(ctx)
+	require.True(t, ok)
+	require.Equal(t, "tenant-1", tenantID)
+	sessionID, ok := requestctx.SessionIDFromContext(ctx)
+	require.True(t, ok)
+	require.Equal(t, "session-1", sessionID)
+	appID, ok := requestctx.AppIDFromContext(ctx)
+	require.True(t, ok)
+	require.Equal(t, "app-1", appID)
 
 	values := requestctx.ValuesFromContext(ctx)
 	require.Equal(t, "req-1", values.RequestID)
 	require.Equal(t, "trace-1", values.TraceID)
 	require.Equal(t, "user-2", values.UserID)
+	require.Equal(t, []string{"admin", "viewer"}, values.Roles)
 	require.Equal(t, "tenant-1", values.TenantID)
 	require.Equal(t, "session-1", values.SessionID)
 	require.Equal(t, "app-1", values.AppID)
+}
+
+func TestValuesFromContextReportsMissingValues(t *testing.T) {
+	_, ok := requestctx.UserIDFromContext(context.Background())
+	require.False(t, ok)
+
+	_, ok = requestctx.RolesFromContext(context.Background())
+	require.False(t, ok)
 }
 
 func TestRequestMetadataExtraction(t *testing.T) {
@@ -139,15 +166,22 @@ func TestLogFieldsFromContext(t *testing.T) {
 		RequestID: "req-1",
 		TraceID:   "trace-1",
 		UserID:    "user-1",
+		Roles:     []string{"admin", "viewer"},
 		TenantID:  "tenant-1",
 		SessionID: "session-1",
 		AppID:     "app-1",
 	})
 
 	fields := requestctx.LogFields(ctx)
-	got := make(map[string]string, len(fields))
+	core, logs := observer.New(zap.InfoLevel)
+	logger := zap.New(core)
+	logger.Info("request", fields...)
+	got := logs.All()[0].ContextMap()
+	gotStrings := make(map[string]string, len(fields))
 	for _, field := range fields {
-		got[field.Key] = field.String
+		if field.String != "" {
+			gotStrings[field.Key] = field.String
+		}
 	}
 
 	require.Equal(t, map[string]string{
@@ -157,5 +191,6 @@ func TestLogFieldsFromContext(t *testing.T) {
 		"tenant_id":  "tenant-1",
 		"session_id": "session-1",
 		"app_id":     "app-1",
-	}, got)
+	}, gotStrings)
+	require.Equal(t, []any{"admin", "viewer"}, got["roles"])
 }

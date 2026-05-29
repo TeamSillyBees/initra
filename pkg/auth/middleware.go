@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -127,13 +128,17 @@ func AuthorizationMiddleware(enforcer *casbin.Enforcer, lookup RouteSecurityLook
 			return
 		}
 
-		principal, ok := PrincipalFromContext(c.Request.Context())
+		if userID, ok := requestctx.UserIDFromContext(c.Request.Context()); !ok || strings.TrimSpace(userID) == "" {
+			writeError(c, apperrors.New(apperrors.CodeUnauthorized, "user_id is missing"))
+			return
+		}
+		roles, ok := requestctx.RolesFromContext(c.Request.Context())
 		if !ok {
-			writeError(c, apperrors.New(apperrors.CodeUnauthorized, "user principal is missing"))
+			writeError(c, apperrors.New(apperrors.CodeUnauthorized, "roles are missing"))
 			return
 		}
 
-		for _, role := range principal.Roles {
+		for _, role := range roles {
 			allowed, err := enforcer.Enforce(role, security.Resource, security.Action)
 			if err != nil {
 				writeError(c, apperrors.Wrap(err, apperrors.CodeInternalError, "authorize request failed"))
@@ -159,8 +164,8 @@ func RequestLoggerMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
-		traceID := requestctx.TraceIDFromContext(c.Request.Context())
-		requestID := requestctx.RequestIDFromContext(c.Request.Context())
+		traceID, _ := requestctx.TraceIDFromContext(c.Request.Context())
+		requestID, _ := requestctx.RequestIDFromContext(c.Request.Context())
 		fields := []zap.Field{
 			zap.String("trace_id", traceID),
 			zap.String("request_id", requestID),
@@ -170,8 +175,8 @@ func RequestLoggerMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			zap.Int64("latency_ms", time.Since(start).Milliseconds()),
 		}
 
-		if principal, ok := PrincipalFromContext(c.Request.Context()); ok {
-			fields = append(fields, zap.String("user_id", principal.UserID.String()))
+		if userID, ok := requestctx.UserIDFromContext(c.Request.Context()); ok && strings.TrimSpace(userID) != "" {
+			fields = append(fields, zap.String("user_id", userID))
 		}
 
 		if c.Writer.Status() >= http.StatusInternalServerError {
@@ -187,8 +192,8 @@ func RecoveryMiddleware(logger *zap.Logger) gin.HandlerFunc {
 		if logger != nil {
 			logger.Error("panic recovered",
 				zap.Any("panic", recovered),
-				zap.String("trace_id", requestctx.TraceIDFromContext(c.Request.Context())),
-				zap.String("request_id", requestctx.RequestIDFromContext(c.Request.Context())),
+				zap.String("trace_id", traceIDFromContext(c.Request.Context())),
+				zap.String("request_id", requestIDFromContext(c.Request.Context())),
 				zap.String("path", c.Request.URL.Path),
 				zap.String("method", c.Request.Method),
 				zap.Stack("stacktrace"),
@@ -262,9 +267,19 @@ func writeError(c *gin.Context, err error) {
 	if err != nil {
 		_ = c.Error(err)
 	}
-	traceID := requestctx.TraceIDFromContext(c.Request.Context())
+	traceID, _ := requestctx.TraceIDFromContext(c.Request.Context())
 	status, body := apperrors.ToHTTP(err, traceID)
 	c.AbortWithStatusJSON(status, body)
+}
+
+func traceIDFromContext(ctx context.Context) string {
+	traceID, _ := requestctx.TraceIDFromContext(ctx)
+	return traceID
+}
+
+func requestIDFromContext(ctx context.Context) string {
+	requestID, _ := requestctx.RequestIDFromContext(ctx)
+	return requestID
 }
 
 func ginErrorFields(c *gin.Context) []zap.Field {

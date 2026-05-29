@@ -18,6 +18,7 @@ import (
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
 	"github.com/teamsillybees/initra/pkg/idgen"
+	"github.com/teamsillybees/initra/pkg/requestctx"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
 )
@@ -141,9 +142,12 @@ func TestNewAppAcceptsValidJWTForProtectedAPIRoute(t *testing.T) {
 		Action:     "read",
 	})
 	app.Engine.GET("/api/v1/protected", func(c *gin.Context) {
-		principal, ok := platformauth.PrincipalFromContext(c.Request.Context())
+		userID, ok := requestctx.UserIDFromContext(c.Request.Context())
 		require.True(t, ok)
-		require.Equal(t, idgen.New(1001), principal.UserID)
+		require.Equal(t, "1001", userID)
+		roles, ok := requestctx.RolesFromContext(c.Request.Context())
+		require.True(t, ok)
+		require.Equal(t, []string{"admin"}, roles)
 		c.Status(http.StatusNoContent)
 	})
 
@@ -181,9 +185,9 @@ func TestNewAppAllowsAuthenticatedAPIRouteWithoutCasbinPolicy(t *testing.T) {
 		AccessMode: platformauth.AccessModeAuthenticated,
 	})
 	app.Engine.GET("/api/v1/me", func(c *gin.Context) {
-		principal, ok := platformauth.PrincipalFromContext(c.Request.Context())
+		userID, ok := requestctx.UserIDFromContext(c.Request.Context())
 		require.True(t, ok)
-		require.Equal(t, idgen.New(1001), principal.UserID)
+		require.Equal(t, "1001", userID)
 		c.Status(http.StatusNoContent)
 	})
 
@@ -200,6 +204,73 @@ func TestNewAppAllowsAuthenticatedAPIRouteWithoutCasbinPolicy(t *testing.T) {
 	app.Engine.ServeHTTP(rec, req)
 
 	require.Equal(t, http.StatusNoContent, rec.Code)
+}
+
+// TestNewAppInjectsAuthenticatedContextIntoHumaHandler 验证登录后的 Huma ctx 包含身份和 trace 信息。
+func TestNewAppInjectsAuthenticatedContextIntoHumaHandler(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	core, logs := observer.New(zap.InfoLevel)
+	logger := zap.New(core)
+	manager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
+		Issuer:          "initra",
+		Secret:          "server-test-secret",
+		AccessTokenTTL:  time.Minute,
+		RefreshTokenTTL: time.Hour,
+	})
+	require.NoError(t, err)
+
+	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, logger, manager, nil)
+	require.NoError(t, err)
+
+	app.Registry.Register(http.MethodGet, "/api/v1/context", platformauth.RouteSecurity{
+		AccessMode: platformauth.AccessModeAuthenticated,
+	})
+	huma.Register(app.API, huma.Operation{
+		OperationID: "context",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/context",
+	}, func(ctx context.Context, input *struct{}) (*struct{}, error) {
+		userID, ok := requestctx.UserIDFromContext(ctx)
+		require.True(t, ok)
+		require.Equal(t, "1001", userID)
+		roles, ok := requestctx.RolesFromContext(ctx)
+		require.True(t, ok)
+		require.Equal(t, []string{"viewer"}, roles)
+		tenantID, ok := requestctx.TenantIDFromContext(ctx)
+		require.True(t, ok)
+		require.Equal(t, "tenant-1", tenantID)
+		traceID, ok := requestctx.TraceIDFromContext(ctx)
+		require.True(t, ok)
+		require.Equal(t, "trace-1", traceID)
+		return &struct{}{}, nil
+	})
+
+	pair, err := manager.IssueTokenPair(t.Context(), platformauth.Principal{
+		UserID:   idgen.New(1001),
+		Roles:    []string{"viewer"},
+		TenantID: "tenant-1",
+	})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/context", nil)
+	req.Header.Set("Authorization", "Bearer "+pair.AccessToken)
+	req.Header.Set("X-Request-ID", "req-1")
+	req.Header.Set("X-Trace-ID", "trace-1")
+	rec := httptest.NewRecorder()
+
+	app.Engine.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusNoContent, rec.Code)
+	require.Equal(t, "req-1", rec.Header().Get("X-Request-ID"))
+	require.Equal(t, "trace-1", rec.Header().Get("X-Trace-ID"))
+
+	entries := logs.FilterMessage("http request completed").All()
+	require.Len(t, entries, 1)
+	fields := entries[0].ContextMap()
+	require.Equal(t, "req-1", fields["request_id"])
+	require.Equal(t, "trace-1", fields["trace_id"])
+	require.Equal(t, "1001", fields["user_id"])
 }
 
 // TestNewAppAllowsPublicAPIRouteWithoutToken 验证 public 模式的 /api 路由不会触发 JWT 校验。

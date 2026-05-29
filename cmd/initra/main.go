@@ -1166,8 +1166,9 @@ func (h *Handler) get(ctx context.Context, input *get%sRequest) (*get%sResponse,
 	if err != nil {
 		return nil, err
 	}
+	traceID, _ := requestctx.TraceIDFromContext(ctx)
 	return &get%sResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), %sVO{ID: item.ID}),
+		Body: response.OK(traceID, %sVO{ID: item.ID}),
 	}, nil
 }
 `, name, name, name, typeName, typeName, typeName, typeName)

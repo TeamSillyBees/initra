@@ -14,6 +14,7 @@ const (
 	requestIDKey requestContextKey = "request_id"
 	traceIDKey   requestContextKey = "trace_id"
 	userIDKey    requestContextKey = "user_id"
+	rolesKey     requestContextKey = "roles"
 	tenantIDKey  requestContextKey = "tenant_id"
 	sessionIDKey requestContextKey = "session_id"
 	appIDKey     requestContextKey = "app_id"
@@ -24,6 +25,7 @@ type Values struct {
 	RequestID string
 	TraceID   string
 	UserID    string
+	Roles     []string
 	TenantID  string
 	SessionID string
 	AppID     string
@@ -34,6 +36,7 @@ func WithValues(ctx context.Context, values Values) context.Context {
 	ctx = WithRequestID(ctx, values.RequestID)
 	ctx = WithTraceID(ctx, values.TraceID)
 	ctx = WithUserID(ctx, values.UserID)
+	ctx = WithRoles(ctx, values.Roles)
 	ctx = WithTenantID(ctx, values.TenantID)
 	ctx = WithSessionID(ctx, values.SessionID)
 	ctx = WithAppID(ctx, values.AppID)
@@ -42,13 +45,21 @@ func WithValues(ctx context.Context, values Values) context.Context {
 
 // ValuesFromContext 从上下文中提取请求级数据。
 func ValuesFromContext(ctx context.Context) Values {
+	requestID, _ := RequestIDFromContext(ctx)
+	traceID, _ := TraceIDFromContext(ctx)
+	userID, _ := UserIDFromContext(ctx)
+	roles, _ := RolesFromContext(ctx)
+	tenantID, _ := TenantIDFromContext(ctx)
+	sessionID, _ := SessionIDFromContext(ctx)
+	appID, _ := AppIDFromContext(ctx)
 	return Values{
-		RequestID: RequestIDFromContext(ctx),
-		TraceID:   TraceIDFromContext(ctx),
-		UserID:    UserIDFromContext(ctx),
-		TenantID:  TenantIDFromContext(ctx),
-		SessionID: SessionIDFromContext(ctx),
-		AppID:     AppIDFromContext(ctx),
+		RequestID: requestID,
+		TraceID:   traceID,
+		UserID:    userID,
+		Roles:     roles,
+		TenantID:  tenantID,
+		SessionID: sessionID,
+		AppID:     appID,
 	}
 }
 
@@ -58,7 +69,7 @@ func WithRequestID(ctx context.Context, requestID string) context.Context {
 }
 
 // RequestIDFromContext 从上下文中提取 request_id。
-func RequestIDFromContext(ctx context.Context) string {
+func RequestIDFromContext(ctx context.Context) (string, bool) {
 	return stringFromContext(ctx, requestIDKey)
 }
 
@@ -68,7 +79,7 @@ func WithTraceID(ctx context.Context, traceID string) context.Context {
 }
 
 // TraceIDFromContext 从上下文中提取 trace_id。
-func TraceIDFromContext(ctx context.Context) string {
+func TraceIDFromContext(ctx context.Context) (string, bool) {
 	return stringFromContext(ctx, traceIDKey)
 }
 
@@ -78,8 +89,25 @@ func WithUserID(ctx context.Context, userID string) context.Context {
 }
 
 // UserIDFromContext 从上下文中提取 user_id。
-func UserIDFromContext(ctx context.Context) string {
+func UserIDFromContext(ctx context.Context) (string, bool) {
 	return stringFromContext(ctx, userIDKey)
+}
+
+// WithRoles 将 roles 写入上下文。
+func WithRoles(ctx context.Context, roles []string) context.Context {
+	return context.WithValue(ctx, rolesKey, append([]string(nil), roles...))
+}
+
+// RolesFromContext 从上下文中提取 roles。
+func RolesFromContext(ctx context.Context) ([]string, bool) {
+	if ctx == nil {
+		return nil, false
+	}
+	roles, ok := ctx.Value(rolesKey).([]string)
+	if !ok {
+		return nil, false
+	}
+	return append([]string(nil), roles...), true
 }
 
 // WithTenantID 将 tenant_id 写入上下文。
@@ -88,7 +116,7 @@ func WithTenantID(ctx context.Context, tenantID string) context.Context {
 }
 
 // TenantIDFromContext 从上下文中提取 tenant_id。
-func TenantIDFromContext(ctx context.Context) string {
+func TenantIDFromContext(ctx context.Context) (string, bool) {
 	return stringFromContext(ctx, tenantIDKey)
 }
 
@@ -98,7 +126,7 @@ func WithSessionID(ctx context.Context, sessionID string) context.Context {
 }
 
 // SessionIDFromContext 从上下文中提取 session_id。
-func SessionIDFromContext(ctx context.Context) string {
+func SessionIDFromContext(ctx context.Context) (string, bool) {
 	return stringFromContext(ctx, sessionIDKey)
 }
 
@@ -108,7 +136,7 @@ func WithAppID(ctx context.Context, appID string) context.Context {
 }
 
 // AppIDFromContext 从上下文中提取 app_id。
-func AppIDFromContext(ctx context.Context) string {
+func AppIDFromContext(ctx context.Context) (string, bool) {
 	return stringFromContext(ctx, appIDKey)
 }
 
@@ -124,6 +152,9 @@ func LogFields(ctx context.Context) []zap.Field {
 	}
 	if values.UserID != "" {
 		fields = append(fields, zap.String("user_id", values.UserID))
+	}
+	if len(values.Roles) > 0 {
+		fields = append(fields, zap.Strings("roles", values.Roles))
 	}
 	if values.TenantID != "" {
 		fields = append(fields, zap.String("tenant_id", values.TenantID))
@@ -141,10 +172,10 @@ func withString(ctx context.Context, key requestContextKey, value string) contex
 	return context.WithValue(ctx, key, value)
 }
 
-func stringFromContext(ctx context.Context, key requestContextKey) string {
+func stringFromContext(ctx context.Context, key requestContextKey) (string, bool) {
 	if ctx == nil {
-		return ""
+		return "", false
 	}
-	value, _ := ctx.Value(key).(string)
-	return value
+	value, ok := ctx.Value(key).(string)
+	return value, ok
 }

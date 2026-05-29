@@ -11,7 +11,6 @@ import (
 	"{{ .ModulePath }}/internal/data/ent/sysuser"
 	"{{ .ModulePath }}/internal/data/ent/sysuserrole"
 	"{{ .ModulePath }}/internal/modules/bizerrors"
-	"github.com/teamsillybees/initra/pkg/entx"
 	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/pagination"
 )
@@ -50,7 +49,7 @@ func NewService(
 }
 
 // Create 创建用户。
-func (s *Service) Create(ctx context.Context, body CreateUserBody, operatorID idgen.ID) (UserVO, error) {
+func (s *Service) Create(ctx context.Context, body CreateUserBody) (UserVO, error) {
 	if strings.TrimSpace(body.Username) == "" {
 		return UserVO{}, bizerrors.BadRequest("username is required")
 	}
@@ -81,7 +80,6 @@ func (s *Service) Create(ctx context.Context, body CreateUserBody, operatorID id
 		SortID:       body.SortID,
 	}
 
-	ctx = entx.WithOperatorID(ctx, operatorID)
 	if err := s.createEnt(ctx, user); err != nil {
 		return UserVO{}, err
 	}
@@ -128,7 +126,7 @@ func (s *Service) Page(ctx context.Context, query PageUsersQuery) (pagination.Pa
 }
 
 // Update 更新用户并清理缓存。
-func (s *Service) Update(ctx context.Context, id idgen.ID, body UpdateUserBody, operatorID idgen.ID) (UserVO, error) {
+func (s *Service) Update(ctx context.Context, id idgen.ID, body UpdateUserBody) (UserVO, error) {
 	user, err := s.findByID(ctx, id)
 	if err != nil {
 		return UserVO{}, err
@@ -162,7 +160,6 @@ func (s *Service) Update(ctx context.Context, id idgen.ID, body UpdateUserBody, 
 		user.SortID = *body.SortID
 	}
 
-	ctx = entx.WithOperatorID(ctx, operatorID)
 	if err := s.updateEnt(ctx, user); err != nil {
 		return UserVO{}, err
 	}
@@ -174,8 +171,8 @@ func (s *Service) Update(ctx context.Context, id idgen.ID, body UpdateUserBody, 
 }
 
 // Delete 删除用户并清理缓存。
-func (s *Service) Delete(ctx context.Context, id idgen.ID, operatorID idgen.ID) error {
-	if err := s.deleteEnt(ctx, id, operatorID); err != nil {
+func (s *Service) Delete(ctx context.Context, id idgen.ID) error {
+	if err := s.deleteEnt(ctx, id); err != nil {
 		return err
 	}
 	if err := s.cache.Delete(ctx, id); err != nil {
@@ -322,8 +319,7 @@ func (s *Service) updateEnt(ctx context.Context, user *User) error {
 	})
 }
 
-func (s *Service) deleteEnt(ctx context.Context, id idgen.ID, operatorID idgen.ID) error {
-	ctx = entx.WithOperatorID(ctx, operatorID)
+func (s *Service) deleteEnt(ctx context.Context, id idgen.ID) error {
 	return data.WithinTx(ctx, s.client, func(txCtx context.Context, txClient *appent.Client) error {
 		if _, err := txClient.SysUser.Update().
 			Where(

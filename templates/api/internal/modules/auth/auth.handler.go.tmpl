@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"{{ .ModulePath }}/internal/modules/bizerrors"
-	platformauth "github.com/teamsillybees/initra/pkg/auth"
+	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/requestctx"
 	"github.com/teamsillybees/initra/pkg/response"
 )
@@ -25,7 +25,7 @@ func (h *Handler) login(ctx context.Context, input *loginRequest) (*loginRespons
 		return nil, err
 	}
 	return &loginResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
+		Body: response.OK(traceIDFromContext(ctx), vo),
 	}, nil
 }
 
@@ -35,21 +35,30 @@ func (h *Handler) refresh(ctx context.Context, input *refreshRequest) (*refreshR
 		return nil, err
 	}
 	return &refreshResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
+		Body: response.OK(traceIDFromContext(ctx), vo),
 	}, nil
 }
 
 func (h *Handler) me(ctx context.Context, _ *meRequest) (*meResponse, error) {
-	principal, ok := platformauth.PrincipalFromContext(ctx)
+	userIDText, ok := requestctx.UserIDFromContext(ctx)
 	if !ok {
-		return nil, bizerrors.Unauthorized("user principal is missing")
+		return nil, bizerrors.Unauthorized("user_id is missing")
+	}
+	userID, err := idgen.Parse(userIDText)
+	if err != nil {
+		return nil, bizerrors.Unauthorized("user_id is invalid")
 	}
 
-	vo, err := h.service.Me(ctx, principal.UserID)
+	vo, err := h.service.Me(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 	return &meResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
+		Body: response.OK(traceIDFromContext(ctx), vo),
 	}, nil
+}
+
+func traceIDFromContext(ctx context.Context) string {
+	traceID, _ := requestctx.TraceIDFromContext(ctx)
+	return traceID
 }

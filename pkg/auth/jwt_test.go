@@ -8,6 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/require"
 	"github.com/teamsillybees/initra/pkg/idgen"
+	"github.com/teamsillybees/initra/pkg/requestctx"
 )
 
 // fakeTokenStore 记录 JWTManager 对 TokenStore 的调用，便于断言 Redis TTL 和黑名单行为。
@@ -72,6 +73,29 @@ func (f *fakeTokenStore) BlacklistAccessToken(_ context.Context, tokenID string,
 // IsAccessTokenBlacklisted 模拟 access token 黑名单命中判断。
 func (f *fakeTokenStore) IsAccessTokenBlacklisted(_ context.Context, tokenID string) (bool, error) {
 	return f.accessBlacklisted && f.blacklistedTokenID == tokenID, nil
+}
+
+// TestWithPrincipalInjectsRequestContextUserValues 验证登录身份会同步写入通用请求上下文。
+func TestWithPrincipalInjectsRequestContextUserValues(t *testing.T) {
+	ctx := requestctx.WithTraceID(context.Background(), "trace-1")
+	ctx = WithPrincipal(ctx, Principal{
+		UserID:   idgen.New(1001),
+		Roles:    []string{"admin"},
+		TenantID: "tenant-1",
+	})
+
+	userID, ok := requestctx.UserIDFromContext(ctx)
+	require.True(t, ok)
+	require.Equal(t, "1001", userID)
+	roles, ok := requestctx.RolesFromContext(ctx)
+	require.True(t, ok)
+	require.Equal(t, []string{"admin"}, roles)
+	tenantID, ok := requestctx.TenantIDFromContext(ctx)
+	require.True(t, ok)
+	require.Equal(t, "tenant-1", tenantID)
+	traceID, ok := requestctx.TraceIDFromContext(ctx)
+	require.True(t, ok)
+	require.Equal(t, "trace-1", traceID)
 }
 
 // TestJWTManagerIssuesAndParsesTokens 验证 token pair 能正常签发、解析并缓存 refresh token。

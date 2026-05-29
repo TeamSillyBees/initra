@@ -156,7 +156,7 @@ func configureHumaErrors() {
 	}
 	huma.NewErrorWithContext = func(ctx huma.Context, status int, message string, errs ...error) huma.StatusError {
 		recordHumaErrors(ctx, errs...)
-		traceID := requestctx.TraceIDFromContext(ctx.Context())
+		traceID, _ := requestctx.TraceIDFromContext(ctx.Context())
 		return newHumaError(status, traceID, message, errs...)
 	}
 }

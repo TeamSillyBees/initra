@@ -18,11 +18,17 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) publishEmail(ctx context.Context, input *publishEmailRequest) (*publishEmailResponse, error) {
-	vo, err := h.service.PublishEmail(ctx, input.Body, requestctx.TraceIDFromContext(ctx))
+	traceID := traceIDFromContext(ctx)
+	vo, err := h.service.PublishEmail(ctx, input.Body, traceID)
 	if err != nil {
 		return nil, err
 	}
 	return &publishEmailResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
+		Body: response.OK(traceID, vo),
 	}, nil
+}
+
+func traceIDFromContext(ctx context.Context) string {
+	traceID, _ := requestctx.TraceIDFromContext(ctx)
+	return traceID
 }

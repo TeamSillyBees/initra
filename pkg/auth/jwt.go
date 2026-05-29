@@ -14,6 +14,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/teamsillybees/initra/pkg/idgen"
+	"github.com/teamsillybees/initra/pkg/requestctx"
 )
 
 // TokenTypeAccess 表示短期访问令牌。
@@ -338,16 +339,14 @@ func (m *JWTManager) parse(token string, expectedType string) (*Claims, error) {
 	return claims, nil
 }
 
-// principalContextKey 是请求上下文中保存 Principal 的私有 key，避免与外部包 key 冲突。
-type principalContextKey struct{}
-
 // WithPrincipal 将登录用户信息写入上下文，便于后续中间件和 service 统一读取。
 func WithPrincipal(ctx context.Context, principal Principal) context.Context {
-	return context.WithValue(ctx, principalContextKey{}, principal)
-}
-
-// PrincipalFromContext 从上下文中提取当前登录用户。
-func PrincipalFromContext(ctx context.Context) (Principal, bool) {
-	principal, ok := ctx.Value(principalContextKey{}).(Principal)
-	return principal, ok
+	if principal.UserID > 0 {
+		ctx = requestctx.WithUserID(ctx, principal.UserID.String())
+	}
+	ctx = requestctx.WithRoles(ctx, principal.Roles)
+	if principal.TenantID != "" {
+		ctx = requestctx.WithTenantID(ctx, principal.TenantID)
+	}
+	return ctx
 }

@@ -9,10 +9,10 @@ import (
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	"{{ .ModulePath }}/internal/data/ent"
-	"github.com/teamsillybees/initra/pkg/auth"
 	platformdatabase "github.com/teamsillybees/initra/pkg/database"
 	"github.com/teamsillybees/initra/pkg/entx"
 	"github.com/teamsillybees/initra/pkg/idgen"
+	"github.com/teamsillybees/initra/pkg/requestctx"
 
 	_ "github.com/lib/pq"
 )
@@ -57,11 +57,15 @@ func NewEntClientFromDB(db *sql.DB, generator *idgen.Generator) *ent.Client {
 			if id, ok := entx.OperatorIDFromContext(ctx); ok {
 				return id, true
 			}
-			principal, ok := auth.PrincipalFromContext(ctx)
+			userID, ok := requestctx.UserIDFromContext(ctx)
 			if !ok {
 				return 0, false
 			}
-			return principal.UserID, true
+			id, err := idgen.Parse(userID)
+			if err != nil {
+				return 0, false
+			}
+			return id, true
 		},
 	}))
 	client.Use(entx.RejectDeleteHook())

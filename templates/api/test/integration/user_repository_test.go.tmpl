@@ -7,6 +7,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
 	"{{ .ModulePath }}/internal/modules/user"
+	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/entx"
 	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/pagination"
@@ -49,7 +50,7 @@ func TestUserServiceCreateUsesEntHooks(t *testing.T) {
 	mock.ExpectCommit()
 
 	isEnable := true
-	ctx := entx.WithOperatorID(context.Background(), idgen.New(9001))
+	ctx := platformauth.WithPrincipal(context.Background(), platformauth.Principal{UserID: idgen.New(9001)})
 	vo, err := service.Create(ctx, user.CreateUserBody{
 		Username:     "alice",
 		Password:     "secret-123",
@@ -60,7 +61,7 @@ func TestUserServiceCreateUsesEntHooks(t *testing.T) {
 		IsSuperAdmin: true,
 		IsEnable:     &isEnable,
 		SortID:       1,
-	}, idgen.New(9001))
+	})
 
 	require.NoError(t, err)
 	require.NotZero(t, vo.ID)
@@ -138,7 +139,8 @@ func TestUserServiceDeleteSoftDeletesUserAndRoles(t *testing.T) {
 	mock.ExpectExec(`UPDATE "sys_user_role".*`).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
-	err := service.Delete(context.Background(), idgen.New(1001), idgen.New(9001))
+	ctx := platformauth.WithPrincipal(context.Background(), platformauth.Principal{UserID: idgen.New(9001)})
+	err := service.Delete(ctx, idgen.New(1001))
 
 	require.NoError(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())

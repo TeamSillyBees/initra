@@ -3,8 +3,6 @@ package user
 import (
 	"context"
 
-	platformauth "github.com/teamsillybees/initra/pkg/auth"
-	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/requestctx"
 	"github.com/teamsillybees/initra/pkg/response"
 )
@@ -25,7 +23,7 @@ func (h *Handler) get(ctx context.Context, input *getUserRequest) (*getUserRespo
 		return nil, err
 	}
 	return &getUserResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
+		Body: response.OK(traceIDFromContext(ctx), vo),
 	}, nil
 }
 
@@ -35,42 +33,40 @@ func (h *Handler) page(ctx context.Context, input *pageUsersRequest) (*pageUsers
 		return nil, err
 	}
 	return &pageUsersResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), pageVO),
+		Body: response.OK(traceIDFromContext(ctx), pageVO),
 	}, nil
 }
 
 func (h *Handler) create(ctx context.Context, input *createUserRequest) (*createUserResponse, error) {
-	vo, err := h.service.Create(ctx, input.Body, operatorID(ctx))
+	vo, err := h.service.Create(ctx, input.Body)
 	if err != nil {
 		return nil, err
 	}
 	return &createUserResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
+		Body: response.OK(traceIDFromContext(ctx), vo),
 	}, nil
 }
 
 func (h *Handler) update(ctx context.Context, input *updateUserRequest) (*updateUserResponse, error) {
-	vo, err := h.service.Update(ctx, input.ID, input.Body, operatorID(ctx))
+	vo, err := h.service.Update(ctx, input.ID, input.Body)
 	if err != nil {
 		return nil, err
 	}
 	return &updateUserResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
+		Body: response.OK(traceIDFromContext(ctx), vo),
 	}, nil
 }
 
 func (h *Handler) delete(ctx context.Context, input *deleteUserRequest) (*deleteUserResponse, error) {
-	if err := h.service.Delete(ctx, input.ID, operatorID(ctx)); err != nil {
+	if err := h.service.Delete(ctx, input.ID); err != nil {
 		return nil, err
 	}
 	return &deleteUserResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), map[string]any{}),
+		Body: response.OK(traceIDFromContext(ctx), map[string]any{}),
 	}, nil
 }
 
-func operatorID(ctx context.Context) idgen.ID {
-	if principal, ok := platformauth.PrincipalFromContext(ctx); ok {
-		return principal.UserID
-	}
-	return 0
+func traceIDFromContext(ctx context.Context) string {
+	traceID, _ := requestctx.TraceIDFromContext(ctx)
+	return traceID
 }
