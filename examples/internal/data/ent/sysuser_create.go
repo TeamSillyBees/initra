@@ -22,60 +22,6 @@ type SysUserCreate struct {
 	hooks    []Hook
 }
 
-// SetDeletedAt sets the "deleted_at" field.
-func (_c *SysUserCreate) SetDeletedAt(v time.Time) *SysUserCreate {
-	_c.mutation.SetDeletedAt(v)
-	return _c
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_c *SysUserCreate) SetNillableDeletedAt(v *time.Time) *SysUserCreate {
-	if v != nil {
-		_c.SetDeletedAt(*v)
-	}
-	return _c
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (_c *SysUserCreate) SetCreatedAt(v time.Time) *SysUserCreate {
-	_c.mutation.SetCreatedAt(v)
-	return _c
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (_c *SysUserCreate) SetUpdatedAt(v time.Time) *SysUserCreate {
-	_c.mutation.SetUpdatedAt(v)
-	return _c
-}
-
-// SetCreatedBy sets the "created_by" field.
-func (_c *SysUserCreate) SetCreatedBy(v idgen.ID) *SysUserCreate {
-	_c.mutation.SetCreatedBy(v)
-	return _c
-}
-
-// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_c *SysUserCreate) SetNillableCreatedBy(v *idgen.ID) *SysUserCreate {
-	if v != nil {
-		_c.SetCreatedBy(*v)
-	}
-	return _c
-}
-
-// SetUpdatedBy sets the "updated_by" field.
-func (_c *SysUserCreate) SetUpdatedBy(v idgen.ID) *SysUserCreate {
-	_c.mutation.SetUpdatedBy(v)
-	return _c
-}
-
-// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_c *SysUserCreate) SetNillableUpdatedBy(v *idgen.ID) *SysUserCreate {
-	if v != nil {
-		_c.SetUpdatedBy(*v)
-	}
-	return _c
-}
-
 // SetUsername sets the "username" field.
 func (_c *SysUserCreate) SetUsername(v string) *SysUserCreate {
 	_c.mutation.SetUsername(v)
@@ -186,6 +132,76 @@ func (_c *SysUserCreate) SetNillableSortID(v *int) *SysUserCreate {
 	return _c
 }
 
+// SetDeletedAt sets the "deleted_at" field.
+func (_c *SysUserCreate) SetDeletedAt(v time.Time) *SysUserCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_c *SysUserCreate) SetNillableDeletedAt(v *time.Time) *SysUserCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
+	}
+	return _c
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (_c *SysUserCreate) SetCreatedAt(v time.Time) *SysUserCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *SysUserCreate) SetNillableCreatedAt(v *time.Time) *SysUserCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *SysUserCreate) SetUpdatedAt(v time.Time) *SysUserCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *SysUserCreate) SetNillableUpdatedAt(v *time.Time) *SysUserCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
+	}
+	return _c
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (_c *SysUserCreate) SetCreatedBy(v idgen.ID) *SysUserCreate {
+	_c.mutation.SetCreatedBy(v)
+	return _c
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_c *SysUserCreate) SetNillableCreatedBy(v *idgen.ID) *SysUserCreate {
+	if v != nil {
+		_c.SetCreatedBy(*v)
+	}
+	return _c
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_c *SysUserCreate) SetUpdatedBy(v idgen.ID) *SysUserCreate {
+	_c.mutation.SetUpdatedBy(v)
+	return _c
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_c *SysUserCreate) SetNillableUpdatedBy(v *idgen.ID) *SysUserCreate {
+	if v != nil {
+		_c.SetUpdatedBy(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *SysUserCreate) SetID(v idgen.ID) *SysUserCreate {
 	_c.mutation.SetID(v)
@@ -262,6 +278,14 @@ func (_c *SysUserCreate) defaults() {
 		v := sysuser.DefaultSortID
 		_c.mutation.SetSortID(v)
 	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := sysuser.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := sysuser.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := sysuser.DefaultID()
 		_c.mutation.SetID(v)
@@ -270,12 +294,6 @@ func (_c *SysUserCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *SysUserCreate) check() error {
-	if _, ok := _c.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "SysUser.created_at"`)}
-	}
-	if _, ok := _c.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SysUser.updated_at"`)}
-	}
 	if _, ok := _c.mutation.Username(); !ok {
 		return &ValidationError{Name: "username", err: errors.New(`ent: missing required field "SysUser.username"`)}
 	}
@@ -316,6 +334,12 @@ func (_c *SysUserCreate) check() error {
 	if _, ok := _c.mutation.SortID(); !ok {
 		return &ValidationError{Name: "sort_id", err: errors.New(`ent: missing required field "SysUser.sort_id"`)}
 	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "SysUser.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SysUser.updated_at"`)}
+	}
 	if v, ok := _c.mutation.ID(); ok {
 		if err := sysuser.IDValidator(int64(v)); err != nil {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "SysUser.id": %w`, err)}
@@ -353,26 +377,6 @@ func (_c *SysUserCreate) createSpec() (*SysUser, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := _c.mutation.DeletedAt(); ok {
-		_spec.SetField(sysuser.FieldDeletedAt, field.TypeTime, value)
-		_node.DeletedAt = &value
-	}
-	if value, ok := _c.mutation.CreatedAt(); ok {
-		_spec.SetField(sysuser.FieldCreatedAt, field.TypeTime, value)
-		_node.CreatedAt = value
-	}
-	if value, ok := _c.mutation.UpdatedAt(); ok {
-		_spec.SetField(sysuser.FieldUpdatedAt, field.TypeTime, value)
-		_node.UpdatedAt = value
-	}
-	if value, ok := _c.mutation.CreatedBy(); ok {
-		_spec.SetField(sysuser.FieldCreatedBy, field.TypeInt64, value)
-		_node.CreatedBy = &value
-	}
-	if value, ok := _c.mutation.UpdatedBy(); ok {
-		_spec.SetField(sysuser.FieldUpdatedBy, field.TypeInt64, value)
-		_node.UpdatedBy = &value
-	}
 	if value, ok := _c.mutation.Username(); ok {
 		_spec.SetField(sysuser.FieldUsername, field.TypeString, value)
 		_node.Username = value
@@ -408,6 +412,26 @@ func (_c *SysUserCreate) createSpec() (*SysUser, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.SortID(); ok {
 		_spec.SetField(sysuser.FieldSortID, field.TypeInt, value)
 		_node.SortID = value
+	}
+	if value, ok := _c.mutation.DeletedAt(); ok {
+		_spec.SetField(sysuser.FieldDeletedAt, field.TypeTime, value)
+		_node.DeletedAt = &value
+	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(sysuser.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(sysuser.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
+	if value, ok := _c.mutation.CreatedBy(); ok {
+		_spec.SetField(sysuser.FieldCreatedBy, field.TypeInt64, value)
+		_node.CreatedBy = &value
+	}
+	if value, ok := _c.mutation.UpdatedBy(); ok {
+		_spec.SetField(sysuser.FieldUpdatedBy, field.TypeInt64, value)
+		_node.UpdatedBy = &value
 	}
 	if nodes := _c.mutation.UserRolesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

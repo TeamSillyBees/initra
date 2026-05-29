@@ -335,12 +335,12 @@ func (_q *SysRoleMenuQuery) WithMenu(opts ...func(*SysMenuQuery)) *SysRoleMenuQu
 // Example:
 //
 //	var v []struct {
-//		DeletedAt time.Time `json:"deleted_at,omitempty"`
+//		RoleID idgen.ID `json:"role_id,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.SysRoleMenu.Query().
-//		GroupBy(sysrolemenu.FieldDeletedAt).
+//		GroupBy(sysrolemenu.FieldRoleID).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *SysRoleMenuQuery) GroupBy(field string, fields ...string) *SysRoleMenuGroupBy {
@@ -358,11 +358,11 @@ func (_q *SysRoleMenuQuery) GroupBy(field string, fields ...string) *SysRoleMenu
 // Example:
 //
 //	var v []struct {
-//		DeletedAt time.Time `json:"deleted_at,omitempty"`
+//		RoleID idgen.ID `json:"role_id,omitempty"`
 //	}
 //
 //	client.SysRoleMenu.Query().
-//		Select(sysrolemenu.FieldDeletedAt).
+//		Select(sysrolemenu.FieldRoleID).
 //		Scan(ctx, &v)
 func (_q *SysRoleMenuQuery) Select(fields ...string) *SysRoleMenuSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

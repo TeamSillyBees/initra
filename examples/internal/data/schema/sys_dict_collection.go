@@ -6,8 +6,7 @@ import (
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
-
-	entxmixin "github.com/teamsillybees/initra/pkg/entx/mixin"
+	"github.com/teamsillybees/initra/pkg/entx/fieldx"
 )
 
 // SysDictCollection 系统字典集表，用于定义一类字典的元信息。
@@ -15,18 +14,10 @@ type SysDictCollection struct {
 	ent.Schema
 }
 
-// Mixin 返回系统字典集表通用字段。
-func (SysDictCollection) Mixin() []ent.Mixin {
-	return []ent.Mixin{
-		entxmixin.ID{},
-		entxmixin.SoftDelete{},
-		entxmixin.Audit{},
-	}
-}
-
 // Fields 返回系统字典集表字段定义。
 func (SysDictCollection) Fields() []ent.Field {
-	return []ent.Field{
+	fields := []ent.Field{
+		fieldx.ID(),
 		field.String("code").MaxLen(64).NotEmpty().Unique().
 			Comment("字典集唯一编码，程序通过该编码读取字典项。"),
 		field.String("name").MaxLen(128).NotEmpty().
@@ -42,6 +33,11 @@ func (SysDictCollection) Fields() []ent.Field {
 		field.Int("sort_id").Default(0).
 			Comment("排序值。"),
 	}
+
+	fields = append(fields, fieldx.SoftDelete()...)
+	fields = append(fields, fieldx.Audit()...)
+
+	return fields
 }
 
 // Edges 返回系统字典集表关系定义。

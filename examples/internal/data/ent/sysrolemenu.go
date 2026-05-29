@@ -21,16 +21,20 @@ type SysRoleMenu struct {
 	// ID of the ent.
 	// 雪花算法生成的主键 ID。
 	ID idgen.ID `json:"id,omitempty"`
-	// 逻辑删除时间，NULL 表示未删除。
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// 系统角色 ID，关联 sys_role.id。
 	RoleID idgen.ID `json:"role_id,omitempty"`
 	// 系统菜单资源 ID，关联 sys_menu.id。
 	MenuID idgen.ID `json:"menu_id,omitempty"`
-	// 创建人用户 ID。
-	CreatedBy *idgen.ID `json:"created_by,omitempty"`
+	// 逻辑删除时间，NULL 表示未删除。
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// 创建时间。
 	CreatedAt time.Time `json:"created_at,omitempty"`
+	// 最后更新时间。
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// 创建人用户 ID。
+	CreatedBy *idgen.ID `json:"created_by,omitempty"`
+	// 最后更新人用户 ID。
+	UpdatedBy *idgen.ID `json:"updated_by,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SysRoleMenuQuery when eager-loading is set.
 	Edges        SysRoleMenuEdges `json:"edges"`
@@ -75,9 +79,9 @@ func (*SysRoleMenu) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case sysrolemenu.FieldID, sysrolemenu.FieldRoleID, sysrolemenu.FieldMenuID, sysrolemenu.FieldCreatedBy:
+		case sysrolemenu.FieldID, sysrolemenu.FieldRoleID, sysrolemenu.FieldMenuID, sysrolemenu.FieldCreatedBy, sysrolemenu.FieldUpdatedBy:
 			values[i] = new(sql.NullInt64)
-		case sysrolemenu.FieldDeletedAt, sysrolemenu.FieldCreatedAt:
+		case sysrolemenu.FieldDeletedAt, sysrolemenu.FieldCreatedAt, sysrolemenu.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -100,13 +104,6 @@ func (_m *SysRoleMenu) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.ID = idgen.ID(value.Int64)
 			}
-		case sysrolemenu.FieldDeletedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
-			} else if value.Valid {
-				_m.DeletedAt = new(time.Time)
-				*_m.DeletedAt = value.Time
-			}
 		case sysrolemenu.FieldRoleID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field role_id", values[i])
@@ -119,6 +116,25 @@ func (_m *SysRoleMenu) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.MenuID = idgen.ID(value.Int64)
 			}
+		case sysrolemenu.FieldDeletedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
+			} else if value.Valid {
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
+			}
+		case sysrolemenu.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				_m.CreatedAt = value.Time
+			}
+		case sysrolemenu.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				_m.UpdatedAt = value.Time
+			}
 		case sysrolemenu.FieldCreatedBy:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field created_by", values[i])
@@ -126,11 +142,12 @@ func (_m *SysRoleMenu) assignValues(columns []string, values []any) error {
 				_m.CreatedBy = new(idgen.ID)
 				*_m.CreatedBy = idgen.ID(value.Int64)
 			}
-		case sysrolemenu.FieldCreatedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+		case sysrolemenu.FieldUpdatedBy:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_by", values[i])
 			} else if value.Valid {
-				_m.CreatedAt = value.Time
+				_m.UpdatedBy = new(idgen.ID)
+				*_m.UpdatedBy = idgen.ID(value.Int64)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -178,24 +195,32 @@ func (_m *SysRoleMenu) String() string {
 	var builder strings.Builder
 	builder.WriteString("SysRoleMenu(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
-	if v := _m.DeletedAt; v != nil {
-		builder.WriteString("deleted_at=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
 	builder.WriteString("role_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.RoleID))
 	builder.WriteString(", ")
 	builder.WriteString("menu_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.MenuID))
 	builder.WriteString(", ")
+	if v := _m.DeletedAt; v != nil {
+		builder.WriteString("deleted_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
 	if v := _m.CreatedBy; v != nil {
 		builder.WriteString("created_by=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("created_at=")
-	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
+	if v := _m.UpdatedBy; v != nil {
+		builder.WriteString("updated_by=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

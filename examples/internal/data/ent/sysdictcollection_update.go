@@ -30,94 +30,6 @@ func (_u *SysDictCollectionUpdate) Where(ps ...predicate.SysDictCollection) *Sys
 	return _u
 }
 
-// SetDeletedAt sets the "deleted_at" field.
-func (_u *SysDictCollectionUpdate) SetDeletedAt(v time.Time) *SysDictCollectionUpdate {
-	_u.mutation.SetDeletedAt(v)
-	return _u
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_u *SysDictCollectionUpdate) SetNillableDeletedAt(v *time.Time) *SysDictCollectionUpdate {
-	if v != nil {
-		_u.SetDeletedAt(*v)
-	}
-	return _u
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (_u *SysDictCollectionUpdate) ClearDeletedAt() *SysDictCollectionUpdate {
-	_u.mutation.ClearDeletedAt()
-	return _u
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (_u *SysDictCollectionUpdate) SetUpdatedAt(v time.Time) *SysDictCollectionUpdate {
-	_u.mutation.SetUpdatedAt(v)
-	return _u
-}
-
-// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (_u *SysDictCollectionUpdate) SetNillableUpdatedAt(v *time.Time) *SysDictCollectionUpdate {
-	if v != nil {
-		_u.SetUpdatedAt(*v)
-	}
-	return _u
-}
-
-// SetCreatedBy sets the "created_by" field.
-func (_u *SysDictCollectionUpdate) SetCreatedBy(v idgen.ID) *SysDictCollectionUpdate {
-	_u.mutation.ResetCreatedBy()
-	_u.mutation.SetCreatedBy(v)
-	return _u
-}
-
-// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysDictCollectionUpdate) SetNillableCreatedBy(v *idgen.ID) *SysDictCollectionUpdate {
-	if v != nil {
-		_u.SetCreatedBy(*v)
-	}
-	return _u
-}
-
-// AddCreatedBy adds value to the "created_by" field.
-func (_u *SysDictCollectionUpdate) AddCreatedBy(v idgen.ID) *SysDictCollectionUpdate {
-	_u.mutation.AddCreatedBy(v)
-	return _u
-}
-
-// ClearCreatedBy clears the value of the "created_by" field.
-func (_u *SysDictCollectionUpdate) ClearCreatedBy() *SysDictCollectionUpdate {
-	_u.mutation.ClearCreatedBy()
-	return _u
-}
-
-// SetUpdatedBy sets the "updated_by" field.
-func (_u *SysDictCollectionUpdate) SetUpdatedBy(v idgen.ID) *SysDictCollectionUpdate {
-	_u.mutation.ResetUpdatedBy()
-	_u.mutation.SetUpdatedBy(v)
-	return _u
-}
-
-// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysDictCollectionUpdate) SetNillableUpdatedBy(v *idgen.ID) *SysDictCollectionUpdate {
-	if v != nil {
-		_u.SetUpdatedBy(*v)
-	}
-	return _u
-}
-
-// AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysDictCollectionUpdate) AddUpdatedBy(v idgen.ID) *SysDictCollectionUpdate {
-	_u.mutation.AddUpdatedBy(v)
-	return _u
-}
-
-// ClearUpdatedBy clears the value of the "updated_by" field.
-func (_u *SysDictCollectionUpdate) ClearUpdatedBy() *SysDictCollectionUpdate {
-	_u.mutation.ClearUpdatedBy()
-	return _u
-}
-
 // SetCode sets the "code" field.
 func (_u *SysDictCollectionUpdate) SetCode(v string) *SysDictCollectionUpdate {
 	_u.mutation.SetCode(v)
@@ -242,6 +154,86 @@ func (_u *SysDictCollectionUpdate) AddSortID(v int) *SysDictCollectionUpdate {
 	return _u
 }
 
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *SysDictCollectionUpdate) SetDeletedAt(v time.Time) *SysDictCollectionUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *SysDictCollectionUpdate) SetNillableDeletedAt(v *time.Time) *SysDictCollectionUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *SysDictCollectionUpdate) ClearDeletedAt() *SysDictCollectionUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *SysDictCollectionUpdate) SetUpdatedAt(v time.Time) *SysDictCollectionUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (_u *SysDictCollectionUpdate) SetCreatedBy(v idgen.ID) *SysDictCollectionUpdate {
+	_u.mutation.ResetCreatedBy()
+	_u.mutation.SetCreatedBy(v)
+	return _u
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_u *SysDictCollectionUpdate) SetNillableCreatedBy(v *idgen.ID) *SysDictCollectionUpdate {
+	if v != nil {
+		_u.SetCreatedBy(*v)
+	}
+	return _u
+}
+
+// AddCreatedBy adds value to the "created_by" field.
+func (_u *SysDictCollectionUpdate) AddCreatedBy(v idgen.ID) *SysDictCollectionUpdate {
+	_u.mutation.AddCreatedBy(v)
+	return _u
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (_u *SysDictCollectionUpdate) ClearCreatedBy() *SysDictCollectionUpdate {
+	_u.mutation.ClearCreatedBy()
+	return _u
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_u *SysDictCollectionUpdate) SetUpdatedBy(v idgen.ID) *SysDictCollectionUpdate {
+	_u.mutation.ResetUpdatedBy()
+	_u.mutation.SetUpdatedBy(v)
+	return _u
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_u *SysDictCollectionUpdate) SetNillableUpdatedBy(v *idgen.ID) *SysDictCollectionUpdate {
+	if v != nil {
+		_u.SetUpdatedBy(*v)
+	}
+	return _u
+}
+
+// AddUpdatedBy adds value to the "updated_by" field.
+func (_u *SysDictCollectionUpdate) AddUpdatedBy(v idgen.ID) *SysDictCollectionUpdate {
+	_u.mutation.AddUpdatedBy(v)
+	return _u
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (_u *SysDictCollectionUpdate) ClearUpdatedBy() *SysDictCollectionUpdate {
+	_u.mutation.ClearUpdatedBy()
+	return _u
+}
+
 // AddItemIDs adds the "items" edge to the SysDictItem entity by IDs.
 func (_u *SysDictCollectionUpdate) AddItemIDs(ids ...idgen.ID) *SysDictCollectionUpdate {
 	_u.mutation.AddItemIDs(ids...)
@@ -285,6 +277,7 @@ func (_u *SysDictCollectionUpdate) RemoveItems(v ...*SysDictItem) *SysDictCollec
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *SysDictCollectionUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -307,6 +300,14 @@ func (_u *SysDictCollectionUpdate) Exec(ctx context.Context) error {
 func (_u *SysDictCollectionUpdate) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *SysDictCollectionUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := sysdictcollection.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -336,33 +337,6 @@ func (_u *SysDictCollectionUpdate) sqlSave(ctx context.Context) (_node int, err 
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := _u.mutation.DeletedAt(); ok {
-		_spec.SetField(sysdictcollection.FieldDeletedAt, field.TypeTime, value)
-	}
-	if _u.mutation.DeletedAtCleared() {
-		_spec.ClearField(sysdictcollection.FieldDeletedAt, field.TypeTime)
-	}
-	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(sysdictcollection.FieldUpdatedAt, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.CreatedBy(); ok {
-		_spec.SetField(sysdictcollection.FieldCreatedBy, field.TypeInt64, value)
-	}
-	if value, ok := _u.mutation.AddedCreatedBy(); ok {
-		_spec.AddField(sysdictcollection.FieldCreatedBy, field.TypeInt64, value)
-	}
-	if _u.mutation.CreatedByCleared() {
-		_spec.ClearField(sysdictcollection.FieldCreatedBy, field.TypeInt64)
-	}
-	if value, ok := _u.mutation.UpdatedBy(); ok {
-		_spec.SetField(sysdictcollection.FieldUpdatedBy, field.TypeInt64, value)
-	}
-	if value, ok := _u.mutation.AddedUpdatedBy(); ok {
-		_spec.AddField(sysdictcollection.FieldUpdatedBy, field.TypeInt64, value)
-	}
-	if _u.mutation.UpdatedByCleared() {
-		_spec.ClearField(sysdictcollection.FieldUpdatedBy, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.Code(); ok {
 		_spec.SetField(sysdictcollection.FieldCode, field.TypeString, value)
@@ -396,6 +370,33 @@ func (_u *SysDictCollectionUpdate) sqlSave(ctx context.Context) (_node int, err 
 	}
 	if value, ok := _u.mutation.AddedSortID(); ok {
 		_spec.AddField(sysdictcollection.FieldSortID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.DeletedAt(); ok {
+		_spec.SetField(sysdictcollection.FieldDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DeletedAtCleared() {
+		_spec.ClearField(sysdictcollection.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(sysdictcollection.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.CreatedBy(); ok {
+		_spec.SetField(sysdictcollection.FieldCreatedBy, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedCreatedBy(); ok {
+		_spec.AddField(sysdictcollection.FieldCreatedBy, field.TypeInt64, value)
+	}
+	if _u.mutation.CreatedByCleared() {
+		_spec.ClearField(sysdictcollection.FieldCreatedBy, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.UpdatedBy(); ok {
+		_spec.SetField(sysdictcollection.FieldUpdatedBy, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedUpdatedBy(); ok {
+		_spec.AddField(sysdictcollection.FieldUpdatedBy, field.TypeInt64, value)
+	}
+	if _u.mutation.UpdatedByCleared() {
+		_spec.ClearField(sysdictcollection.FieldUpdatedBy, field.TypeInt64)
 	}
 	if _u.mutation.ItemsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -460,94 +461,6 @@ type SysDictCollectionUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *SysDictCollectionMutation
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (_u *SysDictCollectionUpdateOne) SetDeletedAt(v time.Time) *SysDictCollectionUpdateOne {
-	_u.mutation.SetDeletedAt(v)
-	return _u
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_u *SysDictCollectionUpdateOne) SetNillableDeletedAt(v *time.Time) *SysDictCollectionUpdateOne {
-	if v != nil {
-		_u.SetDeletedAt(*v)
-	}
-	return _u
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (_u *SysDictCollectionUpdateOne) ClearDeletedAt() *SysDictCollectionUpdateOne {
-	_u.mutation.ClearDeletedAt()
-	return _u
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (_u *SysDictCollectionUpdateOne) SetUpdatedAt(v time.Time) *SysDictCollectionUpdateOne {
-	_u.mutation.SetUpdatedAt(v)
-	return _u
-}
-
-// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (_u *SysDictCollectionUpdateOne) SetNillableUpdatedAt(v *time.Time) *SysDictCollectionUpdateOne {
-	if v != nil {
-		_u.SetUpdatedAt(*v)
-	}
-	return _u
-}
-
-// SetCreatedBy sets the "created_by" field.
-func (_u *SysDictCollectionUpdateOne) SetCreatedBy(v idgen.ID) *SysDictCollectionUpdateOne {
-	_u.mutation.ResetCreatedBy()
-	_u.mutation.SetCreatedBy(v)
-	return _u
-}
-
-// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysDictCollectionUpdateOne) SetNillableCreatedBy(v *idgen.ID) *SysDictCollectionUpdateOne {
-	if v != nil {
-		_u.SetCreatedBy(*v)
-	}
-	return _u
-}
-
-// AddCreatedBy adds value to the "created_by" field.
-func (_u *SysDictCollectionUpdateOne) AddCreatedBy(v idgen.ID) *SysDictCollectionUpdateOne {
-	_u.mutation.AddCreatedBy(v)
-	return _u
-}
-
-// ClearCreatedBy clears the value of the "created_by" field.
-func (_u *SysDictCollectionUpdateOne) ClearCreatedBy() *SysDictCollectionUpdateOne {
-	_u.mutation.ClearCreatedBy()
-	return _u
-}
-
-// SetUpdatedBy sets the "updated_by" field.
-func (_u *SysDictCollectionUpdateOne) SetUpdatedBy(v idgen.ID) *SysDictCollectionUpdateOne {
-	_u.mutation.ResetUpdatedBy()
-	_u.mutation.SetUpdatedBy(v)
-	return _u
-}
-
-// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysDictCollectionUpdateOne) SetNillableUpdatedBy(v *idgen.ID) *SysDictCollectionUpdateOne {
-	if v != nil {
-		_u.SetUpdatedBy(*v)
-	}
-	return _u
-}
-
-// AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysDictCollectionUpdateOne) AddUpdatedBy(v idgen.ID) *SysDictCollectionUpdateOne {
-	_u.mutation.AddUpdatedBy(v)
-	return _u
-}
-
-// ClearUpdatedBy clears the value of the "updated_by" field.
-func (_u *SysDictCollectionUpdateOne) ClearUpdatedBy() *SysDictCollectionUpdateOne {
-	_u.mutation.ClearUpdatedBy()
-	return _u
 }
 
 // SetCode sets the "code" field.
@@ -674,6 +587,86 @@ func (_u *SysDictCollectionUpdateOne) AddSortID(v int) *SysDictCollectionUpdateO
 	return _u
 }
 
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *SysDictCollectionUpdateOne) SetDeletedAt(v time.Time) *SysDictCollectionUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *SysDictCollectionUpdateOne) SetNillableDeletedAt(v *time.Time) *SysDictCollectionUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *SysDictCollectionUpdateOne) ClearDeletedAt() *SysDictCollectionUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *SysDictCollectionUpdateOne) SetUpdatedAt(v time.Time) *SysDictCollectionUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (_u *SysDictCollectionUpdateOne) SetCreatedBy(v idgen.ID) *SysDictCollectionUpdateOne {
+	_u.mutation.ResetCreatedBy()
+	_u.mutation.SetCreatedBy(v)
+	return _u
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_u *SysDictCollectionUpdateOne) SetNillableCreatedBy(v *idgen.ID) *SysDictCollectionUpdateOne {
+	if v != nil {
+		_u.SetCreatedBy(*v)
+	}
+	return _u
+}
+
+// AddCreatedBy adds value to the "created_by" field.
+func (_u *SysDictCollectionUpdateOne) AddCreatedBy(v idgen.ID) *SysDictCollectionUpdateOne {
+	_u.mutation.AddCreatedBy(v)
+	return _u
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (_u *SysDictCollectionUpdateOne) ClearCreatedBy() *SysDictCollectionUpdateOne {
+	_u.mutation.ClearCreatedBy()
+	return _u
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_u *SysDictCollectionUpdateOne) SetUpdatedBy(v idgen.ID) *SysDictCollectionUpdateOne {
+	_u.mutation.ResetUpdatedBy()
+	_u.mutation.SetUpdatedBy(v)
+	return _u
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_u *SysDictCollectionUpdateOne) SetNillableUpdatedBy(v *idgen.ID) *SysDictCollectionUpdateOne {
+	if v != nil {
+		_u.SetUpdatedBy(*v)
+	}
+	return _u
+}
+
+// AddUpdatedBy adds value to the "updated_by" field.
+func (_u *SysDictCollectionUpdateOne) AddUpdatedBy(v idgen.ID) *SysDictCollectionUpdateOne {
+	_u.mutation.AddUpdatedBy(v)
+	return _u
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (_u *SysDictCollectionUpdateOne) ClearUpdatedBy() *SysDictCollectionUpdateOne {
+	_u.mutation.ClearUpdatedBy()
+	return _u
+}
+
 // AddItemIDs adds the "items" edge to the SysDictItem entity by IDs.
 func (_u *SysDictCollectionUpdateOne) AddItemIDs(ids ...idgen.ID) *SysDictCollectionUpdateOne {
 	_u.mutation.AddItemIDs(ids...)
@@ -730,6 +723,7 @@ func (_u *SysDictCollectionUpdateOne) Select(field string, fields ...string) *Sy
 
 // Save executes the query and returns the updated SysDictCollection entity.
 func (_u *SysDictCollectionUpdateOne) Save(ctx context.Context) (*SysDictCollection, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -752,6 +746,14 @@ func (_u *SysDictCollectionUpdateOne) Exec(ctx context.Context) error {
 func (_u *SysDictCollectionUpdateOne) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *SysDictCollectionUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := sysdictcollection.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -799,33 +801,6 @@ func (_u *SysDictCollectionUpdateOne) sqlSave(ctx context.Context) (_node *SysDi
 			}
 		}
 	}
-	if value, ok := _u.mutation.DeletedAt(); ok {
-		_spec.SetField(sysdictcollection.FieldDeletedAt, field.TypeTime, value)
-	}
-	if _u.mutation.DeletedAtCleared() {
-		_spec.ClearField(sysdictcollection.FieldDeletedAt, field.TypeTime)
-	}
-	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(sysdictcollection.FieldUpdatedAt, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.CreatedBy(); ok {
-		_spec.SetField(sysdictcollection.FieldCreatedBy, field.TypeInt64, value)
-	}
-	if value, ok := _u.mutation.AddedCreatedBy(); ok {
-		_spec.AddField(sysdictcollection.FieldCreatedBy, field.TypeInt64, value)
-	}
-	if _u.mutation.CreatedByCleared() {
-		_spec.ClearField(sysdictcollection.FieldCreatedBy, field.TypeInt64)
-	}
-	if value, ok := _u.mutation.UpdatedBy(); ok {
-		_spec.SetField(sysdictcollection.FieldUpdatedBy, field.TypeInt64, value)
-	}
-	if value, ok := _u.mutation.AddedUpdatedBy(); ok {
-		_spec.AddField(sysdictcollection.FieldUpdatedBy, field.TypeInt64, value)
-	}
-	if _u.mutation.UpdatedByCleared() {
-		_spec.ClearField(sysdictcollection.FieldUpdatedBy, field.TypeInt64)
-	}
 	if value, ok := _u.mutation.Code(); ok {
 		_spec.SetField(sysdictcollection.FieldCode, field.TypeString, value)
 	}
@@ -858,6 +833,33 @@ func (_u *SysDictCollectionUpdateOne) sqlSave(ctx context.Context) (_node *SysDi
 	}
 	if value, ok := _u.mutation.AddedSortID(); ok {
 		_spec.AddField(sysdictcollection.FieldSortID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.DeletedAt(); ok {
+		_spec.SetField(sysdictcollection.FieldDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DeletedAtCleared() {
+		_spec.ClearField(sysdictcollection.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(sysdictcollection.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.CreatedBy(); ok {
+		_spec.SetField(sysdictcollection.FieldCreatedBy, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedCreatedBy(); ok {
+		_spec.AddField(sysdictcollection.FieldCreatedBy, field.TypeInt64, value)
+	}
+	if _u.mutation.CreatedByCleared() {
+		_spec.ClearField(sysdictcollection.FieldCreatedBy, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.UpdatedBy(); ok {
+		_spec.SetField(sysdictcollection.FieldUpdatedBy, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedUpdatedBy(); ok {
+		_spec.AddField(sysdictcollection.FieldUpdatedBy, field.TypeInt64, value)
+	}
+	if _u.mutation.UpdatedByCleared() {
+		_spec.ClearField(sysdictcollection.FieldUpdatedBy, field.TypeInt64)
 	}
 	if _u.mutation.ItemsCleared() {
 		edge := &sqlgraph.EdgeSpec{

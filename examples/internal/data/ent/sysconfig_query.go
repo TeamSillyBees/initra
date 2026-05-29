@@ -263,12 +263,12 @@ func (_q *SysConfigQuery) Clone() *SysConfigQuery {
 // Example:
 //
 //	var v []struct {
-//		DeletedAt time.Time `json:"deleted_at,omitempty"`
+//		ConfigKey string `json:"config_key,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.SysConfig.Query().
-//		GroupBy(sysconfig.FieldDeletedAt).
+//		GroupBy(sysconfig.FieldConfigKey).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *SysConfigQuery) GroupBy(field string, fields ...string) *SysConfigGroupBy {
@@ -286,11 +286,11 @@ func (_q *SysConfigQuery) GroupBy(field string, fields ...string) *SysConfigGrou
 // Example:
 //
 //	var v []struct {
-//		DeletedAt time.Time `json:"deleted_at,omitempty"`
+//		ConfigKey string `json:"config_key,omitempty"`
 //	}
 //
 //	client.SysConfig.Query().
-//		Select(sysconfig.FieldDeletedAt).
+//		Select(sysconfig.FieldConfigKey).
 //		Scan(ctx, &v)
 func (_q *SysConfigQuery) Select(fields ...string) *SysConfigSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

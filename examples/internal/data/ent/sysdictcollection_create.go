@@ -22,60 +22,6 @@ type SysDictCollectionCreate struct {
 	hooks    []Hook
 }
 
-// SetDeletedAt sets the "deleted_at" field.
-func (_c *SysDictCollectionCreate) SetDeletedAt(v time.Time) *SysDictCollectionCreate {
-	_c.mutation.SetDeletedAt(v)
-	return _c
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_c *SysDictCollectionCreate) SetNillableDeletedAt(v *time.Time) *SysDictCollectionCreate {
-	if v != nil {
-		_c.SetDeletedAt(*v)
-	}
-	return _c
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (_c *SysDictCollectionCreate) SetCreatedAt(v time.Time) *SysDictCollectionCreate {
-	_c.mutation.SetCreatedAt(v)
-	return _c
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (_c *SysDictCollectionCreate) SetUpdatedAt(v time.Time) *SysDictCollectionCreate {
-	_c.mutation.SetUpdatedAt(v)
-	return _c
-}
-
-// SetCreatedBy sets the "created_by" field.
-func (_c *SysDictCollectionCreate) SetCreatedBy(v idgen.ID) *SysDictCollectionCreate {
-	_c.mutation.SetCreatedBy(v)
-	return _c
-}
-
-// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_c *SysDictCollectionCreate) SetNillableCreatedBy(v *idgen.ID) *SysDictCollectionCreate {
-	if v != nil {
-		_c.SetCreatedBy(*v)
-	}
-	return _c
-}
-
-// SetUpdatedBy sets the "updated_by" field.
-func (_c *SysDictCollectionCreate) SetUpdatedBy(v idgen.ID) *SysDictCollectionCreate {
-	_c.mutation.SetUpdatedBy(v)
-	return _c
-}
-
-// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_c *SysDictCollectionCreate) SetNillableUpdatedBy(v *idgen.ID) *SysDictCollectionCreate {
-	if v != nil {
-		_c.SetUpdatedBy(*v)
-	}
-	return _c
-}
-
 // SetCode sets the "code" field.
 func (_c *SysDictCollectionCreate) SetCode(v string) *SysDictCollectionCreate {
 	_c.mutation.SetCode(v)
@@ -158,6 +104,76 @@ func (_c *SysDictCollectionCreate) SetNillableSortID(v *int) *SysDictCollectionC
 	return _c
 }
 
+// SetDeletedAt sets the "deleted_at" field.
+func (_c *SysDictCollectionCreate) SetDeletedAt(v time.Time) *SysDictCollectionCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_c *SysDictCollectionCreate) SetNillableDeletedAt(v *time.Time) *SysDictCollectionCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
+	}
+	return _c
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (_c *SysDictCollectionCreate) SetCreatedAt(v time.Time) *SysDictCollectionCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *SysDictCollectionCreate) SetNillableCreatedAt(v *time.Time) *SysDictCollectionCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *SysDictCollectionCreate) SetUpdatedAt(v time.Time) *SysDictCollectionCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *SysDictCollectionCreate) SetNillableUpdatedAt(v *time.Time) *SysDictCollectionCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
+	}
+	return _c
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (_c *SysDictCollectionCreate) SetCreatedBy(v idgen.ID) *SysDictCollectionCreate {
+	_c.mutation.SetCreatedBy(v)
+	return _c
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_c *SysDictCollectionCreate) SetNillableCreatedBy(v *idgen.ID) *SysDictCollectionCreate {
+	if v != nil {
+		_c.SetCreatedBy(*v)
+	}
+	return _c
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_c *SysDictCollectionCreate) SetUpdatedBy(v idgen.ID) *SysDictCollectionCreate {
+	_c.mutation.SetUpdatedBy(v)
+	return _c
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_c *SysDictCollectionCreate) SetNillableUpdatedBy(v *idgen.ID) *SysDictCollectionCreate {
+	if v != nil {
+		_c.SetUpdatedBy(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *SysDictCollectionCreate) SetID(v idgen.ID) *SysDictCollectionCreate {
 	_c.mutation.SetID(v)
@@ -234,6 +250,14 @@ func (_c *SysDictCollectionCreate) defaults() {
 		v := sysdictcollection.DefaultSortID
 		_c.mutation.SetSortID(v)
 	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := sysdictcollection.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := sysdictcollection.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := sysdictcollection.DefaultID()
 		_c.mutation.SetID(v)
@@ -242,12 +266,6 @@ func (_c *SysDictCollectionCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *SysDictCollectionCreate) check() error {
-	if _, ok := _c.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "SysDictCollection.created_at"`)}
-	}
-	if _, ok := _c.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SysDictCollection.updated_at"`)}
-	}
 	if _, ok := _c.mutation.Code(); !ok {
 		return &ValidationError{Name: "code", err: errors.New(`ent: missing required field "SysDictCollection.code"`)}
 	}
@@ -272,6 +290,12 @@ func (_c *SysDictCollectionCreate) check() error {
 	}
 	if _, ok := _c.mutation.SortID(); !ok {
 		return &ValidationError{Name: "sort_id", err: errors.New(`ent: missing required field "SysDictCollection.sort_id"`)}
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "SysDictCollection.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SysDictCollection.updated_at"`)}
 	}
 	if v, ok := _c.mutation.ID(); ok {
 		if err := sysdictcollection.IDValidator(int64(v)); err != nil {
@@ -310,26 +334,6 @@ func (_c *SysDictCollectionCreate) createSpec() (*SysDictCollection, *sqlgraph.C
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := _c.mutation.DeletedAt(); ok {
-		_spec.SetField(sysdictcollection.FieldDeletedAt, field.TypeTime, value)
-		_node.DeletedAt = &value
-	}
-	if value, ok := _c.mutation.CreatedAt(); ok {
-		_spec.SetField(sysdictcollection.FieldCreatedAt, field.TypeTime, value)
-		_node.CreatedAt = value
-	}
-	if value, ok := _c.mutation.UpdatedAt(); ok {
-		_spec.SetField(sysdictcollection.FieldUpdatedAt, field.TypeTime, value)
-		_node.UpdatedAt = value
-	}
-	if value, ok := _c.mutation.CreatedBy(); ok {
-		_spec.SetField(sysdictcollection.FieldCreatedBy, field.TypeInt64, value)
-		_node.CreatedBy = &value
-	}
-	if value, ok := _c.mutation.UpdatedBy(); ok {
-		_spec.SetField(sysdictcollection.FieldUpdatedBy, field.TypeInt64, value)
-		_node.UpdatedBy = &value
-	}
 	if value, ok := _c.mutation.Code(); ok {
 		_spec.SetField(sysdictcollection.FieldCode, field.TypeString, value)
 		_node.Code = value
@@ -357,6 +361,26 @@ func (_c *SysDictCollectionCreate) createSpec() (*SysDictCollection, *sqlgraph.C
 	if value, ok := _c.mutation.SortID(); ok {
 		_spec.SetField(sysdictcollection.FieldSortID, field.TypeInt, value)
 		_node.SortID = value
+	}
+	if value, ok := _c.mutation.DeletedAt(); ok {
+		_spec.SetField(sysdictcollection.FieldDeletedAt, field.TypeTime, value)
+		_node.DeletedAt = &value
+	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(sysdictcollection.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(sysdictcollection.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
+	if value, ok := _c.mutation.CreatedBy(); ok {
+		_spec.SetField(sysdictcollection.FieldCreatedBy, field.TypeInt64, value)
+		_node.CreatedBy = &value
+	}
+	if value, ok := _c.mutation.UpdatedBy(); ok {
+		_spec.SetField(sysdictcollection.FieldUpdatedBy, field.TypeInt64, value)
+		_node.UpdatedBy = &value
 	}
 	if nodes := _c.mutation.ItemsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

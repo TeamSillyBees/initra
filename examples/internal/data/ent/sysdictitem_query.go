@@ -299,12 +299,12 @@ func (_q *SysDictItemQuery) WithCollection(opts ...func(*SysDictCollectionQuery)
 // Example:
 //
 //	var v []struct {
-//		DeletedAt time.Time `json:"deleted_at,omitempty"`
+//		CollectionID idgen.ID `json:"collection_id,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.SysDictItem.Query().
-//		GroupBy(sysdictitem.FieldDeletedAt).
+//		GroupBy(sysdictitem.FieldCollectionID).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *SysDictItemQuery) GroupBy(field string, fields ...string) *SysDictItemGroupBy {
@@ -322,11 +322,11 @@ func (_q *SysDictItemQuery) GroupBy(field string, fields ...string) *SysDictItem
 // Example:
 //
 //	var v []struct {
-//		DeletedAt time.Time `json:"deleted_at,omitempty"`
+//		CollectionID idgen.ID `json:"collection_id,omitempty"`
 //	}
 //
 //	client.SysDictItem.Query().
-//		Select(sysdictitem.FieldDeletedAt).
+//		Select(sysdictitem.FieldCollectionID).
 //		Scan(ctx, &v)
 func (_q *SysDictItemQuery) Select(fields ...string) *SysDictItemSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

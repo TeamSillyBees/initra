@@ -46,10 +46,10 @@ func (m *fakeMutation) Field(name string) (ent.Value, bool) {
 
 func (m *fakeMutation) SetField(name string, value ent.Value) error {
 	if m.unknown[name] {
-		return fmt.Errorf("unknown field %q", name)
+		return fmt.Errorf("unknown fieldx %q", name)
 	}
 	if m.typeErrors[name] {
-		return fmt.Errorf("unexpected type %T for field %s", value, name)
+		return fmt.Errorf("unexpected type %T for fieldx %s", value, name)
 	}
 	m.fields[name] = value
 	return nil
@@ -75,10 +75,6 @@ func TestAuditHookSetsIDAndAuditFieldsOnCreate(t *testing.T) {
 	now := time.Date(2026, 5, 6, 10, 0, 0, 0, time.UTC)
 	mutation := newFakeMutation(ent.OpCreate)
 	hook := AuditHook(AuditHookOptions{
-		IDGen: fixedIDGenerator{next: idgen.New(1001)},
-		Now: func() time.Time {
-			return now
-		},
 		Operator: func(ctx context.Context) (idgen.ID, bool) {
 			return idgen.New(9001), true
 		},
@@ -115,9 +111,7 @@ func TestAuditHookSetsIDThroughEntIDMutation(t *testing.T) {
 	mutation.unknown = map[string]bool{
 		FieldID: true,
 	}
-	hook := AuditHook(AuditHookOptions{
-		IDGen: fixedIDGenerator{next: idgen.New(1001)},
-	})
+	hook := AuditHook(AuditHookOptions{})
 
 	_, err := hook(ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
 		return "ok", nil
@@ -139,9 +133,6 @@ func TestAuditHookSetsOnlyUpdateAuditFieldsOnUpdate(t *testing.T) {
 	now := time.Date(2026, 5, 6, 11, 0, 0, 0, time.UTC)
 	mutation := newFakeMutation(ent.OpUpdateOne)
 	hook := AuditHook(AuditHookOptions{
-		Now: func() time.Time {
-			return now
-		},
 		Operator: func(ctx context.Context) (idgen.ID, bool) {
 			return idgen.New(9002), true
 		},
@@ -172,7 +163,6 @@ func TestAuditHookIgnoresUnknownFields(t *testing.T) {
 		FieldUpdatedBy: true,
 	}
 	hook := AuditHook(AuditHookOptions{
-		IDGen: fixedIDGenerator{next: idgen.New(1001)},
 		Operator: func(ctx context.Context) (idgen.ID, bool) {
 			return idgen.New(9001), true
 		},
@@ -186,7 +176,7 @@ func TestAuditHookIgnoresUnknownFields(t *testing.T) {
 		t.Fatalf("Mutate() error = %v", err)
 	}
 	if _, ok := mutation.fields[FieldCreatedBy]; ok {
-		t.Fatalf("created_by should be ignored when the mutation does not know that field")
+		t.Fatalf("created_by should be ignored when the mutation does not know that fieldx")
 	}
 }
 

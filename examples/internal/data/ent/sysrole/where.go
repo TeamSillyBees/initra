@@ -56,33 +56,6 @@ func IDLTE(id idgen.ID) predicate.SysRole {
 	return predicate.SysRole(sql.FieldLTE(FieldID, id))
 }
 
-// DeletedAt applies equality check predicate on the "deleted_at" field. It's identical to DeletedAtEQ.
-func DeletedAt(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldEQ(FieldDeletedAt, v))
-}
-
-// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
-func CreatedAt(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldEQ(FieldCreatedAt, v))
-}
-
-// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
-func UpdatedAt(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldEQ(FieldUpdatedAt, v))
-}
-
-// CreatedBy applies equality check predicate on the "created_by" field. It's identical to CreatedByEQ.
-func CreatedBy(v idgen.ID) predicate.SysRole {
-	vc := int64(v)
-	return predicate.SysRole(sql.FieldEQ(FieldCreatedBy, vc))
-}
-
-// UpdatedBy applies equality check predicate on the "updated_by" field. It's identical to UpdatedByEQ.
-func UpdatedBy(v idgen.ID) predicate.SysRole {
-	vc := int64(v)
-	return predicate.SysRole(sql.FieldEQ(FieldUpdatedBy, vc))
-}
-
 // Code applies equality check predicate on the "code" field. It's identical to CodeEQ.
 func Code(v string) predicate.SysRole {
 	return predicate.SysRole(sql.FieldEQ(FieldCode, v))
@@ -113,262 +86,31 @@ func SortID(v int) predicate.SysRole {
 	return predicate.SysRole(sql.FieldEQ(FieldSortID, v))
 }
 
-// DeletedAtEQ applies the EQ predicate on the "deleted_at" field.
-func DeletedAtEQ(v time.Time) predicate.SysRole {
+// DeletedAt applies equality check predicate on the "deleted_at" field. It's identical to DeletedAtEQ.
+func DeletedAt(v time.Time) predicate.SysRole {
 	return predicate.SysRole(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// DeletedAtNEQ applies the NEQ predicate on the "deleted_at" field.
-func DeletedAtNEQ(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldNEQ(FieldDeletedAt, v))
-}
-
-// DeletedAtIn applies the In predicate on the "deleted_at" field.
-func DeletedAtIn(vs ...time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldIn(FieldDeletedAt, vs...))
-}
-
-// DeletedAtNotIn applies the NotIn predicate on the "deleted_at" field.
-func DeletedAtNotIn(vs ...time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldNotIn(FieldDeletedAt, vs...))
-}
-
-// DeletedAtGT applies the GT predicate on the "deleted_at" field.
-func DeletedAtGT(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldGT(FieldDeletedAt, v))
-}
-
-// DeletedAtGTE applies the GTE predicate on the "deleted_at" field.
-func DeletedAtGTE(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldGTE(FieldDeletedAt, v))
-}
-
-// DeletedAtLT applies the LT predicate on the "deleted_at" field.
-func DeletedAtLT(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldLT(FieldDeletedAt, v))
-}
-
-// DeletedAtLTE applies the LTE predicate on the "deleted_at" field.
-func DeletedAtLTE(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldLTE(FieldDeletedAt, v))
-}
-
-// DeletedAtIsNil applies the IsNil predicate on the "deleted_at" field.
-func DeletedAtIsNil() predicate.SysRole {
-	return predicate.SysRole(sql.FieldIsNull(FieldDeletedAt))
-}
-
-// DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
-func DeletedAtNotNil() predicate.SysRole {
-	return predicate.SysRole(sql.FieldNotNull(FieldDeletedAt))
-}
-
-// CreatedAtEQ applies the EQ predicate on the "created_at" field.
-func CreatedAtEQ(v time.Time) predicate.SysRole {
+// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
+func CreatedAt(v time.Time) predicate.SysRole {
 	return predicate.SysRole(sql.FieldEQ(FieldCreatedAt, v))
 }
 
-// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
-func CreatedAtNEQ(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldNEQ(FieldCreatedAt, v))
-}
-
-// CreatedAtIn applies the In predicate on the "created_at" field.
-func CreatedAtIn(vs ...time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldIn(FieldCreatedAt, vs...))
-}
-
-// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
-func CreatedAtNotIn(vs ...time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldNotIn(FieldCreatedAt, vs...))
-}
-
-// CreatedAtGT applies the GT predicate on the "created_at" field.
-func CreatedAtGT(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldGT(FieldCreatedAt, v))
-}
-
-// CreatedAtGTE applies the GTE predicate on the "created_at" field.
-func CreatedAtGTE(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldGTE(FieldCreatedAt, v))
-}
-
-// CreatedAtLT applies the LT predicate on the "created_at" field.
-func CreatedAtLT(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldLT(FieldCreatedAt, v))
-}
-
-// CreatedAtLTE applies the LTE predicate on the "created_at" field.
-func CreatedAtLTE(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldLTE(FieldCreatedAt, v))
-}
-
-// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
-func UpdatedAtEQ(v time.Time) predicate.SysRole {
+// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
+func UpdatedAt(v time.Time) predicate.SysRole {
 	return predicate.SysRole(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
-// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
-func UpdatedAtNEQ(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldNEQ(FieldUpdatedAt, v))
-}
-
-// UpdatedAtIn applies the In predicate on the "updated_at" field.
-func UpdatedAtIn(vs ...time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldIn(FieldUpdatedAt, vs...))
-}
-
-// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
-func UpdatedAtNotIn(vs ...time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldNotIn(FieldUpdatedAt, vs...))
-}
-
-// UpdatedAtGT applies the GT predicate on the "updated_at" field.
-func UpdatedAtGT(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldGT(FieldUpdatedAt, v))
-}
-
-// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
-func UpdatedAtGTE(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldGTE(FieldUpdatedAt, v))
-}
-
-// UpdatedAtLT applies the LT predicate on the "updated_at" field.
-func UpdatedAtLT(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldLT(FieldUpdatedAt, v))
-}
-
-// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
-func UpdatedAtLTE(v time.Time) predicate.SysRole {
-	return predicate.SysRole(sql.FieldLTE(FieldUpdatedAt, v))
-}
-
-// CreatedByEQ applies the EQ predicate on the "created_by" field.
-func CreatedByEQ(v idgen.ID) predicate.SysRole {
+// CreatedBy applies equality check predicate on the "created_by" field. It's identical to CreatedByEQ.
+func CreatedBy(v idgen.ID) predicate.SysRole {
 	vc := int64(v)
 	return predicate.SysRole(sql.FieldEQ(FieldCreatedBy, vc))
 }
 
-// CreatedByNEQ applies the NEQ predicate on the "created_by" field.
-func CreatedByNEQ(v idgen.ID) predicate.SysRole {
-	vc := int64(v)
-	return predicate.SysRole(sql.FieldNEQ(FieldCreatedBy, vc))
-}
-
-// CreatedByIn applies the In predicate on the "created_by" field.
-func CreatedByIn(vs ...idgen.ID) predicate.SysRole {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = int64(vs[i])
-	}
-	return predicate.SysRole(sql.FieldIn(FieldCreatedBy, v...))
-}
-
-// CreatedByNotIn applies the NotIn predicate on the "created_by" field.
-func CreatedByNotIn(vs ...idgen.ID) predicate.SysRole {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = int64(vs[i])
-	}
-	return predicate.SysRole(sql.FieldNotIn(FieldCreatedBy, v...))
-}
-
-// CreatedByGT applies the GT predicate on the "created_by" field.
-func CreatedByGT(v idgen.ID) predicate.SysRole {
-	vc := int64(v)
-	return predicate.SysRole(sql.FieldGT(FieldCreatedBy, vc))
-}
-
-// CreatedByGTE applies the GTE predicate on the "created_by" field.
-func CreatedByGTE(v idgen.ID) predicate.SysRole {
-	vc := int64(v)
-	return predicate.SysRole(sql.FieldGTE(FieldCreatedBy, vc))
-}
-
-// CreatedByLT applies the LT predicate on the "created_by" field.
-func CreatedByLT(v idgen.ID) predicate.SysRole {
-	vc := int64(v)
-	return predicate.SysRole(sql.FieldLT(FieldCreatedBy, vc))
-}
-
-// CreatedByLTE applies the LTE predicate on the "created_by" field.
-func CreatedByLTE(v idgen.ID) predicate.SysRole {
-	vc := int64(v)
-	return predicate.SysRole(sql.FieldLTE(FieldCreatedBy, vc))
-}
-
-// CreatedByIsNil applies the IsNil predicate on the "created_by" field.
-func CreatedByIsNil() predicate.SysRole {
-	return predicate.SysRole(sql.FieldIsNull(FieldCreatedBy))
-}
-
-// CreatedByNotNil applies the NotNil predicate on the "created_by" field.
-func CreatedByNotNil() predicate.SysRole {
-	return predicate.SysRole(sql.FieldNotNull(FieldCreatedBy))
-}
-
-// UpdatedByEQ applies the EQ predicate on the "updated_by" field.
-func UpdatedByEQ(v idgen.ID) predicate.SysRole {
+// UpdatedBy applies equality check predicate on the "updated_by" field. It's identical to UpdatedByEQ.
+func UpdatedBy(v idgen.ID) predicate.SysRole {
 	vc := int64(v)
 	return predicate.SysRole(sql.FieldEQ(FieldUpdatedBy, vc))
-}
-
-// UpdatedByNEQ applies the NEQ predicate on the "updated_by" field.
-func UpdatedByNEQ(v idgen.ID) predicate.SysRole {
-	vc := int64(v)
-	return predicate.SysRole(sql.FieldNEQ(FieldUpdatedBy, vc))
-}
-
-// UpdatedByIn applies the In predicate on the "updated_by" field.
-func UpdatedByIn(vs ...idgen.ID) predicate.SysRole {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = int64(vs[i])
-	}
-	return predicate.SysRole(sql.FieldIn(FieldUpdatedBy, v...))
-}
-
-// UpdatedByNotIn applies the NotIn predicate on the "updated_by" field.
-func UpdatedByNotIn(vs ...idgen.ID) predicate.SysRole {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = int64(vs[i])
-	}
-	return predicate.SysRole(sql.FieldNotIn(FieldUpdatedBy, v...))
-}
-
-// UpdatedByGT applies the GT predicate on the "updated_by" field.
-func UpdatedByGT(v idgen.ID) predicate.SysRole {
-	vc := int64(v)
-	return predicate.SysRole(sql.FieldGT(FieldUpdatedBy, vc))
-}
-
-// UpdatedByGTE applies the GTE predicate on the "updated_by" field.
-func UpdatedByGTE(v idgen.ID) predicate.SysRole {
-	vc := int64(v)
-	return predicate.SysRole(sql.FieldGTE(FieldUpdatedBy, vc))
-}
-
-// UpdatedByLT applies the LT predicate on the "updated_by" field.
-func UpdatedByLT(v idgen.ID) predicate.SysRole {
-	vc := int64(v)
-	return predicate.SysRole(sql.FieldLT(FieldUpdatedBy, vc))
-}
-
-// UpdatedByLTE applies the LTE predicate on the "updated_by" field.
-func UpdatedByLTE(v idgen.ID) predicate.SysRole {
-	vc := int64(v)
-	return predicate.SysRole(sql.FieldLTE(FieldUpdatedBy, vc))
-}
-
-// UpdatedByIsNil applies the IsNil predicate on the "updated_by" field.
-func UpdatedByIsNil() predicate.SysRole {
-	return predicate.SysRole(sql.FieldIsNull(FieldUpdatedBy))
-}
-
-// UpdatedByNotNil applies the NotNil predicate on the "updated_by" field.
-func UpdatedByNotNil() predicate.SysRole {
-	return predicate.SysRole(sql.FieldNotNull(FieldUpdatedBy))
 }
 
 // CodeEQ applies the EQ predicate on the "code" field.
@@ -634,6 +376,264 @@ func SortIDLT(v int) predicate.SysRole {
 // SortIDLTE applies the LTE predicate on the "sort_id" field.
 func SortIDLTE(v int) predicate.SysRole {
 	return predicate.SysRole(sql.FieldLTE(FieldSortID, v))
+}
+
+// DeletedAtEQ applies the EQ predicate on the "deleted_at" field.
+func DeletedAtEQ(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldEQ(FieldDeletedAt, v))
+}
+
+// DeletedAtNEQ applies the NEQ predicate on the "deleted_at" field.
+func DeletedAtNEQ(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldNEQ(FieldDeletedAt, v))
+}
+
+// DeletedAtIn applies the In predicate on the "deleted_at" field.
+func DeletedAtIn(vs ...time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldIn(FieldDeletedAt, vs...))
+}
+
+// DeletedAtNotIn applies the NotIn predicate on the "deleted_at" field.
+func DeletedAtNotIn(vs ...time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldNotIn(FieldDeletedAt, vs...))
+}
+
+// DeletedAtGT applies the GT predicate on the "deleted_at" field.
+func DeletedAtGT(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldGT(FieldDeletedAt, v))
+}
+
+// DeletedAtGTE applies the GTE predicate on the "deleted_at" field.
+func DeletedAtGTE(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldGTE(FieldDeletedAt, v))
+}
+
+// DeletedAtLT applies the LT predicate on the "deleted_at" field.
+func DeletedAtLT(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldLT(FieldDeletedAt, v))
+}
+
+// DeletedAtLTE applies the LTE predicate on the "deleted_at" field.
+func DeletedAtLTE(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldLTE(FieldDeletedAt, v))
+}
+
+// DeletedAtIsNil applies the IsNil predicate on the "deleted_at" field.
+func DeletedAtIsNil() predicate.SysRole {
+	return predicate.SysRole(sql.FieldIsNull(FieldDeletedAt))
+}
+
+// DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
+func DeletedAtNotNil() predicate.SysRole {
+	return predicate.SysRole(sql.FieldNotNull(FieldDeletedAt))
+}
+
+// CreatedAtEQ applies the EQ predicate on the "created_at" field.
+func CreatedAtEQ(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
+func CreatedAtNEQ(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldNEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtIn applies the In predicate on the "created_at" field.
+func CreatedAtIn(vs ...time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
+func CreatedAtNotIn(vs ...time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldNotIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtGT applies the GT predicate on the "created_at" field.
+func CreatedAtGT(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldGT(FieldCreatedAt, v))
+}
+
+// CreatedAtGTE applies the GTE predicate on the "created_at" field.
+func CreatedAtGTE(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldGTE(FieldCreatedAt, v))
+}
+
+// CreatedAtLT applies the LT predicate on the "created_at" field.
+func CreatedAtLT(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldLT(FieldCreatedAt, v))
+}
+
+// CreatedAtLTE applies the LTE predicate on the "created_at" field.
+func CreatedAtLTE(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldLTE(FieldCreatedAt, v))
+}
+
+// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
+func UpdatedAtEQ(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
+func UpdatedAtNEQ(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldNEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtIn applies the In predicate on the "updated_at" field.
+func UpdatedAtIn(vs ...time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
+func UpdatedAtNotIn(vs ...time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldNotIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtGT applies the GT predicate on the "updated_at" field.
+func UpdatedAtGT(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldGT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
+func UpdatedAtGTE(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldGTE(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLT applies the LT predicate on the "updated_at" field.
+func UpdatedAtLT(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldLT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
+func UpdatedAtLTE(v time.Time) predicate.SysRole {
+	return predicate.SysRole(sql.FieldLTE(FieldUpdatedAt, v))
+}
+
+// CreatedByEQ applies the EQ predicate on the "created_by" field.
+func CreatedByEQ(v idgen.ID) predicate.SysRole {
+	vc := int64(v)
+	return predicate.SysRole(sql.FieldEQ(FieldCreatedBy, vc))
+}
+
+// CreatedByNEQ applies the NEQ predicate on the "created_by" field.
+func CreatedByNEQ(v idgen.ID) predicate.SysRole {
+	vc := int64(v)
+	return predicate.SysRole(sql.FieldNEQ(FieldCreatedBy, vc))
+}
+
+// CreatedByIn applies the In predicate on the "created_by" field.
+func CreatedByIn(vs ...idgen.ID) predicate.SysRole {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysRole(sql.FieldIn(FieldCreatedBy, v...))
+}
+
+// CreatedByNotIn applies the NotIn predicate on the "created_by" field.
+func CreatedByNotIn(vs ...idgen.ID) predicate.SysRole {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysRole(sql.FieldNotIn(FieldCreatedBy, v...))
+}
+
+// CreatedByGT applies the GT predicate on the "created_by" field.
+func CreatedByGT(v idgen.ID) predicate.SysRole {
+	vc := int64(v)
+	return predicate.SysRole(sql.FieldGT(FieldCreatedBy, vc))
+}
+
+// CreatedByGTE applies the GTE predicate on the "created_by" field.
+func CreatedByGTE(v idgen.ID) predicate.SysRole {
+	vc := int64(v)
+	return predicate.SysRole(sql.FieldGTE(FieldCreatedBy, vc))
+}
+
+// CreatedByLT applies the LT predicate on the "created_by" field.
+func CreatedByLT(v idgen.ID) predicate.SysRole {
+	vc := int64(v)
+	return predicate.SysRole(sql.FieldLT(FieldCreatedBy, vc))
+}
+
+// CreatedByLTE applies the LTE predicate on the "created_by" field.
+func CreatedByLTE(v idgen.ID) predicate.SysRole {
+	vc := int64(v)
+	return predicate.SysRole(sql.FieldLTE(FieldCreatedBy, vc))
+}
+
+// CreatedByIsNil applies the IsNil predicate on the "created_by" field.
+func CreatedByIsNil() predicate.SysRole {
+	return predicate.SysRole(sql.FieldIsNull(FieldCreatedBy))
+}
+
+// CreatedByNotNil applies the NotNil predicate on the "created_by" field.
+func CreatedByNotNil() predicate.SysRole {
+	return predicate.SysRole(sql.FieldNotNull(FieldCreatedBy))
+}
+
+// UpdatedByEQ applies the EQ predicate on the "updated_by" field.
+func UpdatedByEQ(v idgen.ID) predicate.SysRole {
+	vc := int64(v)
+	return predicate.SysRole(sql.FieldEQ(FieldUpdatedBy, vc))
+}
+
+// UpdatedByNEQ applies the NEQ predicate on the "updated_by" field.
+func UpdatedByNEQ(v idgen.ID) predicate.SysRole {
+	vc := int64(v)
+	return predicate.SysRole(sql.FieldNEQ(FieldUpdatedBy, vc))
+}
+
+// UpdatedByIn applies the In predicate on the "updated_by" field.
+func UpdatedByIn(vs ...idgen.ID) predicate.SysRole {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysRole(sql.FieldIn(FieldUpdatedBy, v...))
+}
+
+// UpdatedByNotIn applies the NotIn predicate on the "updated_by" field.
+func UpdatedByNotIn(vs ...idgen.ID) predicate.SysRole {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysRole(sql.FieldNotIn(FieldUpdatedBy, v...))
+}
+
+// UpdatedByGT applies the GT predicate on the "updated_by" field.
+func UpdatedByGT(v idgen.ID) predicate.SysRole {
+	vc := int64(v)
+	return predicate.SysRole(sql.FieldGT(FieldUpdatedBy, vc))
+}
+
+// UpdatedByGTE applies the GTE predicate on the "updated_by" field.
+func UpdatedByGTE(v idgen.ID) predicate.SysRole {
+	vc := int64(v)
+	return predicate.SysRole(sql.FieldGTE(FieldUpdatedBy, vc))
+}
+
+// UpdatedByLT applies the LT predicate on the "updated_by" field.
+func UpdatedByLT(v idgen.ID) predicate.SysRole {
+	vc := int64(v)
+	return predicate.SysRole(sql.FieldLT(FieldUpdatedBy, vc))
+}
+
+// UpdatedByLTE applies the LTE predicate on the "updated_by" field.
+func UpdatedByLTE(v idgen.ID) predicate.SysRole {
+	vc := int64(v)
+	return predicate.SysRole(sql.FieldLTE(FieldUpdatedBy, vc))
+}
+
+// UpdatedByIsNil applies the IsNil predicate on the "updated_by" field.
+func UpdatedByIsNil() predicate.SysRole {
+	return predicate.SysRole(sql.FieldIsNull(FieldUpdatedBy))
+}
+
+// UpdatedByNotNil applies the NotNil predicate on the "updated_by" field.
+func UpdatedByNotNil() predicate.SysRole {
+	return predicate.SysRole(sql.FieldNotNull(FieldUpdatedBy))
 }
 
 // HasUserRoles applies the HasEdge predicate on the "user_roles" edge.

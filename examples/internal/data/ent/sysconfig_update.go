@@ -29,94 +29,6 @@ func (_u *SysConfigUpdate) Where(ps ...predicate.SysConfig) *SysConfigUpdate {
 	return _u
 }
 
-// SetDeletedAt sets the "deleted_at" field.
-func (_u *SysConfigUpdate) SetDeletedAt(v time.Time) *SysConfigUpdate {
-	_u.mutation.SetDeletedAt(v)
-	return _u
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_u *SysConfigUpdate) SetNillableDeletedAt(v *time.Time) *SysConfigUpdate {
-	if v != nil {
-		_u.SetDeletedAt(*v)
-	}
-	return _u
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (_u *SysConfigUpdate) ClearDeletedAt() *SysConfigUpdate {
-	_u.mutation.ClearDeletedAt()
-	return _u
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (_u *SysConfigUpdate) SetUpdatedAt(v time.Time) *SysConfigUpdate {
-	_u.mutation.SetUpdatedAt(v)
-	return _u
-}
-
-// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (_u *SysConfigUpdate) SetNillableUpdatedAt(v *time.Time) *SysConfigUpdate {
-	if v != nil {
-		_u.SetUpdatedAt(*v)
-	}
-	return _u
-}
-
-// SetCreatedBy sets the "created_by" field.
-func (_u *SysConfigUpdate) SetCreatedBy(v idgen.ID) *SysConfigUpdate {
-	_u.mutation.ResetCreatedBy()
-	_u.mutation.SetCreatedBy(v)
-	return _u
-}
-
-// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysConfigUpdate) SetNillableCreatedBy(v *idgen.ID) *SysConfigUpdate {
-	if v != nil {
-		_u.SetCreatedBy(*v)
-	}
-	return _u
-}
-
-// AddCreatedBy adds value to the "created_by" field.
-func (_u *SysConfigUpdate) AddCreatedBy(v idgen.ID) *SysConfigUpdate {
-	_u.mutation.AddCreatedBy(v)
-	return _u
-}
-
-// ClearCreatedBy clears the value of the "created_by" field.
-func (_u *SysConfigUpdate) ClearCreatedBy() *SysConfigUpdate {
-	_u.mutation.ClearCreatedBy()
-	return _u
-}
-
-// SetUpdatedBy sets the "updated_by" field.
-func (_u *SysConfigUpdate) SetUpdatedBy(v idgen.ID) *SysConfigUpdate {
-	_u.mutation.ResetUpdatedBy()
-	_u.mutation.SetUpdatedBy(v)
-	return _u
-}
-
-// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysConfigUpdate) SetNillableUpdatedBy(v *idgen.ID) *SysConfigUpdate {
-	if v != nil {
-		_u.SetUpdatedBy(*v)
-	}
-	return _u
-}
-
-// AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysConfigUpdate) AddUpdatedBy(v idgen.ID) *SysConfigUpdate {
-	_u.mutation.AddUpdatedBy(v)
-	return _u
-}
-
-// ClearUpdatedBy clears the value of the "updated_by" field.
-func (_u *SysConfigUpdate) ClearUpdatedBy() *SysConfigUpdate {
-	_u.mutation.ClearUpdatedBy()
-	return _u
-}
-
 // SetConfigKey sets the "config_key" field.
 func (_u *SysConfigUpdate) SetConfigKey(v string) *SysConfigUpdate {
 	_u.mutation.SetConfigKey(v)
@@ -200,6 +112,86 @@ func (_u *SysConfigUpdate) AddSortID(v int) *SysConfigUpdate {
 	return _u
 }
 
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *SysConfigUpdate) SetDeletedAt(v time.Time) *SysConfigUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *SysConfigUpdate) SetNillableDeletedAt(v *time.Time) *SysConfigUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *SysConfigUpdate) ClearDeletedAt() *SysConfigUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *SysConfigUpdate) SetUpdatedAt(v time.Time) *SysConfigUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (_u *SysConfigUpdate) SetCreatedBy(v idgen.ID) *SysConfigUpdate {
+	_u.mutation.ResetCreatedBy()
+	_u.mutation.SetCreatedBy(v)
+	return _u
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_u *SysConfigUpdate) SetNillableCreatedBy(v *idgen.ID) *SysConfigUpdate {
+	if v != nil {
+		_u.SetCreatedBy(*v)
+	}
+	return _u
+}
+
+// AddCreatedBy adds value to the "created_by" field.
+func (_u *SysConfigUpdate) AddCreatedBy(v idgen.ID) *SysConfigUpdate {
+	_u.mutation.AddCreatedBy(v)
+	return _u
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (_u *SysConfigUpdate) ClearCreatedBy() *SysConfigUpdate {
+	_u.mutation.ClearCreatedBy()
+	return _u
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_u *SysConfigUpdate) SetUpdatedBy(v idgen.ID) *SysConfigUpdate {
+	_u.mutation.ResetUpdatedBy()
+	_u.mutation.SetUpdatedBy(v)
+	return _u
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_u *SysConfigUpdate) SetNillableUpdatedBy(v *idgen.ID) *SysConfigUpdate {
+	if v != nil {
+		_u.SetUpdatedBy(*v)
+	}
+	return _u
+}
+
+// AddUpdatedBy adds value to the "updated_by" field.
+func (_u *SysConfigUpdate) AddUpdatedBy(v idgen.ID) *SysConfigUpdate {
+	_u.mutation.AddUpdatedBy(v)
+	return _u
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (_u *SysConfigUpdate) ClearUpdatedBy() *SysConfigUpdate {
+	_u.mutation.ClearUpdatedBy()
+	return _u
+}
+
 // Mutation returns the SysConfigMutation object of the builder.
 func (_u *SysConfigUpdate) Mutation() *SysConfigMutation {
 	return _u.mutation
@@ -207,6 +199,7 @@ func (_u *SysConfigUpdate) Mutation() *SysConfigMutation {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *SysConfigUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -232,6 +225,14 @@ func (_u *SysConfigUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_u *SysConfigUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := sysconfig.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_u *SysConfigUpdate) check() error {
 	if v, ok := _u.mutation.ConfigKey(); ok {
@@ -253,6 +254,27 @@ func (_u *SysConfigUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.ConfigKey(); ok {
+		_spec.SetField(sysconfig.FieldConfigKey, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ConfigValue(); ok {
+		_spec.SetField(sysconfig.FieldConfigValue, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ConfigDesc(); ok {
+		_spec.SetField(sysconfig.FieldConfigDesc, field.TypeString, value)
+	}
+	if _u.mutation.ConfigDescCleared() {
+		_spec.ClearField(sysconfig.FieldConfigDesc, field.TypeString)
+	}
+	if value, ok := _u.mutation.IsBuiltin(); ok {
+		_spec.SetField(sysconfig.FieldIsBuiltin, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.SortID(); ok {
+		_spec.SetField(sysconfig.FieldSortID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedSortID(); ok {
+		_spec.AddField(sysconfig.FieldSortID, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(sysconfig.FieldDeletedAt, field.TypeTime, value)
@@ -281,27 +303,6 @@ func (_u *SysConfigUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.UpdatedByCleared() {
 		_spec.ClearField(sysconfig.FieldUpdatedBy, field.TypeInt64)
 	}
-	if value, ok := _u.mutation.ConfigKey(); ok {
-		_spec.SetField(sysconfig.FieldConfigKey, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.ConfigValue(); ok {
-		_spec.SetField(sysconfig.FieldConfigValue, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.ConfigDesc(); ok {
-		_spec.SetField(sysconfig.FieldConfigDesc, field.TypeString, value)
-	}
-	if _u.mutation.ConfigDescCleared() {
-		_spec.ClearField(sysconfig.FieldConfigDesc, field.TypeString)
-	}
-	if value, ok := _u.mutation.IsBuiltin(); ok {
-		_spec.SetField(sysconfig.FieldIsBuiltin, field.TypeBool, value)
-	}
-	if value, ok := _u.mutation.SortID(); ok {
-		_spec.SetField(sysconfig.FieldSortID, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.AddedSortID(); ok {
-		_spec.AddField(sysconfig.FieldSortID, field.TypeInt, value)
-	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{sysconfig.Label}
@@ -320,94 +321,6 @@ type SysConfigUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *SysConfigMutation
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (_u *SysConfigUpdateOne) SetDeletedAt(v time.Time) *SysConfigUpdateOne {
-	_u.mutation.SetDeletedAt(v)
-	return _u
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_u *SysConfigUpdateOne) SetNillableDeletedAt(v *time.Time) *SysConfigUpdateOne {
-	if v != nil {
-		_u.SetDeletedAt(*v)
-	}
-	return _u
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (_u *SysConfigUpdateOne) ClearDeletedAt() *SysConfigUpdateOne {
-	_u.mutation.ClearDeletedAt()
-	return _u
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (_u *SysConfigUpdateOne) SetUpdatedAt(v time.Time) *SysConfigUpdateOne {
-	_u.mutation.SetUpdatedAt(v)
-	return _u
-}
-
-// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (_u *SysConfigUpdateOne) SetNillableUpdatedAt(v *time.Time) *SysConfigUpdateOne {
-	if v != nil {
-		_u.SetUpdatedAt(*v)
-	}
-	return _u
-}
-
-// SetCreatedBy sets the "created_by" field.
-func (_u *SysConfigUpdateOne) SetCreatedBy(v idgen.ID) *SysConfigUpdateOne {
-	_u.mutation.ResetCreatedBy()
-	_u.mutation.SetCreatedBy(v)
-	return _u
-}
-
-// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysConfigUpdateOne) SetNillableCreatedBy(v *idgen.ID) *SysConfigUpdateOne {
-	if v != nil {
-		_u.SetCreatedBy(*v)
-	}
-	return _u
-}
-
-// AddCreatedBy adds value to the "created_by" field.
-func (_u *SysConfigUpdateOne) AddCreatedBy(v idgen.ID) *SysConfigUpdateOne {
-	_u.mutation.AddCreatedBy(v)
-	return _u
-}
-
-// ClearCreatedBy clears the value of the "created_by" field.
-func (_u *SysConfigUpdateOne) ClearCreatedBy() *SysConfigUpdateOne {
-	_u.mutation.ClearCreatedBy()
-	return _u
-}
-
-// SetUpdatedBy sets the "updated_by" field.
-func (_u *SysConfigUpdateOne) SetUpdatedBy(v idgen.ID) *SysConfigUpdateOne {
-	_u.mutation.ResetUpdatedBy()
-	_u.mutation.SetUpdatedBy(v)
-	return _u
-}
-
-// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysConfigUpdateOne) SetNillableUpdatedBy(v *idgen.ID) *SysConfigUpdateOne {
-	if v != nil {
-		_u.SetUpdatedBy(*v)
-	}
-	return _u
-}
-
-// AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysConfigUpdateOne) AddUpdatedBy(v idgen.ID) *SysConfigUpdateOne {
-	_u.mutation.AddUpdatedBy(v)
-	return _u
-}
-
-// ClearUpdatedBy clears the value of the "updated_by" field.
-func (_u *SysConfigUpdateOne) ClearUpdatedBy() *SysConfigUpdateOne {
-	_u.mutation.ClearUpdatedBy()
-	return _u
 }
 
 // SetConfigKey sets the "config_key" field.
@@ -493,6 +406,86 @@ func (_u *SysConfigUpdateOne) AddSortID(v int) *SysConfigUpdateOne {
 	return _u
 }
 
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *SysConfigUpdateOne) SetDeletedAt(v time.Time) *SysConfigUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *SysConfigUpdateOne) SetNillableDeletedAt(v *time.Time) *SysConfigUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *SysConfigUpdateOne) ClearDeletedAt() *SysConfigUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *SysConfigUpdateOne) SetUpdatedAt(v time.Time) *SysConfigUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (_u *SysConfigUpdateOne) SetCreatedBy(v idgen.ID) *SysConfigUpdateOne {
+	_u.mutation.ResetCreatedBy()
+	_u.mutation.SetCreatedBy(v)
+	return _u
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_u *SysConfigUpdateOne) SetNillableCreatedBy(v *idgen.ID) *SysConfigUpdateOne {
+	if v != nil {
+		_u.SetCreatedBy(*v)
+	}
+	return _u
+}
+
+// AddCreatedBy adds value to the "created_by" field.
+func (_u *SysConfigUpdateOne) AddCreatedBy(v idgen.ID) *SysConfigUpdateOne {
+	_u.mutation.AddCreatedBy(v)
+	return _u
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (_u *SysConfigUpdateOne) ClearCreatedBy() *SysConfigUpdateOne {
+	_u.mutation.ClearCreatedBy()
+	return _u
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_u *SysConfigUpdateOne) SetUpdatedBy(v idgen.ID) *SysConfigUpdateOne {
+	_u.mutation.ResetUpdatedBy()
+	_u.mutation.SetUpdatedBy(v)
+	return _u
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_u *SysConfigUpdateOne) SetNillableUpdatedBy(v *idgen.ID) *SysConfigUpdateOne {
+	if v != nil {
+		_u.SetUpdatedBy(*v)
+	}
+	return _u
+}
+
+// AddUpdatedBy adds value to the "updated_by" field.
+func (_u *SysConfigUpdateOne) AddUpdatedBy(v idgen.ID) *SysConfigUpdateOne {
+	_u.mutation.AddUpdatedBy(v)
+	return _u
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (_u *SysConfigUpdateOne) ClearUpdatedBy() *SysConfigUpdateOne {
+	_u.mutation.ClearUpdatedBy()
+	return _u
+}
+
 // Mutation returns the SysConfigMutation object of the builder.
 func (_u *SysConfigUpdateOne) Mutation() *SysConfigMutation {
 	return _u.mutation
@@ -513,6 +506,7 @@ func (_u *SysConfigUpdateOne) Select(field string, fields ...string) *SysConfigU
 
 // Save executes the query and returns the updated SysConfig entity.
 func (_u *SysConfigUpdateOne) Save(ctx context.Context) (*SysConfig, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -535,6 +529,14 @@ func (_u *SysConfigUpdateOne) Exec(ctx context.Context) error {
 func (_u *SysConfigUpdateOne) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *SysConfigUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := sysconfig.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -577,6 +579,27 @@ func (_u *SysConfigUpdateOne) sqlSave(ctx context.Context) (_node *SysConfig, er
 			}
 		}
 	}
+	if value, ok := _u.mutation.ConfigKey(); ok {
+		_spec.SetField(sysconfig.FieldConfigKey, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ConfigValue(); ok {
+		_spec.SetField(sysconfig.FieldConfigValue, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ConfigDesc(); ok {
+		_spec.SetField(sysconfig.FieldConfigDesc, field.TypeString, value)
+	}
+	if _u.mutation.ConfigDescCleared() {
+		_spec.ClearField(sysconfig.FieldConfigDesc, field.TypeString)
+	}
+	if value, ok := _u.mutation.IsBuiltin(); ok {
+		_spec.SetField(sysconfig.FieldIsBuiltin, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.SortID(); ok {
+		_spec.SetField(sysconfig.FieldSortID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedSortID(); ok {
+		_spec.AddField(sysconfig.FieldSortID, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(sysconfig.FieldDeletedAt, field.TypeTime, value)
 	}
@@ -603,27 +626,6 @@ func (_u *SysConfigUpdateOne) sqlSave(ctx context.Context) (_node *SysConfig, er
 	}
 	if _u.mutation.UpdatedByCleared() {
 		_spec.ClearField(sysconfig.FieldUpdatedBy, field.TypeInt64)
-	}
-	if value, ok := _u.mutation.ConfigKey(); ok {
-		_spec.SetField(sysconfig.FieldConfigKey, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.ConfigValue(); ok {
-		_spec.SetField(sysconfig.FieldConfigValue, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.ConfigDesc(); ok {
-		_spec.SetField(sysconfig.FieldConfigDesc, field.TypeString, value)
-	}
-	if _u.mutation.ConfigDescCleared() {
-		_spec.ClearField(sysconfig.FieldConfigDesc, field.TypeString)
-	}
-	if value, ok := _u.mutation.IsBuiltin(); ok {
-		_spec.SetField(sysconfig.FieldIsBuiltin, field.TypeBool, value)
-	}
-	if value, ok := _u.mutation.SortID(); ok {
-		_spec.SetField(sysconfig.FieldSortID, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.AddedSortID(); ok {
-		_spec.AddField(sysconfig.FieldSortID, field.TypeInt, value)
 	}
 	_node = &SysConfig{config: _u.config}
 	_spec.Assign = _node.assignValues

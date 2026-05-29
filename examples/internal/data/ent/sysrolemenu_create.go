@@ -23,6 +23,18 @@ type SysRoleMenuCreate struct {
 	hooks    []Hook
 }
 
+// SetRoleID sets the "role_id" field.
+func (_c *SysRoleMenuCreate) SetRoleID(v idgen.ID) *SysRoleMenuCreate {
+	_c.mutation.SetRoleID(v)
+	return _c
+}
+
+// SetMenuID sets the "menu_id" field.
+func (_c *SysRoleMenuCreate) SetMenuID(v idgen.ID) *SysRoleMenuCreate {
+	_c.mutation.SetMenuID(v)
+	return _c
+}
+
 // SetDeletedAt sets the "deleted_at" field.
 func (_c *SysRoleMenuCreate) SetDeletedAt(v time.Time) *SysRoleMenuCreate {
 	_c.mutation.SetDeletedAt(v)
@@ -37,15 +49,31 @@ func (_c *SysRoleMenuCreate) SetNillableDeletedAt(v *time.Time) *SysRoleMenuCrea
 	return _c
 }
 
-// SetRoleID sets the "role_id" field.
-func (_c *SysRoleMenuCreate) SetRoleID(v idgen.ID) *SysRoleMenuCreate {
-	_c.mutation.SetRoleID(v)
+// SetCreatedAt sets the "created_at" field.
+func (_c *SysRoleMenuCreate) SetCreatedAt(v time.Time) *SysRoleMenuCreate {
+	_c.mutation.SetCreatedAt(v)
 	return _c
 }
 
-// SetMenuID sets the "menu_id" field.
-func (_c *SysRoleMenuCreate) SetMenuID(v idgen.ID) *SysRoleMenuCreate {
-	_c.mutation.SetMenuID(v)
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *SysRoleMenuCreate) SetNillableCreatedAt(v *time.Time) *SysRoleMenuCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *SysRoleMenuCreate) SetUpdatedAt(v time.Time) *SysRoleMenuCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *SysRoleMenuCreate) SetNillableUpdatedAt(v *time.Time) *SysRoleMenuCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
+	}
 	return _c
 }
 
@@ -63,9 +91,17 @@ func (_c *SysRoleMenuCreate) SetNillableCreatedBy(v *idgen.ID) *SysRoleMenuCreat
 	return _c
 }
 
-// SetCreatedAt sets the "created_at" field.
-func (_c *SysRoleMenuCreate) SetCreatedAt(v time.Time) *SysRoleMenuCreate {
-	_c.mutation.SetCreatedAt(v)
+// SetUpdatedBy sets the "updated_by" field.
+func (_c *SysRoleMenuCreate) SetUpdatedBy(v idgen.ID) *SysRoleMenuCreate {
+	_c.mutation.SetUpdatedBy(v)
+	return _c
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_c *SysRoleMenuCreate) SetNillableUpdatedBy(v *idgen.ID) *SysRoleMenuCreate {
+	if v != nil {
+		_c.SetUpdatedBy(*v)
+	}
 	return _c
 }
 
@@ -128,6 +164,14 @@ func (_c *SysRoleMenuCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *SysRoleMenuCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := sysrolemenu.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := sysrolemenu.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := sysrolemenu.DefaultID()
 		_c.mutation.SetID(v)
@@ -154,6 +198,9 @@ func (_c *SysRoleMenuCreate) check() error {
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "SysRoleMenu.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SysRoleMenu.updated_at"`)}
 	}
 	if v, ok := _c.mutation.ID(); ok {
 		if err := sysrolemenu.IDValidator(int64(v)); err != nil {
@@ -202,13 +249,21 @@ func (_c *SysRoleMenuCreate) createSpec() (*SysRoleMenu, *sqlgraph.CreateSpec) {
 		_spec.SetField(sysrolemenu.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(sysrolemenu.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(sysrolemenu.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
 	if value, ok := _c.mutation.CreatedBy(); ok {
 		_spec.SetField(sysrolemenu.FieldCreatedBy, field.TypeInt64, value)
 		_node.CreatedBy = &value
 	}
-	if value, ok := _c.mutation.CreatedAt(); ok {
-		_spec.SetField(sysrolemenu.FieldCreatedAt, field.TypeTime, value)
-		_node.CreatedAt = value
+	if value, ok := _c.mutation.UpdatedBy(); ok {
+		_spec.SetField(sysrolemenu.FieldUpdatedBy, field.TypeInt64, value)
+		_node.UpdatedBy = &value
 	}
 	if nodes := _c.mutation.RoleIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

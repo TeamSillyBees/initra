@@ -335,12 +335,12 @@ func (_q *SysUserRoleQuery) WithRole(opts ...func(*SysRoleQuery)) *SysUserRoleQu
 // Example:
 //
 //	var v []struct {
-//		DeletedAt time.Time `json:"deleted_at,omitempty"`
+//		UserID idgen.ID `json:"user_id,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.SysUserRole.Query().
-//		GroupBy(sysuserrole.FieldDeletedAt).
+//		GroupBy(sysuserrole.FieldUserID).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *SysUserRoleQuery) GroupBy(field string, fields ...string) *SysUserRoleGroupBy {
@@ -358,11 +358,11 @@ func (_q *SysUserRoleQuery) GroupBy(field string, fields ...string) *SysUserRole
 // Example:
 //
 //	var v []struct {
-//		DeletedAt time.Time `json:"deleted_at,omitempty"`
+//		UserID idgen.ID `json:"user_id,omitempty"`
 //	}
 //
 //	client.SysUserRole.Query().
-//		Select(sysuserrole.FieldDeletedAt).
+//		Select(sysuserrole.FieldUserID).
 //		Scan(ctx, &v)
 func (_q *SysUserRoleQuery) Select(fields ...string) *SysUserRoleSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

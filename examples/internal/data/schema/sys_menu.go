@@ -7,8 +7,9 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/teamsillybees/initra/pkg/entx/fieldx"
+	"github.com/teamsillybees/initra/pkg/entx/indexx"
 
-	entxmixin "github.com/teamsillybees/initra/pkg/entx/mixin"
 	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
@@ -17,18 +18,10 @@ type SysMenu struct {
 	ent.Schema
 }
 
-// Mixin 返回系统菜单表通用字段。
-func (SysMenu) Mixin() []ent.Mixin {
-	return []ent.Mixin{
-		entxmixin.ID{},
-		entxmixin.SoftDelete{},
-		entxmixin.Audit{},
-	}
-}
-
 // Fields 返回系统菜单表字段定义。
 func (SysMenu) Fields() []ent.Field {
-	return []ent.Field{
+	fields := []ent.Field{
+		fieldx.ID(),
 		field.Int64("parent_id").GoType(idgen.ID(0)).Optional().Nillable().
 			Comment("父级菜单 ID，NULL 表示顶级目录。"),
 		field.String("app_id").MaxLen(64).Optional().Nillable().
@@ -52,6 +45,11 @@ func (SysMenu) Fields() []ent.Field {
 		field.Int("sort_id").Default(0).
 			Comment("排序值，值越小越靠前。"),
 	}
+
+	fields = append(fields, fieldx.SoftDelete()...)
+	fields = append(fields, fieldx.Audit()...)
+
+	return fields
 }
 
 // Edges 返回系统菜单表关系定义。
@@ -65,6 +63,7 @@ func (SysMenu) Edges() []ent.Edge {
 func (SysMenu) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("parent_id"),
+		indexx.SoftDelete(),
 	}
 }
 

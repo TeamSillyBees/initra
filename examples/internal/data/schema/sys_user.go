@@ -7,8 +7,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
-
-	entxmixin "github.com/teamsillybees/initra/pkg/entx/mixin"
+	"github.com/teamsillybees/initra/pkg/entx/fieldx"
 )
 
 // SysUser 系统后台用户表，用于后台登录、审计和权限归属。
@@ -16,18 +15,10 @@ type SysUser struct {
 	ent.Schema
 }
 
-// Mixin 返回系统用户表通用字段。
-func (SysUser) Mixin() []ent.Mixin {
-	return []ent.Mixin{
-		entxmixin.ID{},
-		entxmixin.SoftDelete{},
-		entxmixin.Audit{},
-	}
-}
-
 // Fields 返回系统用户表字段定义。
 func (SysUser) Fields() []ent.Field {
-	return []ent.Field{
+	fields := []ent.Field{
+		fieldx.ID(),
 		field.String("username").MaxLen(64).NotEmpty().Unique().
 			Comment("登录用户名，全局唯一。"),
 		field.Text("password_hash").NotEmpty().
@@ -47,6 +38,10 @@ func (SysUser) Fields() []ent.Field {
 		field.Int("sort_id").Default(0).
 			Comment("排序值，便于后台列表定制顺序。"),
 	}
+	fields = append(fields, fieldx.SoftDelete()...)
+	fields = append(fields, fieldx.Audit()...)
+
+	return fields
 }
 
 // Edges 返回系统用户表关系定义。

@@ -12,16 +12,16 @@ var (
 	// SysConfigColumns holds the columns for the "sys_config" table.
 	SysConfigColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true, Comment: "雪花算法生成的主键 ID。"},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, Comment: "逻辑删除时间，NULL 表示未删除。"},
-		{Name: "created_at", Type: field.TypeTime, Comment: "创建时间。"},
-		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
-		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
-		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
 		{Name: "config_key", Type: field.TypeString, Unique: true, Size: 128, Comment: "配置键，程序通过该键读取配置。"},
 		{Name: "config_value", Type: field.TypeString, Size: 2147483647, Comment: "配置值。", Default: ""},
 		{Name: "config_desc", Type: field.TypeString, Nullable: true, Size: 2147483647, Comment: "配置项描述。"},
 		{Name: "is_builtin", Type: field.TypeBool, Comment: "是否为系统内置配置，内置配置通常不允许删除。", Default: false},
 		{Name: "sort_id", Type: field.TypeInt, Comment: "排序值。", Default: 0},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, Comment: "逻辑删除时间，NULL 表示未删除。"},
+		{Name: "created_at", Type: field.TypeTime, Comment: "创建时间。"},
+		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
+		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
+		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
 	}
 	// SysConfigTable holds the schema information for the "sys_config" table.
 	SysConfigTable = &schema.Table{
@@ -29,22 +29,10 @@ var (
 		Comment:    "系统配置表，用于集中存放可在后台维护的运行时配置。",
 		Columns:    SysConfigColumns,
 		PrimaryKey: []*schema.Column{SysConfigColumns[0]},
-		Indexes: []*schema.Index{
-			{
-				Name:    "sysconfig_deleted_at",
-				Unique:  false,
-				Columns: []*schema.Column{SysConfigColumns[1]},
-			},
-		},
 	}
 	// SysDictCollectionColumns holds the columns for the "sys_dict_collection" table.
 	SysDictCollectionColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true, Comment: "雪花算法生成的主键 ID。"},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, Comment: "逻辑删除时间，NULL 表示未删除。"},
-		{Name: "created_at", Type: field.TypeTime, Comment: "创建时间。"},
-		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
-		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
-		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
 		{Name: "code", Type: field.TypeString, Unique: true, Size: 64, Comment: "字典集唯一编码，程序通过该编码读取字典项。"},
 		{Name: "name", Type: field.TypeString, Size: 128, Comment: "字典集名称。"},
 		{Name: "is_enable", Type: field.TypeBool, Comment: "字典集是否启用。", Default: true},
@@ -52,6 +40,11 @@ var (
 		{Name: "item_length", Type: field.TypeInt, Nullable: true, Comment: "字典值推荐长度上限。"},
 		{Name: "is_builtin", Type: field.TypeBool, Comment: "是否为系统内置字典集。", Default: false},
 		{Name: "sort_id", Type: field.TypeInt, Comment: "排序值。", Default: 0},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, Comment: "逻辑删除时间，NULL 表示未删除。"},
+		{Name: "created_at", Type: field.TypeTime, Comment: "创建时间。"},
+		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
+		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
+		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
 	}
 	// SysDictCollectionTable holds the schema information for the "sys_dict_collection" table.
 	SysDictCollectionTable = &schema.Table{
@@ -59,22 +52,10 @@ var (
 		Comment:    "系统字典集表，用于定义一类字典的元信息。",
 		Columns:    SysDictCollectionColumns,
 		PrimaryKey: []*schema.Column{SysDictCollectionColumns[0]},
-		Indexes: []*schema.Index{
-			{
-				Name:    "sysdictcollection_deleted_at",
-				Unique:  false,
-				Columns: []*schema.Column{SysDictCollectionColumns[1]},
-			},
-		},
 	}
 	// SysDictItemColumns holds the columns for the "sys_dict_item" table.
 	SysDictItemColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true, Comment: "雪花算法生成的主键 ID。"},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, Comment: "逻辑删除时间，NULL 表示未删除。"},
-		{Name: "created_at", Type: field.TypeTime, Comment: "创建时间。"},
-		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
-		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
-		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
 		{Name: "collection_code", Type: field.TypeString, Size: 64, Comment: "字典集编码，便于按编码直接查询字典项。"},
 		{Name: "code", Type: field.TypeString, Size: 64, Comment: "字典项编码，程序实际使用的值。"},
 		{Name: "parent_code", Type: field.TypeString, Size: 64, Comment: "父级字典项编码，0 表示顶级节点。", Default: "0"},
@@ -83,6 +64,11 @@ var (
 		{Name: "is_enable", Type: field.TypeBool, Comment: "字典项是否启用。", Default: true},
 		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647, Comment: "字典项描述。"},
 		{Name: "sort_id", Type: field.TypeInt, Comment: "排序值。", Default: 0},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, Comment: "逻辑删除时间，NULL 表示未删除。"},
+		{Name: "created_at", Type: field.TypeTime, Comment: "创建时间。"},
+		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
+		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
+		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
 		{Name: "collection_id", Type: field.TypeInt64, Comment: "字典集 ID，关联 sys_dict_collection.id。"},
 	}
 	// SysDictItemTable holds the schema information for the "sys_dict_item" table.
@@ -101,11 +87,6 @@ var (
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "sysdictitem_deleted_at",
-				Unique:  false,
-				Columns: []*schema.Column{SysDictItemColumns[1]},
-			},
-			{
 				Name:    "sysdictitem_collection_id",
 				Unique:  false,
 				Columns: []*schema.Column{SysDictItemColumns[14]},
@@ -113,23 +94,23 @@ var (
 			{
 				Name:    "sysdictitem_collection_code",
 				Unique:  false,
-				Columns: []*schema.Column{SysDictItemColumns[6]},
+				Columns: []*schema.Column{SysDictItemColumns[1]},
 			},
 			{
 				Name:    "sysdictitem_collection_code_code",
 				Unique:  true,
-				Columns: []*schema.Column{SysDictItemColumns[6], SysDictItemColumns[7]},
+				Columns: []*schema.Column{SysDictItemColumns[1], SysDictItemColumns[2]},
+			},
+			{
+				Name:    "sysdictitem_deleted_at",
+				Unique:  false,
+				Columns: []*schema.Column{SysDictItemColumns[9]},
 			},
 		},
 	}
 	// SysMenuColumns holds the columns for the "sys_menu" table.
 	SysMenuColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true, Comment: "雪花算法生成的主键 ID。"},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, Comment: "逻辑删除时间，NULL 表示未删除。"},
-		{Name: "created_at", Type: field.TypeTime, Comment: "创建时间。"},
-		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
-		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
-		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
 		{Name: "parent_id", Type: field.TypeInt64, Nullable: true, Comment: "父级菜单 ID，NULL 表示顶级目录。"},
 		{Name: "app_id", Type: field.TypeString, Nullable: true, Size: 64, Comment: "所属应用编码，用于多应用场景区分菜单树。"},
 		{Name: "title", Type: field.TypeString, Size: 128, Comment: "菜单或按钮展示标题。"},
@@ -141,6 +122,11 @@ var (
 		{Name: "is_visible", Type: field.TypeBool, Comment: "是否在前端菜单树中可见。", Default: true},
 		{Name: "is_cached", Type: field.TypeBool, Comment: "前端页面是否缓存。", Default: true},
 		{Name: "sort_id", Type: field.TypeInt, Comment: "排序值，值越小越靠前。", Default: 0},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, Comment: "逻辑删除时间，NULL 表示未删除。"},
+		{Name: "created_at", Type: field.TypeTime, Comment: "创建时间。"},
+		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
+		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
+		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
 	}
 	// SysMenuTable holds the schema information for the "sys_menu" table.
 	SysMenuTable = &schema.Table{
@@ -150,31 +136,31 @@ var (
 		PrimaryKey: []*schema.Column{SysMenuColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "sysmenu_deleted_at",
+				Name:    "sysmenu_parent_id",
 				Unique:  false,
 				Columns: []*schema.Column{SysMenuColumns[1]},
 			},
 			{
-				Name:    "sysmenu_parent_id",
+				Name:    "sysmenu_deleted_at",
 				Unique:  false,
-				Columns: []*schema.Column{SysMenuColumns[6]},
+				Columns: []*schema.Column{SysMenuColumns[12]},
 			},
 		},
 	}
 	// SysRoleColumns holds the columns for the "sys_role" table.
 	SysRoleColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true, Comment: "雪花算法生成的主键 ID。"},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, Comment: "逻辑删除时间，NULL 表示未删除。"},
-		{Name: "created_at", Type: field.TypeTime, Comment: "创建时间。"},
-		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
-		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
-		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
 		{Name: "code", Type: field.TypeString, Unique: true, Size: 64, Comment: "角色编码，程序内稳定引用，例如 admin、viewer。"},
 		{Name: "name", Type: field.TypeString, Size: 128, Comment: "角色名称，用于管理界面展示。"},
 		{Name: "remark", Type: field.TypeString, Nullable: true, Size: 2147483647, Comment: "角色备注说明。"},
 		{Name: "is_builtin", Type: field.TypeBool, Comment: "是否为系统内置角色，内置角色通常不允许删除。", Default: false},
 		{Name: "is_enable", Type: field.TypeBool, Comment: "角色是否启用，禁用后不参与授权。", Default: true},
 		{Name: "sort_id", Type: field.TypeInt, Comment: "角色排序值，值越小越靠前。", Default: 0},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, Comment: "逻辑删除时间，NULL 表示未删除。"},
+		{Name: "created_at", Type: field.TypeTime, Comment: "创建时间。"},
+		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
+		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
+		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
 	}
 	// SysRoleTable holds the schema information for the "sys_role" table.
 	SysRoleTable = &schema.Table{
@@ -184,14 +170,14 @@ var (
 		PrimaryKey: []*schema.Column{SysRoleColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "sysrole_deleted_at",
-				Unique:  false,
-				Columns: []*schema.Column{SysRoleColumns[1]},
-			},
-			{
 				Name:    "sysrole_is_enable",
 				Unique:  false,
-				Columns: []*schema.Column{SysRoleColumns[10]},
+				Columns: []*schema.Column{SysRoleColumns[5]},
+			},
+			{
+				Name:    "sysrole_deleted_at",
+				Unique:  false,
+				Columns: []*schema.Column{SysRoleColumns[7]},
 			},
 		},
 	}
@@ -199,8 +185,10 @@ var (
 	SysRoleMenuColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true, Comment: "雪花算法生成的主键 ID。"},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, Comment: "逻辑删除时间，NULL 表示未删除。"},
-		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
 		{Name: "created_at", Type: field.TypeTime, Comment: "创建时间。"},
+		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
+		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
+		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
 		{Name: "menu_id", Type: field.TypeInt64, Comment: "系统菜单资源 ID，关联 sys_menu.id。"},
 		{Name: "role_id", Type: field.TypeInt64, Comment: "系统角色 ID，关联 sys_role.id。"},
 	}
@@ -213,48 +201,43 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "sys_role_menu_sys_menu_role_menus",
-				Columns:    []*schema.Column{SysRoleMenuColumns[4]},
+				Columns:    []*schema.Column{SysRoleMenuColumns[6]},
 				RefColumns: []*schema.Column{SysMenuColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "sys_role_menu_sys_role_role_menus",
-				Columns:    []*schema.Column{SysRoleMenuColumns[5]},
+				Columns:    []*schema.Column{SysRoleMenuColumns[7]},
 				RefColumns: []*schema.Column{SysRoleColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "sysrolemenu_deleted_at",
-				Unique:  false,
-				Columns: []*schema.Column{SysRoleMenuColumns[1]},
-			},
-			{
 				Name:    "sysrolemenu_role_id",
 				Unique:  false,
-				Columns: []*schema.Column{SysRoleMenuColumns[5]},
+				Columns: []*schema.Column{SysRoleMenuColumns[7]},
 			},
 			{
 				Name:    "sysrolemenu_menu_id",
 				Unique:  false,
-				Columns: []*schema.Column{SysRoleMenuColumns[4]},
+				Columns: []*schema.Column{SysRoleMenuColumns[6]},
 			},
 			{
 				Name:    "sysrolemenu_role_id_menu_id",
 				Unique:  true,
-				Columns: []*schema.Column{SysRoleMenuColumns[5], SysRoleMenuColumns[4]},
+				Columns: []*schema.Column{SysRoleMenuColumns[7], SysRoleMenuColumns[6]},
+			},
+			{
+				Name:    "sysrolemenu_deleted_at",
+				Unique:  false,
+				Columns: []*schema.Column{SysRoleMenuColumns[1]},
 			},
 		},
 	}
 	// SysUserColumns holds the columns for the "sys_user" table.
 	SysUserColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true, Comment: "雪花算法生成的主键 ID。"},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, Comment: "逻辑删除时间，NULL 表示未删除。"},
-		{Name: "created_at", Type: field.TypeTime, Comment: "创建时间。"},
-		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
-		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
-		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
 		{Name: "username", Type: field.TypeString, Unique: true, Size: 64, Comment: "登录用户名，全局唯一。"},
 		{Name: "password_hash", Type: field.TypeString, Size: 2147483647, Comment: "经过安全哈希后的密码密文。"},
 		{Name: "nickname", Type: field.TypeString, Nullable: true, Size: 128, Comment: "用户昵称或显示名。"},
@@ -264,6 +247,11 @@ var (
 		{Name: "is_super_admin", Type: field.TypeBool, Comment: "是否为超级管理员，超级管理员通常拥有全量权限。", Default: false},
 		{Name: "is_enable", Type: field.TypeBool, Comment: "账号是否启用。", Default: true},
 		{Name: "sort_id", Type: field.TypeInt, Comment: "排序值，便于后台列表定制顺序。", Default: 0},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, Comment: "逻辑删除时间，NULL 表示未删除。"},
+		{Name: "created_at", Type: field.TypeTime, Comment: "创建时间。"},
+		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
+		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
+		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
 	}
 	// SysUserTable holds the schema information for the "sys_user" table.
 	SysUserTable = &schema.Table{
@@ -273,14 +261,9 @@ var (
 		PrimaryKey: []*schema.Column{SysUserColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "sysuser_deleted_at",
-				Unique:  false,
-				Columns: []*schema.Column{SysUserColumns[1]},
-			},
-			{
 				Name:    "sysuser_is_enable",
 				Unique:  false,
-				Columns: []*schema.Column{SysUserColumns[13]},
+				Columns: []*schema.Column{SysUserColumns[8]},
 			},
 		},
 	}
@@ -288,8 +271,10 @@ var (
 	SysUserRoleColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true, Comment: "雪花算法生成的主键 ID。"},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, Comment: "逻辑删除时间，NULL 表示未删除。"},
-		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
 		{Name: "created_at", Type: field.TypeTime, Comment: "创建时间。"},
+		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
+		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
+		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
 		{Name: "role_id", Type: field.TypeInt64, Comment: "系统角色 ID，关联 sys_role.id。"},
 		{Name: "user_id", Type: field.TypeInt64, Comment: "系统用户 ID，关联 sys_user.id。"},
 	}
@@ -302,37 +287,37 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "sys_user_role_sys_role_user_roles",
-				Columns:    []*schema.Column{SysUserRoleColumns[4]},
+				Columns:    []*schema.Column{SysUserRoleColumns[6]},
 				RefColumns: []*schema.Column{SysRoleColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "sys_user_role_sys_user_user_roles",
-				Columns:    []*schema.Column{SysUserRoleColumns[5]},
+				Columns:    []*schema.Column{SysUserRoleColumns[7]},
 				RefColumns: []*schema.Column{SysUserColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "sysuserrole_deleted_at",
-				Unique:  false,
-				Columns: []*schema.Column{SysUserRoleColumns[1]},
-			},
-			{
 				Name:    "sysuserrole_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{SysUserRoleColumns[5]},
+				Columns: []*schema.Column{SysUserRoleColumns[7]},
 			},
 			{
 				Name:    "sysuserrole_role_id",
 				Unique:  false,
-				Columns: []*schema.Column{SysUserRoleColumns[4]},
+				Columns: []*schema.Column{SysUserRoleColumns[6]},
 			},
 			{
 				Name:    "sysuserrole_user_id_role_id",
 				Unique:  true,
-				Columns: []*schema.Column{SysUserRoleColumns[5], SysUserRoleColumns[4]},
+				Columns: []*schema.Column{SysUserRoleColumns[7], SysUserRoleColumns[6]},
+			},
+			{
+				Name:    "sysuserrole_deleted_at",
+				Unique:  false,
+				Columns: []*schema.Column{SysUserRoleColumns[1]},
 			},
 		},
 	}

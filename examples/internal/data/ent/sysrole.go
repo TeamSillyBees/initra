@@ -19,16 +19,6 @@ type SysRole struct {
 	// ID of the ent.
 	// 雪花算法生成的主键 ID。
 	ID idgen.ID `json:"id,omitempty"`
-	// 逻辑删除时间，NULL 表示未删除。
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// 创建时间。
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	// 最后更新时间。
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// 创建人用户 ID。
-	CreatedBy *idgen.ID `json:"created_by,omitempty"`
-	// 最后更新人用户 ID。
-	UpdatedBy *idgen.ID `json:"updated_by,omitempty"`
 	// 角色编码，程序内稳定引用，例如 admin、viewer。
 	Code string `json:"code,omitempty"`
 	// 角色名称，用于管理界面展示。
@@ -41,6 +31,16 @@ type SysRole struct {
 	IsEnable bool `json:"is_enable,omitempty"`
 	// 角色排序值，值越小越靠前。
 	SortID int `json:"sort_id,omitempty"`
+	// 逻辑删除时间，NULL 表示未删除。
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// 创建时间。
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// 最后更新时间。
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// 创建人用户 ID。
+	CreatedBy *idgen.ID `json:"created_by,omitempty"`
+	// 最后更新人用户 ID。
+	UpdatedBy *idgen.ID `json:"updated_by,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SysRoleQuery when eager-loading is set.
 	Edges        SysRoleEdges `json:"edges"`
@@ -83,7 +83,7 @@ func (*SysRole) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case sysrole.FieldIsBuiltin, sysrole.FieldIsEnable:
 			values[i] = new(sql.NullBool)
-		case sysrole.FieldID, sysrole.FieldCreatedBy, sysrole.FieldUpdatedBy, sysrole.FieldSortID:
+		case sysrole.FieldID, sysrole.FieldSortID, sysrole.FieldCreatedBy, sysrole.FieldUpdatedBy:
 			values[i] = new(sql.NullInt64)
 		case sysrole.FieldCode, sysrole.FieldName, sysrole.FieldRemark:
 			values[i] = new(sql.NullString)
@@ -109,39 +109,6 @@ func (_m *SysRole) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = idgen.ID(value.Int64)
-			}
-		case sysrole.FieldDeletedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
-			} else if value.Valid {
-				_m.DeletedAt = new(time.Time)
-				*_m.DeletedAt = value.Time
-			}
-		case sysrole.FieldCreatedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field created_at", values[i])
-			} else if value.Valid {
-				_m.CreatedAt = value.Time
-			}
-		case sysrole.FieldUpdatedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
-			} else if value.Valid {
-				_m.UpdatedAt = value.Time
-			}
-		case sysrole.FieldCreatedBy:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field created_by", values[i])
-			} else if value.Valid {
-				_m.CreatedBy = new(idgen.ID)
-				*_m.CreatedBy = idgen.ID(value.Int64)
-			}
-		case sysrole.FieldUpdatedBy:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field updated_by", values[i])
-			} else if value.Valid {
-				_m.UpdatedBy = new(idgen.ID)
-				*_m.UpdatedBy = idgen.ID(value.Int64)
 			}
 		case sysrole.FieldCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -179,6 +146,39 @@ func (_m *SysRole) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field sort_id", values[i])
 			} else if value.Valid {
 				_m.SortID = int(value.Int64)
+			}
+		case sysrole.FieldDeletedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
+			} else if value.Valid {
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
+			}
+		case sysrole.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				_m.CreatedAt = value.Time
+			}
+		case sysrole.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				_m.UpdatedAt = value.Time
+			}
+		case sysrole.FieldCreatedBy:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field created_by", values[i])
+			} else if value.Valid {
+				_m.CreatedBy = new(idgen.ID)
+				*_m.CreatedBy = idgen.ID(value.Int64)
+			}
+		case sysrole.FieldUpdatedBy:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_by", values[i])
+			} else if value.Valid {
+				_m.UpdatedBy = new(idgen.ID)
+				*_m.UpdatedBy = idgen.ID(value.Int64)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -226,6 +226,26 @@ func (_m *SysRole) String() string {
 	var builder strings.Builder
 	builder.WriteString("SysRole(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("code=")
+	builder.WriteString(_m.Code)
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	if v := _m.Remark; v != nil {
+		builder.WriteString("remark=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("is_builtin=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IsBuiltin))
+	builder.WriteString(", ")
+	builder.WriteString("is_enable=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IsEnable))
+	builder.WriteString(", ")
+	builder.WriteString("sort_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SortID))
+	builder.WriteString(", ")
 	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
@@ -246,26 +266,6 @@ func (_m *SysRole) String() string {
 		builder.WriteString("updated_by=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
-	builder.WriteString(", ")
-	builder.WriteString("code=")
-	builder.WriteString(_m.Code)
-	builder.WriteString(", ")
-	builder.WriteString("name=")
-	builder.WriteString(_m.Name)
-	builder.WriteString(", ")
-	if v := _m.Remark; v != nil {
-		builder.WriteString("remark=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	builder.WriteString("is_builtin=")
-	builder.WriteString(fmt.Sprintf("%v", _m.IsBuiltin))
-	builder.WriteString(", ")
-	builder.WriteString("is_enable=")
-	builder.WriteString(fmt.Sprintf("%v", _m.IsEnable))
-	builder.WriteString(", ")
-	builder.WriteString("sort_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.SortID))
 	builder.WriteByte(')')
 	return builder.String()
 }

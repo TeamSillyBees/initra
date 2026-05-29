@@ -1,6 +1,16 @@
 app:
   instance_id: local-1
 
+database:
+  host: "127.0.0.1"
+  port: 5432
+  user: "postgres"
+  password: "postgres"
+  dbname: "initra"
+  max_open_conns: 20
+  max_idle_conns: 10
+  conn_max_lifetime: 1h
+
 auth:
   jwt:
     secret: "change-me-local"

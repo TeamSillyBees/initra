@@ -21,60 +21,6 @@ type SysConfigCreate struct {
 	hooks    []Hook
 }
 
-// SetDeletedAt sets the "deleted_at" field.
-func (_c *SysConfigCreate) SetDeletedAt(v time.Time) *SysConfigCreate {
-	_c.mutation.SetDeletedAt(v)
-	return _c
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_c *SysConfigCreate) SetNillableDeletedAt(v *time.Time) *SysConfigCreate {
-	if v != nil {
-		_c.SetDeletedAt(*v)
-	}
-	return _c
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (_c *SysConfigCreate) SetCreatedAt(v time.Time) *SysConfigCreate {
-	_c.mutation.SetCreatedAt(v)
-	return _c
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (_c *SysConfigCreate) SetUpdatedAt(v time.Time) *SysConfigCreate {
-	_c.mutation.SetUpdatedAt(v)
-	return _c
-}
-
-// SetCreatedBy sets the "created_by" field.
-func (_c *SysConfigCreate) SetCreatedBy(v idgen.ID) *SysConfigCreate {
-	_c.mutation.SetCreatedBy(v)
-	return _c
-}
-
-// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_c *SysConfigCreate) SetNillableCreatedBy(v *idgen.ID) *SysConfigCreate {
-	if v != nil {
-		_c.SetCreatedBy(*v)
-	}
-	return _c
-}
-
-// SetUpdatedBy sets the "updated_by" field.
-func (_c *SysConfigCreate) SetUpdatedBy(v idgen.ID) *SysConfigCreate {
-	_c.mutation.SetUpdatedBy(v)
-	return _c
-}
-
-// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_c *SysConfigCreate) SetNillableUpdatedBy(v *idgen.ID) *SysConfigCreate {
-	if v != nil {
-		_c.SetUpdatedBy(*v)
-	}
-	return _c
-}
-
 // SetConfigKey sets the "config_key" field.
 func (_c *SysConfigCreate) SetConfigKey(v string) *SysConfigCreate {
 	_c.mutation.SetConfigKey(v)
@@ -133,6 +79,76 @@ func (_c *SysConfigCreate) SetSortID(v int) *SysConfigCreate {
 func (_c *SysConfigCreate) SetNillableSortID(v *int) *SysConfigCreate {
 	if v != nil {
 		_c.SetSortID(*v)
+	}
+	return _c
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (_c *SysConfigCreate) SetDeletedAt(v time.Time) *SysConfigCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_c *SysConfigCreate) SetNillableDeletedAt(v *time.Time) *SysConfigCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
+	}
+	return _c
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (_c *SysConfigCreate) SetCreatedAt(v time.Time) *SysConfigCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *SysConfigCreate) SetNillableCreatedAt(v *time.Time) *SysConfigCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *SysConfigCreate) SetUpdatedAt(v time.Time) *SysConfigCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *SysConfigCreate) SetNillableUpdatedAt(v *time.Time) *SysConfigCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
+	}
+	return _c
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (_c *SysConfigCreate) SetCreatedBy(v idgen.ID) *SysConfigCreate {
+	_c.mutation.SetCreatedBy(v)
+	return _c
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_c *SysConfigCreate) SetNillableCreatedBy(v *idgen.ID) *SysConfigCreate {
+	if v != nil {
+		_c.SetCreatedBy(*v)
+	}
+	return _c
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_c *SysConfigCreate) SetUpdatedBy(v idgen.ID) *SysConfigCreate {
+	_c.mutation.SetUpdatedBy(v)
+	return _c
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_c *SysConfigCreate) SetNillableUpdatedBy(v *idgen.ID) *SysConfigCreate {
+	if v != nil {
+		_c.SetUpdatedBy(*v)
 	}
 	return _c
 }
@@ -198,6 +214,14 @@ func (_c *SysConfigCreate) defaults() {
 		v := sysconfig.DefaultSortID
 		_c.mutation.SetSortID(v)
 	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := sysconfig.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := sysconfig.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := sysconfig.DefaultID()
 		_c.mutation.SetID(v)
@@ -206,12 +230,6 @@ func (_c *SysConfigCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *SysConfigCreate) check() error {
-	if _, ok := _c.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "SysConfig.created_at"`)}
-	}
-	if _, ok := _c.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SysConfig.updated_at"`)}
-	}
 	if _, ok := _c.mutation.ConfigKey(); !ok {
 		return &ValidationError{Name: "config_key", err: errors.New(`ent: missing required field "SysConfig.config_key"`)}
 	}
@@ -228,6 +246,12 @@ func (_c *SysConfigCreate) check() error {
 	}
 	if _, ok := _c.mutation.SortID(); !ok {
 		return &ValidationError{Name: "sort_id", err: errors.New(`ent: missing required field "SysConfig.sort_id"`)}
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "SysConfig.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SysConfig.updated_at"`)}
 	}
 	if v, ok := _c.mutation.ID(); ok {
 		if err := sysconfig.IDValidator(int64(v)); err != nil {
@@ -266,26 +290,6 @@ func (_c *SysConfigCreate) createSpec() (*SysConfig, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := _c.mutation.DeletedAt(); ok {
-		_spec.SetField(sysconfig.FieldDeletedAt, field.TypeTime, value)
-		_node.DeletedAt = &value
-	}
-	if value, ok := _c.mutation.CreatedAt(); ok {
-		_spec.SetField(sysconfig.FieldCreatedAt, field.TypeTime, value)
-		_node.CreatedAt = value
-	}
-	if value, ok := _c.mutation.UpdatedAt(); ok {
-		_spec.SetField(sysconfig.FieldUpdatedAt, field.TypeTime, value)
-		_node.UpdatedAt = value
-	}
-	if value, ok := _c.mutation.CreatedBy(); ok {
-		_spec.SetField(sysconfig.FieldCreatedBy, field.TypeInt64, value)
-		_node.CreatedBy = &value
-	}
-	if value, ok := _c.mutation.UpdatedBy(); ok {
-		_spec.SetField(sysconfig.FieldUpdatedBy, field.TypeInt64, value)
-		_node.UpdatedBy = &value
-	}
 	if value, ok := _c.mutation.ConfigKey(); ok {
 		_spec.SetField(sysconfig.FieldConfigKey, field.TypeString, value)
 		_node.ConfigKey = value
@@ -305,6 +309,26 @@ func (_c *SysConfigCreate) createSpec() (*SysConfig, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.SortID(); ok {
 		_spec.SetField(sysconfig.FieldSortID, field.TypeInt, value)
 		_node.SortID = value
+	}
+	if value, ok := _c.mutation.DeletedAt(); ok {
+		_spec.SetField(sysconfig.FieldDeletedAt, field.TypeTime, value)
+		_node.DeletedAt = &value
+	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(sysconfig.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(sysconfig.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
+	if value, ok := _c.mutation.CreatedBy(); ok {
+		_spec.SetField(sysconfig.FieldCreatedBy, field.TypeInt64, value)
+		_node.CreatedBy = &value
+	}
+	if value, ok := _c.mutation.UpdatedBy(); ok {
+		_spec.SetField(sysconfig.FieldUpdatedBy, field.TypeInt64, value)
+		_node.UpdatedBy = &value
 	}
 	return _node, _spec
 }

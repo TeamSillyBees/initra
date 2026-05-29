@@ -31,94 +31,6 @@ func (_u *SysRoleUpdate) Where(ps ...predicate.SysRole) *SysRoleUpdate {
 	return _u
 }
 
-// SetDeletedAt sets the "deleted_at" field.
-func (_u *SysRoleUpdate) SetDeletedAt(v time.Time) *SysRoleUpdate {
-	_u.mutation.SetDeletedAt(v)
-	return _u
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_u *SysRoleUpdate) SetNillableDeletedAt(v *time.Time) *SysRoleUpdate {
-	if v != nil {
-		_u.SetDeletedAt(*v)
-	}
-	return _u
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (_u *SysRoleUpdate) ClearDeletedAt() *SysRoleUpdate {
-	_u.mutation.ClearDeletedAt()
-	return _u
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (_u *SysRoleUpdate) SetUpdatedAt(v time.Time) *SysRoleUpdate {
-	_u.mutation.SetUpdatedAt(v)
-	return _u
-}
-
-// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (_u *SysRoleUpdate) SetNillableUpdatedAt(v *time.Time) *SysRoleUpdate {
-	if v != nil {
-		_u.SetUpdatedAt(*v)
-	}
-	return _u
-}
-
-// SetCreatedBy sets the "created_by" field.
-func (_u *SysRoleUpdate) SetCreatedBy(v idgen.ID) *SysRoleUpdate {
-	_u.mutation.ResetCreatedBy()
-	_u.mutation.SetCreatedBy(v)
-	return _u
-}
-
-// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysRoleUpdate) SetNillableCreatedBy(v *idgen.ID) *SysRoleUpdate {
-	if v != nil {
-		_u.SetCreatedBy(*v)
-	}
-	return _u
-}
-
-// AddCreatedBy adds value to the "created_by" field.
-func (_u *SysRoleUpdate) AddCreatedBy(v idgen.ID) *SysRoleUpdate {
-	_u.mutation.AddCreatedBy(v)
-	return _u
-}
-
-// ClearCreatedBy clears the value of the "created_by" field.
-func (_u *SysRoleUpdate) ClearCreatedBy() *SysRoleUpdate {
-	_u.mutation.ClearCreatedBy()
-	return _u
-}
-
-// SetUpdatedBy sets the "updated_by" field.
-func (_u *SysRoleUpdate) SetUpdatedBy(v idgen.ID) *SysRoleUpdate {
-	_u.mutation.ResetUpdatedBy()
-	_u.mutation.SetUpdatedBy(v)
-	return _u
-}
-
-// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysRoleUpdate) SetNillableUpdatedBy(v *idgen.ID) *SysRoleUpdate {
-	if v != nil {
-		_u.SetUpdatedBy(*v)
-	}
-	return _u
-}
-
-// AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysRoleUpdate) AddUpdatedBy(v idgen.ID) *SysRoleUpdate {
-	_u.mutation.AddUpdatedBy(v)
-	return _u
-}
-
-// ClearUpdatedBy clears the value of the "updated_by" field.
-func (_u *SysRoleUpdate) ClearUpdatedBy() *SysRoleUpdate {
-	_u.mutation.ClearUpdatedBy()
-	return _u
-}
-
 // SetCode sets the "code" field.
 func (_u *SysRoleUpdate) SetCode(v string) *SysRoleUpdate {
 	_u.mutation.SetCode(v)
@@ -216,6 +128,86 @@ func (_u *SysRoleUpdate) AddSortID(v int) *SysRoleUpdate {
 	return _u
 }
 
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *SysRoleUpdate) SetDeletedAt(v time.Time) *SysRoleUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *SysRoleUpdate) SetNillableDeletedAt(v *time.Time) *SysRoleUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *SysRoleUpdate) ClearDeletedAt() *SysRoleUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *SysRoleUpdate) SetUpdatedAt(v time.Time) *SysRoleUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (_u *SysRoleUpdate) SetCreatedBy(v idgen.ID) *SysRoleUpdate {
+	_u.mutation.ResetCreatedBy()
+	_u.mutation.SetCreatedBy(v)
+	return _u
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_u *SysRoleUpdate) SetNillableCreatedBy(v *idgen.ID) *SysRoleUpdate {
+	if v != nil {
+		_u.SetCreatedBy(*v)
+	}
+	return _u
+}
+
+// AddCreatedBy adds value to the "created_by" field.
+func (_u *SysRoleUpdate) AddCreatedBy(v idgen.ID) *SysRoleUpdate {
+	_u.mutation.AddCreatedBy(v)
+	return _u
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (_u *SysRoleUpdate) ClearCreatedBy() *SysRoleUpdate {
+	_u.mutation.ClearCreatedBy()
+	return _u
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_u *SysRoleUpdate) SetUpdatedBy(v idgen.ID) *SysRoleUpdate {
+	_u.mutation.ResetUpdatedBy()
+	_u.mutation.SetUpdatedBy(v)
+	return _u
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_u *SysRoleUpdate) SetNillableUpdatedBy(v *idgen.ID) *SysRoleUpdate {
+	if v != nil {
+		_u.SetUpdatedBy(*v)
+	}
+	return _u
+}
+
+// AddUpdatedBy adds value to the "updated_by" field.
+func (_u *SysRoleUpdate) AddUpdatedBy(v idgen.ID) *SysRoleUpdate {
+	_u.mutation.AddUpdatedBy(v)
+	return _u
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (_u *SysRoleUpdate) ClearUpdatedBy() *SysRoleUpdate {
+	_u.mutation.ClearUpdatedBy()
+	return _u
+}
+
 // AddUserRoleIDs adds the "user_roles" edge to the SysUserRole entity by IDs.
 func (_u *SysRoleUpdate) AddUserRoleIDs(ids ...idgen.ID) *SysRoleUpdate {
 	_u.mutation.AddUserRoleIDs(ids...)
@@ -295,6 +287,7 @@ func (_u *SysRoleUpdate) RemoveRoleMenus(v ...*SysRoleMenu) *SysRoleUpdate {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *SysRoleUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -317,6 +310,14 @@ func (_u *SysRoleUpdate) Exec(ctx context.Context) error {
 func (_u *SysRoleUpdate) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *SysRoleUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := sysrole.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -347,6 +348,30 @@ func (_u *SysRoleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
+	if value, ok := _u.mutation.Code(); ok {
+		_spec.SetField(sysrole.FieldCode, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(sysrole.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Remark(); ok {
+		_spec.SetField(sysrole.FieldRemark, field.TypeString, value)
+	}
+	if _u.mutation.RemarkCleared() {
+		_spec.ClearField(sysrole.FieldRemark, field.TypeString)
+	}
+	if value, ok := _u.mutation.IsBuiltin(); ok {
+		_spec.SetField(sysrole.FieldIsBuiltin, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.IsEnable(); ok {
+		_spec.SetField(sysrole.FieldIsEnable, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.SortID(); ok {
+		_spec.SetField(sysrole.FieldSortID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedSortID(); ok {
+		_spec.AddField(sysrole.FieldSortID, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(sysrole.FieldDeletedAt, field.TypeTime, value)
 	}
@@ -373,30 +398,6 @@ func (_u *SysRoleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.UpdatedByCleared() {
 		_spec.ClearField(sysrole.FieldUpdatedBy, field.TypeInt64)
-	}
-	if value, ok := _u.mutation.Code(); ok {
-		_spec.SetField(sysrole.FieldCode, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(sysrole.FieldName, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.Remark(); ok {
-		_spec.SetField(sysrole.FieldRemark, field.TypeString, value)
-	}
-	if _u.mutation.RemarkCleared() {
-		_spec.ClearField(sysrole.FieldRemark, field.TypeString)
-	}
-	if value, ok := _u.mutation.IsBuiltin(); ok {
-		_spec.SetField(sysrole.FieldIsBuiltin, field.TypeBool, value)
-	}
-	if value, ok := _u.mutation.IsEnable(); ok {
-		_spec.SetField(sysrole.FieldIsEnable, field.TypeBool, value)
-	}
-	if value, ok := _u.mutation.SortID(); ok {
-		_spec.SetField(sysrole.FieldSortID, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.AddedSortID(); ok {
-		_spec.AddField(sysrole.FieldSortID, field.TypeInt, value)
 	}
 	if _u.mutation.UserRolesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -508,94 +509,6 @@ type SysRoleUpdateOne struct {
 	mutation *SysRoleMutation
 }
 
-// SetDeletedAt sets the "deleted_at" field.
-func (_u *SysRoleUpdateOne) SetDeletedAt(v time.Time) *SysRoleUpdateOne {
-	_u.mutation.SetDeletedAt(v)
-	return _u
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_u *SysRoleUpdateOne) SetNillableDeletedAt(v *time.Time) *SysRoleUpdateOne {
-	if v != nil {
-		_u.SetDeletedAt(*v)
-	}
-	return _u
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (_u *SysRoleUpdateOne) ClearDeletedAt() *SysRoleUpdateOne {
-	_u.mutation.ClearDeletedAt()
-	return _u
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (_u *SysRoleUpdateOne) SetUpdatedAt(v time.Time) *SysRoleUpdateOne {
-	_u.mutation.SetUpdatedAt(v)
-	return _u
-}
-
-// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (_u *SysRoleUpdateOne) SetNillableUpdatedAt(v *time.Time) *SysRoleUpdateOne {
-	if v != nil {
-		_u.SetUpdatedAt(*v)
-	}
-	return _u
-}
-
-// SetCreatedBy sets the "created_by" field.
-func (_u *SysRoleUpdateOne) SetCreatedBy(v idgen.ID) *SysRoleUpdateOne {
-	_u.mutation.ResetCreatedBy()
-	_u.mutation.SetCreatedBy(v)
-	return _u
-}
-
-// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysRoleUpdateOne) SetNillableCreatedBy(v *idgen.ID) *SysRoleUpdateOne {
-	if v != nil {
-		_u.SetCreatedBy(*v)
-	}
-	return _u
-}
-
-// AddCreatedBy adds value to the "created_by" field.
-func (_u *SysRoleUpdateOne) AddCreatedBy(v idgen.ID) *SysRoleUpdateOne {
-	_u.mutation.AddCreatedBy(v)
-	return _u
-}
-
-// ClearCreatedBy clears the value of the "created_by" field.
-func (_u *SysRoleUpdateOne) ClearCreatedBy() *SysRoleUpdateOne {
-	_u.mutation.ClearCreatedBy()
-	return _u
-}
-
-// SetUpdatedBy sets the "updated_by" field.
-func (_u *SysRoleUpdateOne) SetUpdatedBy(v idgen.ID) *SysRoleUpdateOne {
-	_u.mutation.ResetUpdatedBy()
-	_u.mutation.SetUpdatedBy(v)
-	return _u
-}
-
-// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysRoleUpdateOne) SetNillableUpdatedBy(v *idgen.ID) *SysRoleUpdateOne {
-	if v != nil {
-		_u.SetUpdatedBy(*v)
-	}
-	return _u
-}
-
-// AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysRoleUpdateOne) AddUpdatedBy(v idgen.ID) *SysRoleUpdateOne {
-	_u.mutation.AddUpdatedBy(v)
-	return _u
-}
-
-// ClearUpdatedBy clears the value of the "updated_by" field.
-func (_u *SysRoleUpdateOne) ClearUpdatedBy() *SysRoleUpdateOne {
-	_u.mutation.ClearUpdatedBy()
-	return _u
-}
-
 // SetCode sets the "code" field.
 func (_u *SysRoleUpdateOne) SetCode(v string) *SysRoleUpdateOne {
 	_u.mutation.SetCode(v)
@@ -693,6 +606,86 @@ func (_u *SysRoleUpdateOne) AddSortID(v int) *SysRoleUpdateOne {
 	return _u
 }
 
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *SysRoleUpdateOne) SetDeletedAt(v time.Time) *SysRoleUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *SysRoleUpdateOne) SetNillableDeletedAt(v *time.Time) *SysRoleUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *SysRoleUpdateOne) ClearDeletedAt() *SysRoleUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *SysRoleUpdateOne) SetUpdatedAt(v time.Time) *SysRoleUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (_u *SysRoleUpdateOne) SetCreatedBy(v idgen.ID) *SysRoleUpdateOne {
+	_u.mutation.ResetCreatedBy()
+	_u.mutation.SetCreatedBy(v)
+	return _u
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_u *SysRoleUpdateOne) SetNillableCreatedBy(v *idgen.ID) *SysRoleUpdateOne {
+	if v != nil {
+		_u.SetCreatedBy(*v)
+	}
+	return _u
+}
+
+// AddCreatedBy adds value to the "created_by" field.
+func (_u *SysRoleUpdateOne) AddCreatedBy(v idgen.ID) *SysRoleUpdateOne {
+	_u.mutation.AddCreatedBy(v)
+	return _u
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (_u *SysRoleUpdateOne) ClearCreatedBy() *SysRoleUpdateOne {
+	_u.mutation.ClearCreatedBy()
+	return _u
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_u *SysRoleUpdateOne) SetUpdatedBy(v idgen.ID) *SysRoleUpdateOne {
+	_u.mutation.ResetUpdatedBy()
+	_u.mutation.SetUpdatedBy(v)
+	return _u
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_u *SysRoleUpdateOne) SetNillableUpdatedBy(v *idgen.ID) *SysRoleUpdateOne {
+	if v != nil {
+		_u.SetUpdatedBy(*v)
+	}
+	return _u
+}
+
+// AddUpdatedBy adds value to the "updated_by" field.
+func (_u *SysRoleUpdateOne) AddUpdatedBy(v idgen.ID) *SysRoleUpdateOne {
+	_u.mutation.AddUpdatedBy(v)
+	return _u
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (_u *SysRoleUpdateOne) ClearUpdatedBy() *SysRoleUpdateOne {
+	_u.mutation.ClearUpdatedBy()
+	return _u
+}
+
 // AddUserRoleIDs adds the "user_roles" edge to the SysUserRole entity by IDs.
 func (_u *SysRoleUpdateOne) AddUserRoleIDs(ids ...idgen.ID) *SysRoleUpdateOne {
 	_u.mutation.AddUserRoleIDs(ids...)
@@ -785,6 +778,7 @@ func (_u *SysRoleUpdateOne) Select(field string, fields ...string) *SysRoleUpdat
 
 // Save executes the query and returns the updated SysRole entity.
 func (_u *SysRoleUpdateOne) Save(ctx context.Context) (*SysRole, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -807,6 +801,14 @@ func (_u *SysRoleUpdateOne) Exec(ctx context.Context) error {
 func (_u *SysRoleUpdateOne) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *SysRoleUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := sysrole.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -854,6 +856,30 @@ func (_u *SysRoleUpdateOne) sqlSave(ctx context.Context) (_node *SysRole, err er
 			}
 		}
 	}
+	if value, ok := _u.mutation.Code(); ok {
+		_spec.SetField(sysrole.FieldCode, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(sysrole.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Remark(); ok {
+		_spec.SetField(sysrole.FieldRemark, field.TypeString, value)
+	}
+	if _u.mutation.RemarkCleared() {
+		_spec.ClearField(sysrole.FieldRemark, field.TypeString)
+	}
+	if value, ok := _u.mutation.IsBuiltin(); ok {
+		_spec.SetField(sysrole.FieldIsBuiltin, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.IsEnable(); ok {
+		_spec.SetField(sysrole.FieldIsEnable, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.SortID(); ok {
+		_spec.SetField(sysrole.FieldSortID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedSortID(); ok {
+		_spec.AddField(sysrole.FieldSortID, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(sysrole.FieldDeletedAt, field.TypeTime, value)
 	}
@@ -880,30 +906,6 @@ func (_u *SysRoleUpdateOne) sqlSave(ctx context.Context) (_node *SysRole, err er
 	}
 	if _u.mutation.UpdatedByCleared() {
 		_spec.ClearField(sysrole.FieldUpdatedBy, field.TypeInt64)
-	}
-	if value, ok := _u.mutation.Code(); ok {
-		_spec.SetField(sysrole.FieldCode, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(sysrole.FieldName, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.Remark(); ok {
-		_spec.SetField(sysrole.FieldRemark, field.TypeString, value)
-	}
-	if _u.mutation.RemarkCleared() {
-		_spec.ClearField(sysrole.FieldRemark, field.TypeString)
-	}
-	if value, ok := _u.mutation.IsBuiltin(); ok {
-		_spec.SetField(sysrole.FieldIsBuiltin, field.TypeBool, value)
-	}
-	if value, ok := _u.mutation.IsEnable(); ok {
-		_spec.SetField(sysrole.FieldIsEnable, field.TypeBool, value)
-	}
-	if value, ok := _u.mutation.SortID(); ok {
-		_spec.SetField(sysrole.FieldSortID, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.AddedSortID(); ok {
-		_spec.AddField(sysrole.FieldSortID, field.TypeInt, value)
 	}
 	if _u.mutation.UserRolesCleared() {
 		edge := &sqlgraph.EdgeSpec{

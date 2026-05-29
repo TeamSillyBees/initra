@@ -23,6 +23,18 @@ type SysUserRoleCreate struct {
 	hooks    []Hook
 }
 
+// SetUserID sets the "user_id" field.
+func (_c *SysUserRoleCreate) SetUserID(v idgen.ID) *SysUserRoleCreate {
+	_c.mutation.SetUserID(v)
+	return _c
+}
+
+// SetRoleID sets the "role_id" field.
+func (_c *SysUserRoleCreate) SetRoleID(v idgen.ID) *SysUserRoleCreate {
+	_c.mutation.SetRoleID(v)
+	return _c
+}
+
 // SetDeletedAt sets the "deleted_at" field.
 func (_c *SysUserRoleCreate) SetDeletedAt(v time.Time) *SysUserRoleCreate {
 	_c.mutation.SetDeletedAt(v)
@@ -37,15 +49,31 @@ func (_c *SysUserRoleCreate) SetNillableDeletedAt(v *time.Time) *SysUserRoleCrea
 	return _c
 }
 
-// SetUserID sets the "user_id" field.
-func (_c *SysUserRoleCreate) SetUserID(v idgen.ID) *SysUserRoleCreate {
-	_c.mutation.SetUserID(v)
+// SetCreatedAt sets the "created_at" field.
+func (_c *SysUserRoleCreate) SetCreatedAt(v time.Time) *SysUserRoleCreate {
+	_c.mutation.SetCreatedAt(v)
 	return _c
 }
 
-// SetRoleID sets the "role_id" field.
-func (_c *SysUserRoleCreate) SetRoleID(v idgen.ID) *SysUserRoleCreate {
-	_c.mutation.SetRoleID(v)
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *SysUserRoleCreate) SetNillableCreatedAt(v *time.Time) *SysUserRoleCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *SysUserRoleCreate) SetUpdatedAt(v time.Time) *SysUserRoleCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *SysUserRoleCreate) SetNillableUpdatedAt(v *time.Time) *SysUserRoleCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
+	}
 	return _c
 }
 
@@ -63,9 +91,17 @@ func (_c *SysUserRoleCreate) SetNillableCreatedBy(v *idgen.ID) *SysUserRoleCreat
 	return _c
 }
 
-// SetCreatedAt sets the "created_at" field.
-func (_c *SysUserRoleCreate) SetCreatedAt(v time.Time) *SysUserRoleCreate {
-	_c.mutation.SetCreatedAt(v)
+// SetUpdatedBy sets the "updated_by" field.
+func (_c *SysUserRoleCreate) SetUpdatedBy(v idgen.ID) *SysUserRoleCreate {
+	_c.mutation.SetUpdatedBy(v)
+	return _c
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_c *SysUserRoleCreate) SetNillableUpdatedBy(v *idgen.ID) *SysUserRoleCreate {
+	if v != nil {
+		_c.SetUpdatedBy(*v)
+	}
 	return _c
 }
 
@@ -128,6 +164,14 @@ func (_c *SysUserRoleCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *SysUserRoleCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := sysuserrole.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := sysuserrole.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := sysuserrole.DefaultID()
 		_c.mutation.SetID(v)
@@ -154,6 +198,9 @@ func (_c *SysUserRoleCreate) check() error {
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "SysUserRole.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SysUserRole.updated_at"`)}
 	}
 	if v, ok := _c.mutation.ID(); ok {
 		if err := sysuserrole.IDValidator(int64(v)); err != nil {
@@ -202,13 +249,21 @@ func (_c *SysUserRoleCreate) createSpec() (*SysUserRole, *sqlgraph.CreateSpec) {
 		_spec.SetField(sysuserrole.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(sysuserrole.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(sysuserrole.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
 	if value, ok := _c.mutation.CreatedBy(); ok {
 		_spec.SetField(sysuserrole.FieldCreatedBy, field.TypeInt64, value)
 		_node.CreatedBy = &value
 	}
-	if value, ok := _c.mutation.CreatedAt(); ok {
-		_spec.SetField(sysuserrole.FieldCreatedAt, field.TypeTime, value)
-		_node.CreatedAt = value
+	if value, ok := _c.mutation.UpdatedBy(); ok {
+		_spec.SetField(sysuserrole.FieldUpdatedBy, field.TypeInt64, value)
+		_node.UpdatedBy = &value
 	}
 	if nodes := _c.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

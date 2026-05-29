@@ -56,33 +56,6 @@ func IDLTE(id idgen.ID) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldLTE(FieldID, id))
 }
 
-// DeletedAt applies equality check predicate on the "deleted_at" field. It's identical to DeletedAtEQ.
-func DeletedAt(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldEQ(FieldDeletedAt, v))
-}
-
-// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
-func CreatedAt(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldEQ(FieldCreatedAt, v))
-}
-
-// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
-func UpdatedAt(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldEQ(FieldUpdatedAt, v))
-}
-
-// CreatedBy applies equality check predicate on the "created_by" field. It's identical to CreatedByEQ.
-func CreatedBy(v idgen.ID) predicate.SysMenu {
-	vc := int64(v)
-	return predicate.SysMenu(sql.FieldEQ(FieldCreatedBy, vc))
-}
-
-// UpdatedBy applies equality check predicate on the "updated_by" field. It's identical to UpdatedByEQ.
-func UpdatedBy(v idgen.ID) predicate.SysMenu {
-	vc := int64(v)
-	return predicate.SysMenu(sql.FieldEQ(FieldUpdatedBy, vc))
-}
-
 // ParentID applies equality check predicate on the "parent_id" field. It's identical to ParentIDEQ.
 func ParentID(v idgen.ID) predicate.SysMenu {
 	vc := int64(v)
@@ -139,262 +112,31 @@ func SortID(v int) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldEQ(FieldSortID, v))
 }
 
-// DeletedAtEQ applies the EQ predicate on the "deleted_at" field.
-func DeletedAtEQ(v time.Time) predicate.SysMenu {
+// DeletedAt applies equality check predicate on the "deleted_at" field. It's identical to DeletedAtEQ.
+func DeletedAt(v time.Time) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// DeletedAtNEQ applies the NEQ predicate on the "deleted_at" field.
-func DeletedAtNEQ(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldNEQ(FieldDeletedAt, v))
-}
-
-// DeletedAtIn applies the In predicate on the "deleted_at" field.
-func DeletedAtIn(vs ...time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldIn(FieldDeletedAt, vs...))
-}
-
-// DeletedAtNotIn applies the NotIn predicate on the "deleted_at" field.
-func DeletedAtNotIn(vs ...time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldNotIn(FieldDeletedAt, vs...))
-}
-
-// DeletedAtGT applies the GT predicate on the "deleted_at" field.
-func DeletedAtGT(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldGT(FieldDeletedAt, v))
-}
-
-// DeletedAtGTE applies the GTE predicate on the "deleted_at" field.
-func DeletedAtGTE(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldGTE(FieldDeletedAt, v))
-}
-
-// DeletedAtLT applies the LT predicate on the "deleted_at" field.
-func DeletedAtLT(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldLT(FieldDeletedAt, v))
-}
-
-// DeletedAtLTE applies the LTE predicate on the "deleted_at" field.
-func DeletedAtLTE(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldLTE(FieldDeletedAt, v))
-}
-
-// DeletedAtIsNil applies the IsNil predicate on the "deleted_at" field.
-func DeletedAtIsNil() predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldIsNull(FieldDeletedAt))
-}
-
-// DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
-func DeletedAtNotNil() predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldNotNull(FieldDeletedAt))
-}
-
-// CreatedAtEQ applies the EQ predicate on the "created_at" field.
-func CreatedAtEQ(v time.Time) predicate.SysMenu {
+// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
+func CreatedAt(v time.Time) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldEQ(FieldCreatedAt, v))
 }
 
-// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
-func CreatedAtNEQ(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldNEQ(FieldCreatedAt, v))
-}
-
-// CreatedAtIn applies the In predicate on the "created_at" field.
-func CreatedAtIn(vs ...time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldIn(FieldCreatedAt, vs...))
-}
-
-// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
-func CreatedAtNotIn(vs ...time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldNotIn(FieldCreatedAt, vs...))
-}
-
-// CreatedAtGT applies the GT predicate on the "created_at" field.
-func CreatedAtGT(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldGT(FieldCreatedAt, v))
-}
-
-// CreatedAtGTE applies the GTE predicate on the "created_at" field.
-func CreatedAtGTE(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldGTE(FieldCreatedAt, v))
-}
-
-// CreatedAtLT applies the LT predicate on the "created_at" field.
-func CreatedAtLT(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldLT(FieldCreatedAt, v))
-}
-
-// CreatedAtLTE applies the LTE predicate on the "created_at" field.
-func CreatedAtLTE(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldLTE(FieldCreatedAt, v))
-}
-
-// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
-func UpdatedAtEQ(v time.Time) predicate.SysMenu {
+// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
+func UpdatedAt(v time.Time) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
-// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
-func UpdatedAtNEQ(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldNEQ(FieldUpdatedAt, v))
-}
-
-// UpdatedAtIn applies the In predicate on the "updated_at" field.
-func UpdatedAtIn(vs ...time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldIn(FieldUpdatedAt, vs...))
-}
-
-// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
-func UpdatedAtNotIn(vs ...time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldNotIn(FieldUpdatedAt, vs...))
-}
-
-// UpdatedAtGT applies the GT predicate on the "updated_at" field.
-func UpdatedAtGT(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldGT(FieldUpdatedAt, v))
-}
-
-// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
-func UpdatedAtGTE(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldGTE(FieldUpdatedAt, v))
-}
-
-// UpdatedAtLT applies the LT predicate on the "updated_at" field.
-func UpdatedAtLT(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldLT(FieldUpdatedAt, v))
-}
-
-// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
-func UpdatedAtLTE(v time.Time) predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldLTE(FieldUpdatedAt, v))
-}
-
-// CreatedByEQ applies the EQ predicate on the "created_by" field.
-func CreatedByEQ(v idgen.ID) predicate.SysMenu {
+// CreatedBy applies equality check predicate on the "created_by" field. It's identical to CreatedByEQ.
+func CreatedBy(v idgen.ID) predicate.SysMenu {
 	vc := int64(v)
 	return predicate.SysMenu(sql.FieldEQ(FieldCreatedBy, vc))
 }
 
-// CreatedByNEQ applies the NEQ predicate on the "created_by" field.
-func CreatedByNEQ(v idgen.ID) predicate.SysMenu {
-	vc := int64(v)
-	return predicate.SysMenu(sql.FieldNEQ(FieldCreatedBy, vc))
-}
-
-// CreatedByIn applies the In predicate on the "created_by" field.
-func CreatedByIn(vs ...idgen.ID) predicate.SysMenu {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = int64(vs[i])
-	}
-	return predicate.SysMenu(sql.FieldIn(FieldCreatedBy, v...))
-}
-
-// CreatedByNotIn applies the NotIn predicate on the "created_by" field.
-func CreatedByNotIn(vs ...idgen.ID) predicate.SysMenu {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = int64(vs[i])
-	}
-	return predicate.SysMenu(sql.FieldNotIn(FieldCreatedBy, v...))
-}
-
-// CreatedByGT applies the GT predicate on the "created_by" field.
-func CreatedByGT(v idgen.ID) predicate.SysMenu {
-	vc := int64(v)
-	return predicate.SysMenu(sql.FieldGT(FieldCreatedBy, vc))
-}
-
-// CreatedByGTE applies the GTE predicate on the "created_by" field.
-func CreatedByGTE(v idgen.ID) predicate.SysMenu {
-	vc := int64(v)
-	return predicate.SysMenu(sql.FieldGTE(FieldCreatedBy, vc))
-}
-
-// CreatedByLT applies the LT predicate on the "created_by" field.
-func CreatedByLT(v idgen.ID) predicate.SysMenu {
-	vc := int64(v)
-	return predicate.SysMenu(sql.FieldLT(FieldCreatedBy, vc))
-}
-
-// CreatedByLTE applies the LTE predicate on the "created_by" field.
-func CreatedByLTE(v idgen.ID) predicate.SysMenu {
-	vc := int64(v)
-	return predicate.SysMenu(sql.FieldLTE(FieldCreatedBy, vc))
-}
-
-// CreatedByIsNil applies the IsNil predicate on the "created_by" field.
-func CreatedByIsNil() predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldIsNull(FieldCreatedBy))
-}
-
-// CreatedByNotNil applies the NotNil predicate on the "created_by" field.
-func CreatedByNotNil() predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldNotNull(FieldCreatedBy))
-}
-
-// UpdatedByEQ applies the EQ predicate on the "updated_by" field.
-func UpdatedByEQ(v idgen.ID) predicate.SysMenu {
+// UpdatedBy applies equality check predicate on the "updated_by" field. It's identical to UpdatedByEQ.
+func UpdatedBy(v idgen.ID) predicate.SysMenu {
 	vc := int64(v)
 	return predicate.SysMenu(sql.FieldEQ(FieldUpdatedBy, vc))
-}
-
-// UpdatedByNEQ applies the NEQ predicate on the "updated_by" field.
-func UpdatedByNEQ(v idgen.ID) predicate.SysMenu {
-	vc := int64(v)
-	return predicate.SysMenu(sql.FieldNEQ(FieldUpdatedBy, vc))
-}
-
-// UpdatedByIn applies the In predicate on the "updated_by" field.
-func UpdatedByIn(vs ...idgen.ID) predicate.SysMenu {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = int64(vs[i])
-	}
-	return predicate.SysMenu(sql.FieldIn(FieldUpdatedBy, v...))
-}
-
-// UpdatedByNotIn applies the NotIn predicate on the "updated_by" field.
-func UpdatedByNotIn(vs ...idgen.ID) predicate.SysMenu {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = int64(vs[i])
-	}
-	return predicate.SysMenu(sql.FieldNotIn(FieldUpdatedBy, v...))
-}
-
-// UpdatedByGT applies the GT predicate on the "updated_by" field.
-func UpdatedByGT(v idgen.ID) predicate.SysMenu {
-	vc := int64(v)
-	return predicate.SysMenu(sql.FieldGT(FieldUpdatedBy, vc))
-}
-
-// UpdatedByGTE applies the GTE predicate on the "updated_by" field.
-func UpdatedByGTE(v idgen.ID) predicate.SysMenu {
-	vc := int64(v)
-	return predicate.SysMenu(sql.FieldGTE(FieldUpdatedBy, vc))
-}
-
-// UpdatedByLT applies the LT predicate on the "updated_by" field.
-func UpdatedByLT(v idgen.ID) predicate.SysMenu {
-	vc := int64(v)
-	return predicate.SysMenu(sql.FieldLT(FieldUpdatedBy, vc))
-}
-
-// UpdatedByLTE applies the LTE predicate on the "updated_by" field.
-func UpdatedByLTE(v idgen.ID) predicate.SysMenu {
-	vc := int64(v)
-	return predicate.SysMenu(sql.FieldLTE(FieldUpdatedBy, vc))
-}
-
-// UpdatedByIsNil applies the IsNil predicate on the "updated_by" field.
-func UpdatedByIsNil() predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldIsNull(FieldUpdatedBy))
-}
-
-// UpdatedByNotNil applies the NotNil predicate on the "updated_by" field.
-func UpdatedByNotNil() predicate.SysMenu {
-	return predicate.SysMenu(sql.FieldNotNull(FieldUpdatedBy))
 }
 
 // ParentIDEQ applies the EQ predicate on the "parent_id" field.
@@ -999,6 +741,264 @@ func SortIDLT(v int) predicate.SysMenu {
 // SortIDLTE applies the LTE predicate on the "sort_id" field.
 func SortIDLTE(v int) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldLTE(FieldSortID, v))
+}
+
+// DeletedAtEQ applies the EQ predicate on the "deleted_at" field.
+func DeletedAtEQ(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldEQ(FieldDeletedAt, v))
+}
+
+// DeletedAtNEQ applies the NEQ predicate on the "deleted_at" field.
+func DeletedAtNEQ(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldNEQ(FieldDeletedAt, v))
+}
+
+// DeletedAtIn applies the In predicate on the "deleted_at" field.
+func DeletedAtIn(vs ...time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldIn(FieldDeletedAt, vs...))
+}
+
+// DeletedAtNotIn applies the NotIn predicate on the "deleted_at" field.
+func DeletedAtNotIn(vs ...time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldNotIn(FieldDeletedAt, vs...))
+}
+
+// DeletedAtGT applies the GT predicate on the "deleted_at" field.
+func DeletedAtGT(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldGT(FieldDeletedAt, v))
+}
+
+// DeletedAtGTE applies the GTE predicate on the "deleted_at" field.
+func DeletedAtGTE(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldGTE(FieldDeletedAt, v))
+}
+
+// DeletedAtLT applies the LT predicate on the "deleted_at" field.
+func DeletedAtLT(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldLT(FieldDeletedAt, v))
+}
+
+// DeletedAtLTE applies the LTE predicate on the "deleted_at" field.
+func DeletedAtLTE(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldLTE(FieldDeletedAt, v))
+}
+
+// DeletedAtIsNil applies the IsNil predicate on the "deleted_at" field.
+func DeletedAtIsNil() predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldIsNull(FieldDeletedAt))
+}
+
+// DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
+func DeletedAtNotNil() predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldNotNull(FieldDeletedAt))
+}
+
+// CreatedAtEQ applies the EQ predicate on the "created_at" field.
+func CreatedAtEQ(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
+func CreatedAtNEQ(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldNEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtIn applies the In predicate on the "created_at" field.
+func CreatedAtIn(vs ...time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
+func CreatedAtNotIn(vs ...time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldNotIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtGT applies the GT predicate on the "created_at" field.
+func CreatedAtGT(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldGT(FieldCreatedAt, v))
+}
+
+// CreatedAtGTE applies the GTE predicate on the "created_at" field.
+func CreatedAtGTE(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldGTE(FieldCreatedAt, v))
+}
+
+// CreatedAtLT applies the LT predicate on the "created_at" field.
+func CreatedAtLT(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldLT(FieldCreatedAt, v))
+}
+
+// CreatedAtLTE applies the LTE predicate on the "created_at" field.
+func CreatedAtLTE(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldLTE(FieldCreatedAt, v))
+}
+
+// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
+func UpdatedAtEQ(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
+func UpdatedAtNEQ(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldNEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtIn applies the In predicate on the "updated_at" field.
+func UpdatedAtIn(vs ...time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
+func UpdatedAtNotIn(vs ...time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldNotIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtGT applies the GT predicate on the "updated_at" field.
+func UpdatedAtGT(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldGT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
+func UpdatedAtGTE(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldGTE(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLT applies the LT predicate on the "updated_at" field.
+func UpdatedAtLT(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldLT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
+func UpdatedAtLTE(v time.Time) predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldLTE(FieldUpdatedAt, v))
+}
+
+// CreatedByEQ applies the EQ predicate on the "created_by" field.
+func CreatedByEQ(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldEQ(FieldCreatedBy, vc))
+}
+
+// CreatedByNEQ applies the NEQ predicate on the "created_by" field.
+func CreatedByNEQ(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldNEQ(FieldCreatedBy, vc))
+}
+
+// CreatedByIn applies the In predicate on the "created_by" field.
+func CreatedByIn(vs ...idgen.ID) predicate.SysMenu {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysMenu(sql.FieldIn(FieldCreatedBy, v...))
+}
+
+// CreatedByNotIn applies the NotIn predicate on the "created_by" field.
+func CreatedByNotIn(vs ...idgen.ID) predicate.SysMenu {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysMenu(sql.FieldNotIn(FieldCreatedBy, v...))
+}
+
+// CreatedByGT applies the GT predicate on the "created_by" field.
+func CreatedByGT(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldGT(FieldCreatedBy, vc))
+}
+
+// CreatedByGTE applies the GTE predicate on the "created_by" field.
+func CreatedByGTE(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldGTE(FieldCreatedBy, vc))
+}
+
+// CreatedByLT applies the LT predicate on the "created_by" field.
+func CreatedByLT(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldLT(FieldCreatedBy, vc))
+}
+
+// CreatedByLTE applies the LTE predicate on the "created_by" field.
+func CreatedByLTE(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldLTE(FieldCreatedBy, vc))
+}
+
+// CreatedByIsNil applies the IsNil predicate on the "created_by" field.
+func CreatedByIsNil() predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldIsNull(FieldCreatedBy))
+}
+
+// CreatedByNotNil applies the NotNil predicate on the "created_by" field.
+func CreatedByNotNil() predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldNotNull(FieldCreatedBy))
+}
+
+// UpdatedByEQ applies the EQ predicate on the "updated_by" field.
+func UpdatedByEQ(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldEQ(FieldUpdatedBy, vc))
+}
+
+// UpdatedByNEQ applies the NEQ predicate on the "updated_by" field.
+func UpdatedByNEQ(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldNEQ(FieldUpdatedBy, vc))
+}
+
+// UpdatedByIn applies the In predicate on the "updated_by" field.
+func UpdatedByIn(vs ...idgen.ID) predicate.SysMenu {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysMenu(sql.FieldIn(FieldUpdatedBy, v...))
+}
+
+// UpdatedByNotIn applies the NotIn predicate on the "updated_by" field.
+func UpdatedByNotIn(vs ...idgen.ID) predicate.SysMenu {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = int64(vs[i])
+	}
+	return predicate.SysMenu(sql.FieldNotIn(FieldUpdatedBy, v...))
+}
+
+// UpdatedByGT applies the GT predicate on the "updated_by" field.
+func UpdatedByGT(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldGT(FieldUpdatedBy, vc))
+}
+
+// UpdatedByGTE applies the GTE predicate on the "updated_by" field.
+func UpdatedByGTE(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldGTE(FieldUpdatedBy, vc))
+}
+
+// UpdatedByLT applies the LT predicate on the "updated_by" field.
+func UpdatedByLT(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldLT(FieldUpdatedBy, vc))
+}
+
+// UpdatedByLTE applies the LTE predicate on the "updated_by" field.
+func UpdatedByLTE(v idgen.ID) predicate.SysMenu {
+	vc := int64(v)
+	return predicate.SysMenu(sql.FieldLTE(FieldUpdatedBy, vc))
+}
+
+// UpdatedByIsNil applies the IsNil predicate on the "updated_by" field.
+func UpdatedByIsNil() predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldIsNull(FieldUpdatedBy))
+}
+
+// UpdatedByNotNil applies the NotNil predicate on the "updated_by" field.
+func UpdatedByNotNil() predicate.SysMenu {
+	return predicate.SysMenu(sql.FieldNotNull(FieldUpdatedBy))
 }
 
 // HasRoleMenus applies the HasEdge predicate on the "role_menus" edge.

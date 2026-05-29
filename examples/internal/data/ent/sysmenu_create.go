@@ -22,60 +22,6 @@ type SysMenuCreate struct {
 	hooks    []Hook
 }
 
-// SetDeletedAt sets the "deleted_at" field.
-func (_c *SysMenuCreate) SetDeletedAt(v time.Time) *SysMenuCreate {
-	_c.mutation.SetDeletedAt(v)
-	return _c
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_c *SysMenuCreate) SetNillableDeletedAt(v *time.Time) *SysMenuCreate {
-	if v != nil {
-		_c.SetDeletedAt(*v)
-	}
-	return _c
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (_c *SysMenuCreate) SetCreatedAt(v time.Time) *SysMenuCreate {
-	_c.mutation.SetCreatedAt(v)
-	return _c
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (_c *SysMenuCreate) SetUpdatedAt(v time.Time) *SysMenuCreate {
-	_c.mutation.SetUpdatedAt(v)
-	return _c
-}
-
-// SetCreatedBy sets the "created_by" field.
-func (_c *SysMenuCreate) SetCreatedBy(v idgen.ID) *SysMenuCreate {
-	_c.mutation.SetCreatedBy(v)
-	return _c
-}
-
-// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_c *SysMenuCreate) SetNillableCreatedBy(v *idgen.ID) *SysMenuCreate {
-	if v != nil {
-		_c.SetCreatedBy(*v)
-	}
-	return _c
-}
-
-// SetUpdatedBy sets the "updated_by" field.
-func (_c *SysMenuCreate) SetUpdatedBy(v idgen.ID) *SysMenuCreate {
-	_c.mutation.SetUpdatedBy(v)
-	return _c
-}
-
-// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_c *SysMenuCreate) SetNillableUpdatedBy(v *idgen.ID) *SysMenuCreate {
-	if v != nil {
-		_c.SetUpdatedBy(*v)
-	}
-	return _c
-}
-
 // SetParentID sets the "parent_id" field.
 func (_c *SysMenuCreate) SetParentID(v idgen.ID) *SysMenuCreate {
 	_c.mutation.SetParentID(v)
@@ -214,6 +160,76 @@ func (_c *SysMenuCreate) SetNillableSortID(v *int) *SysMenuCreate {
 	return _c
 }
 
+// SetDeletedAt sets the "deleted_at" field.
+func (_c *SysMenuCreate) SetDeletedAt(v time.Time) *SysMenuCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_c *SysMenuCreate) SetNillableDeletedAt(v *time.Time) *SysMenuCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
+	}
+	return _c
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (_c *SysMenuCreate) SetCreatedAt(v time.Time) *SysMenuCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *SysMenuCreate) SetNillableCreatedAt(v *time.Time) *SysMenuCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *SysMenuCreate) SetUpdatedAt(v time.Time) *SysMenuCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *SysMenuCreate) SetNillableUpdatedAt(v *time.Time) *SysMenuCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
+	}
+	return _c
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (_c *SysMenuCreate) SetCreatedBy(v idgen.ID) *SysMenuCreate {
+	_c.mutation.SetCreatedBy(v)
+	return _c
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_c *SysMenuCreate) SetNillableCreatedBy(v *idgen.ID) *SysMenuCreate {
+	if v != nil {
+		_c.SetCreatedBy(*v)
+	}
+	return _c
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_c *SysMenuCreate) SetUpdatedBy(v idgen.ID) *SysMenuCreate {
+	_c.mutation.SetUpdatedBy(v)
+	return _c
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_c *SysMenuCreate) SetNillableUpdatedBy(v *idgen.ID) *SysMenuCreate {
+	if v != nil {
+		_c.SetUpdatedBy(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *SysMenuCreate) SetID(v idgen.ID) *SysMenuCreate {
 	_c.mutation.SetID(v)
@@ -290,6 +306,14 @@ func (_c *SysMenuCreate) defaults() {
 		v := sysmenu.DefaultSortID
 		_c.mutation.SetSortID(v)
 	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := sysmenu.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := sysmenu.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := sysmenu.DefaultID()
 		_c.mutation.SetID(v)
@@ -298,12 +322,6 @@ func (_c *SysMenuCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *SysMenuCreate) check() error {
-	if _, ok := _c.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "SysMenu.created_at"`)}
-	}
-	if _, ok := _c.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SysMenu.updated_at"`)}
-	}
 	if v, ok := _c.mutation.AppID(); ok {
 		if err := sysmenu.AppIDValidator(v); err != nil {
 			return &ValidationError{Name: "app_id", err: fmt.Errorf(`ent: validator failed for field "SysMenu.app_id": %w`, err)}
@@ -338,6 +356,12 @@ func (_c *SysMenuCreate) check() error {
 	}
 	if _, ok := _c.mutation.SortID(); !ok {
 		return &ValidationError{Name: "sort_id", err: errors.New(`ent: missing required field "SysMenu.sort_id"`)}
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "SysMenu.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SysMenu.updated_at"`)}
 	}
 	if v, ok := _c.mutation.ID(); ok {
 		if err := sysmenu.IDValidator(int64(v)); err != nil {
@@ -375,26 +399,6 @@ func (_c *SysMenuCreate) createSpec() (*SysMenu, *sqlgraph.CreateSpec) {
 	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
-	}
-	if value, ok := _c.mutation.DeletedAt(); ok {
-		_spec.SetField(sysmenu.FieldDeletedAt, field.TypeTime, value)
-		_node.DeletedAt = &value
-	}
-	if value, ok := _c.mutation.CreatedAt(); ok {
-		_spec.SetField(sysmenu.FieldCreatedAt, field.TypeTime, value)
-		_node.CreatedAt = value
-	}
-	if value, ok := _c.mutation.UpdatedAt(); ok {
-		_spec.SetField(sysmenu.FieldUpdatedAt, field.TypeTime, value)
-		_node.UpdatedAt = value
-	}
-	if value, ok := _c.mutation.CreatedBy(); ok {
-		_spec.SetField(sysmenu.FieldCreatedBy, field.TypeInt64, value)
-		_node.CreatedBy = &value
-	}
-	if value, ok := _c.mutation.UpdatedBy(); ok {
-		_spec.SetField(sysmenu.FieldUpdatedBy, field.TypeInt64, value)
-		_node.UpdatedBy = &value
 	}
 	if value, ok := _c.mutation.ParentID(); ok {
 		_spec.SetField(sysmenu.FieldParentID, field.TypeInt64, value)
@@ -439,6 +443,26 @@ func (_c *SysMenuCreate) createSpec() (*SysMenu, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.SortID(); ok {
 		_spec.SetField(sysmenu.FieldSortID, field.TypeInt, value)
 		_node.SortID = value
+	}
+	if value, ok := _c.mutation.DeletedAt(); ok {
+		_spec.SetField(sysmenu.FieldDeletedAt, field.TypeTime, value)
+		_node.DeletedAt = &value
+	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(sysmenu.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(sysmenu.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
+	if value, ok := _c.mutation.CreatedBy(); ok {
+		_spec.SetField(sysmenu.FieldCreatedBy, field.TypeInt64, value)
+		_node.CreatedBy = &value
+	}
+	if value, ok := _c.mutation.UpdatedBy(); ok {
+		_spec.SetField(sysmenu.FieldUpdatedBy, field.TypeInt64, value)
+		_node.UpdatedBy = &value
 	}
 	if nodes := _c.mutation.RoleMenusIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

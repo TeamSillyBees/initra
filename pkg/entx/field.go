@@ -31,10 +31,10 @@ func isUnknownFieldError(err error) bool {
 		return false
 	}
 	message := strings.ToLower(err.Error())
-	if strings.Contains(message, "unknown") && strings.Contains(message, "field") {
+	if strings.Contains(message, "unknown") && strings.Contains(message, "fieldx") {
 		return true
 	}
-	if strings.Contains(message, "not found") && strings.Contains(message, "field") {
+	if strings.Contains(message, "not found") && strings.Contains(message, "fieldx") {
 		return true
 	}
 	return false

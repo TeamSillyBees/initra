@@ -30,94 +30,6 @@ func (_u *SysMenuUpdate) Where(ps ...predicate.SysMenu) *SysMenuUpdate {
 	return _u
 }
 
-// SetDeletedAt sets the "deleted_at" field.
-func (_u *SysMenuUpdate) SetDeletedAt(v time.Time) *SysMenuUpdate {
-	_u.mutation.SetDeletedAt(v)
-	return _u
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_u *SysMenuUpdate) SetNillableDeletedAt(v *time.Time) *SysMenuUpdate {
-	if v != nil {
-		_u.SetDeletedAt(*v)
-	}
-	return _u
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (_u *SysMenuUpdate) ClearDeletedAt() *SysMenuUpdate {
-	_u.mutation.ClearDeletedAt()
-	return _u
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (_u *SysMenuUpdate) SetUpdatedAt(v time.Time) *SysMenuUpdate {
-	_u.mutation.SetUpdatedAt(v)
-	return _u
-}
-
-// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (_u *SysMenuUpdate) SetNillableUpdatedAt(v *time.Time) *SysMenuUpdate {
-	if v != nil {
-		_u.SetUpdatedAt(*v)
-	}
-	return _u
-}
-
-// SetCreatedBy sets the "created_by" field.
-func (_u *SysMenuUpdate) SetCreatedBy(v idgen.ID) *SysMenuUpdate {
-	_u.mutation.ResetCreatedBy()
-	_u.mutation.SetCreatedBy(v)
-	return _u
-}
-
-// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysMenuUpdate) SetNillableCreatedBy(v *idgen.ID) *SysMenuUpdate {
-	if v != nil {
-		_u.SetCreatedBy(*v)
-	}
-	return _u
-}
-
-// AddCreatedBy adds value to the "created_by" field.
-func (_u *SysMenuUpdate) AddCreatedBy(v idgen.ID) *SysMenuUpdate {
-	_u.mutation.AddCreatedBy(v)
-	return _u
-}
-
-// ClearCreatedBy clears the value of the "created_by" field.
-func (_u *SysMenuUpdate) ClearCreatedBy() *SysMenuUpdate {
-	_u.mutation.ClearCreatedBy()
-	return _u
-}
-
-// SetUpdatedBy sets the "updated_by" field.
-func (_u *SysMenuUpdate) SetUpdatedBy(v idgen.ID) *SysMenuUpdate {
-	_u.mutation.ResetUpdatedBy()
-	_u.mutation.SetUpdatedBy(v)
-	return _u
-}
-
-// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysMenuUpdate) SetNillableUpdatedBy(v *idgen.ID) *SysMenuUpdate {
-	if v != nil {
-		_u.SetUpdatedBy(*v)
-	}
-	return _u
-}
-
-// AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysMenuUpdate) AddUpdatedBy(v idgen.ID) *SysMenuUpdate {
-	_u.mutation.AddUpdatedBy(v)
-	return _u
-}
-
-// ClearUpdatedBy clears the value of the "updated_by" field.
-func (_u *SysMenuUpdate) ClearUpdatedBy() *SysMenuUpdate {
-	_u.mutation.ClearUpdatedBy()
-	return _u
-}
-
 // SetParentID sets the "parent_id" field.
 func (_u *SysMenuUpdate) SetParentID(v idgen.ID) *SysMenuUpdate {
 	_u.mutation.ResetParentID()
@@ -329,6 +241,86 @@ func (_u *SysMenuUpdate) AddSortID(v int) *SysMenuUpdate {
 	return _u
 }
 
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *SysMenuUpdate) SetDeletedAt(v time.Time) *SysMenuUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *SysMenuUpdate) SetNillableDeletedAt(v *time.Time) *SysMenuUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *SysMenuUpdate) ClearDeletedAt() *SysMenuUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *SysMenuUpdate) SetUpdatedAt(v time.Time) *SysMenuUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (_u *SysMenuUpdate) SetCreatedBy(v idgen.ID) *SysMenuUpdate {
+	_u.mutation.ResetCreatedBy()
+	_u.mutation.SetCreatedBy(v)
+	return _u
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_u *SysMenuUpdate) SetNillableCreatedBy(v *idgen.ID) *SysMenuUpdate {
+	if v != nil {
+		_u.SetCreatedBy(*v)
+	}
+	return _u
+}
+
+// AddCreatedBy adds value to the "created_by" field.
+func (_u *SysMenuUpdate) AddCreatedBy(v idgen.ID) *SysMenuUpdate {
+	_u.mutation.AddCreatedBy(v)
+	return _u
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (_u *SysMenuUpdate) ClearCreatedBy() *SysMenuUpdate {
+	_u.mutation.ClearCreatedBy()
+	return _u
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_u *SysMenuUpdate) SetUpdatedBy(v idgen.ID) *SysMenuUpdate {
+	_u.mutation.ResetUpdatedBy()
+	_u.mutation.SetUpdatedBy(v)
+	return _u
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_u *SysMenuUpdate) SetNillableUpdatedBy(v *idgen.ID) *SysMenuUpdate {
+	if v != nil {
+		_u.SetUpdatedBy(*v)
+	}
+	return _u
+}
+
+// AddUpdatedBy adds value to the "updated_by" field.
+func (_u *SysMenuUpdate) AddUpdatedBy(v idgen.ID) *SysMenuUpdate {
+	_u.mutation.AddUpdatedBy(v)
+	return _u
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (_u *SysMenuUpdate) ClearUpdatedBy() *SysMenuUpdate {
+	_u.mutation.ClearUpdatedBy()
+	return _u
+}
+
 // AddRoleMenuIDs adds the "role_menus" edge to the SysRoleMenu entity by IDs.
 func (_u *SysMenuUpdate) AddRoleMenuIDs(ids ...idgen.ID) *SysMenuUpdate {
 	_u.mutation.AddRoleMenuIDs(ids...)
@@ -372,6 +364,7 @@ func (_u *SysMenuUpdate) RemoveRoleMenus(v ...*SysRoleMenu) *SysMenuUpdate {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *SysMenuUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -394,6 +387,14 @@ func (_u *SysMenuUpdate) Exec(ctx context.Context) error {
 func (_u *SysMenuUpdate) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *SysMenuUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := sysmenu.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -433,33 +434,6 @@ func (_u *SysMenuUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := _u.mutation.DeletedAt(); ok {
-		_spec.SetField(sysmenu.FieldDeletedAt, field.TypeTime, value)
-	}
-	if _u.mutation.DeletedAtCleared() {
-		_spec.ClearField(sysmenu.FieldDeletedAt, field.TypeTime)
-	}
-	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(sysmenu.FieldUpdatedAt, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.CreatedBy(); ok {
-		_spec.SetField(sysmenu.FieldCreatedBy, field.TypeInt64, value)
-	}
-	if value, ok := _u.mutation.AddedCreatedBy(); ok {
-		_spec.AddField(sysmenu.FieldCreatedBy, field.TypeInt64, value)
-	}
-	if _u.mutation.CreatedByCleared() {
-		_spec.ClearField(sysmenu.FieldCreatedBy, field.TypeInt64)
-	}
-	if value, ok := _u.mutation.UpdatedBy(); ok {
-		_spec.SetField(sysmenu.FieldUpdatedBy, field.TypeInt64, value)
-	}
-	if value, ok := _u.mutation.AddedUpdatedBy(); ok {
-		_spec.AddField(sysmenu.FieldUpdatedBy, field.TypeInt64, value)
-	}
-	if _u.mutation.UpdatedByCleared() {
-		_spec.ClearField(sysmenu.FieldUpdatedBy, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.ParentID(); ok {
 		_spec.SetField(sysmenu.FieldParentID, field.TypeInt64, value)
@@ -520,6 +494,33 @@ func (_u *SysMenuUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.AddedSortID(); ok {
 		_spec.AddField(sysmenu.FieldSortID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.DeletedAt(); ok {
+		_spec.SetField(sysmenu.FieldDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DeletedAtCleared() {
+		_spec.ClearField(sysmenu.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(sysmenu.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.CreatedBy(); ok {
+		_spec.SetField(sysmenu.FieldCreatedBy, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedCreatedBy(); ok {
+		_spec.AddField(sysmenu.FieldCreatedBy, field.TypeInt64, value)
+	}
+	if _u.mutation.CreatedByCleared() {
+		_spec.ClearField(sysmenu.FieldCreatedBy, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.UpdatedBy(); ok {
+		_spec.SetField(sysmenu.FieldUpdatedBy, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedUpdatedBy(); ok {
+		_spec.AddField(sysmenu.FieldUpdatedBy, field.TypeInt64, value)
+	}
+	if _u.mutation.UpdatedByCleared() {
+		_spec.ClearField(sysmenu.FieldUpdatedBy, field.TypeInt64)
 	}
 	if _u.mutation.RoleMenusCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -584,94 +585,6 @@ type SysMenuUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *SysMenuMutation
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (_u *SysMenuUpdateOne) SetDeletedAt(v time.Time) *SysMenuUpdateOne {
-	_u.mutation.SetDeletedAt(v)
-	return _u
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_u *SysMenuUpdateOne) SetNillableDeletedAt(v *time.Time) *SysMenuUpdateOne {
-	if v != nil {
-		_u.SetDeletedAt(*v)
-	}
-	return _u
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (_u *SysMenuUpdateOne) ClearDeletedAt() *SysMenuUpdateOne {
-	_u.mutation.ClearDeletedAt()
-	return _u
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (_u *SysMenuUpdateOne) SetUpdatedAt(v time.Time) *SysMenuUpdateOne {
-	_u.mutation.SetUpdatedAt(v)
-	return _u
-}
-
-// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (_u *SysMenuUpdateOne) SetNillableUpdatedAt(v *time.Time) *SysMenuUpdateOne {
-	if v != nil {
-		_u.SetUpdatedAt(*v)
-	}
-	return _u
-}
-
-// SetCreatedBy sets the "created_by" field.
-func (_u *SysMenuUpdateOne) SetCreatedBy(v idgen.ID) *SysMenuUpdateOne {
-	_u.mutation.ResetCreatedBy()
-	_u.mutation.SetCreatedBy(v)
-	return _u
-}
-
-// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
-func (_u *SysMenuUpdateOne) SetNillableCreatedBy(v *idgen.ID) *SysMenuUpdateOne {
-	if v != nil {
-		_u.SetCreatedBy(*v)
-	}
-	return _u
-}
-
-// AddCreatedBy adds value to the "created_by" field.
-func (_u *SysMenuUpdateOne) AddCreatedBy(v idgen.ID) *SysMenuUpdateOne {
-	_u.mutation.AddCreatedBy(v)
-	return _u
-}
-
-// ClearCreatedBy clears the value of the "created_by" field.
-func (_u *SysMenuUpdateOne) ClearCreatedBy() *SysMenuUpdateOne {
-	_u.mutation.ClearCreatedBy()
-	return _u
-}
-
-// SetUpdatedBy sets the "updated_by" field.
-func (_u *SysMenuUpdateOne) SetUpdatedBy(v idgen.ID) *SysMenuUpdateOne {
-	_u.mutation.ResetUpdatedBy()
-	_u.mutation.SetUpdatedBy(v)
-	return _u
-}
-
-// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
-func (_u *SysMenuUpdateOne) SetNillableUpdatedBy(v *idgen.ID) *SysMenuUpdateOne {
-	if v != nil {
-		_u.SetUpdatedBy(*v)
-	}
-	return _u
-}
-
-// AddUpdatedBy adds value to the "updated_by" field.
-func (_u *SysMenuUpdateOne) AddUpdatedBy(v idgen.ID) *SysMenuUpdateOne {
-	_u.mutation.AddUpdatedBy(v)
-	return _u
-}
-
-// ClearUpdatedBy clears the value of the "updated_by" field.
-func (_u *SysMenuUpdateOne) ClearUpdatedBy() *SysMenuUpdateOne {
-	_u.mutation.ClearUpdatedBy()
-	return _u
 }
 
 // SetParentID sets the "parent_id" field.
@@ -885,6 +798,86 @@ func (_u *SysMenuUpdateOne) AddSortID(v int) *SysMenuUpdateOne {
 	return _u
 }
 
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *SysMenuUpdateOne) SetDeletedAt(v time.Time) *SysMenuUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *SysMenuUpdateOne) SetNillableDeletedAt(v *time.Time) *SysMenuUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *SysMenuUpdateOne) ClearDeletedAt() *SysMenuUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *SysMenuUpdateOne) SetUpdatedAt(v time.Time) *SysMenuUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (_u *SysMenuUpdateOne) SetCreatedBy(v idgen.ID) *SysMenuUpdateOne {
+	_u.mutation.ResetCreatedBy()
+	_u.mutation.SetCreatedBy(v)
+	return _u
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_u *SysMenuUpdateOne) SetNillableCreatedBy(v *idgen.ID) *SysMenuUpdateOne {
+	if v != nil {
+		_u.SetCreatedBy(*v)
+	}
+	return _u
+}
+
+// AddCreatedBy adds value to the "created_by" field.
+func (_u *SysMenuUpdateOne) AddCreatedBy(v idgen.ID) *SysMenuUpdateOne {
+	_u.mutation.AddCreatedBy(v)
+	return _u
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (_u *SysMenuUpdateOne) ClearCreatedBy() *SysMenuUpdateOne {
+	_u.mutation.ClearCreatedBy()
+	return _u
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_u *SysMenuUpdateOne) SetUpdatedBy(v idgen.ID) *SysMenuUpdateOne {
+	_u.mutation.ResetUpdatedBy()
+	_u.mutation.SetUpdatedBy(v)
+	return _u
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_u *SysMenuUpdateOne) SetNillableUpdatedBy(v *idgen.ID) *SysMenuUpdateOne {
+	if v != nil {
+		_u.SetUpdatedBy(*v)
+	}
+	return _u
+}
+
+// AddUpdatedBy adds value to the "updated_by" field.
+func (_u *SysMenuUpdateOne) AddUpdatedBy(v idgen.ID) *SysMenuUpdateOne {
+	_u.mutation.AddUpdatedBy(v)
+	return _u
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (_u *SysMenuUpdateOne) ClearUpdatedBy() *SysMenuUpdateOne {
+	_u.mutation.ClearUpdatedBy()
+	return _u
+}
+
 // AddRoleMenuIDs adds the "role_menus" edge to the SysRoleMenu entity by IDs.
 func (_u *SysMenuUpdateOne) AddRoleMenuIDs(ids ...idgen.ID) *SysMenuUpdateOne {
 	_u.mutation.AddRoleMenuIDs(ids...)
@@ -941,6 +934,7 @@ func (_u *SysMenuUpdateOne) Select(field string, fields ...string) *SysMenuUpdat
 
 // Save executes the query and returns the updated SysMenu entity.
 func (_u *SysMenuUpdateOne) Save(ctx context.Context) (*SysMenu, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -963,6 +957,14 @@ func (_u *SysMenuUpdateOne) Exec(ctx context.Context) error {
 func (_u *SysMenuUpdateOne) ExecX(ctx context.Context) {
 	if err := _u.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_u *SysMenuUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := sysmenu.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -1019,33 +1021,6 @@ func (_u *SysMenuUpdateOne) sqlSave(ctx context.Context) (_node *SysMenu, err er
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := _u.mutation.DeletedAt(); ok {
-		_spec.SetField(sysmenu.FieldDeletedAt, field.TypeTime, value)
-	}
-	if _u.mutation.DeletedAtCleared() {
-		_spec.ClearField(sysmenu.FieldDeletedAt, field.TypeTime)
-	}
-	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(sysmenu.FieldUpdatedAt, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.CreatedBy(); ok {
-		_spec.SetField(sysmenu.FieldCreatedBy, field.TypeInt64, value)
-	}
-	if value, ok := _u.mutation.AddedCreatedBy(); ok {
-		_spec.AddField(sysmenu.FieldCreatedBy, field.TypeInt64, value)
-	}
-	if _u.mutation.CreatedByCleared() {
-		_spec.ClearField(sysmenu.FieldCreatedBy, field.TypeInt64)
-	}
-	if value, ok := _u.mutation.UpdatedBy(); ok {
-		_spec.SetField(sysmenu.FieldUpdatedBy, field.TypeInt64, value)
-	}
-	if value, ok := _u.mutation.AddedUpdatedBy(); ok {
-		_spec.AddField(sysmenu.FieldUpdatedBy, field.TypeInt64, value)
-	}
-	if _u.mutation.UpdatedByCleared() {
-		_spec.ClearField(sysmenu.FieldUpdatedBy, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.ParentID(); ok {
 		_spec.SetField(sysmenu.FieldParentID, field.TypeInt64, value)
@@ -1106,6 +1081,33 @@ func (_u *SysMenuUpdateOne) sqlSave(ctx context.Context) (_node *SysMenu, err er
 	}
 	if value, ok := _u.mutation.AddedSortID(); ok {
 		_spec.AddField(sysmenu.FieldSortID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.DeletedAt(); ok {
+		_spec.SetField(sysmenu.FieldDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DeletedAtCleared() {
+		_spec.ClearField(sysmenu.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(sysmenu.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.CreatedBy(); ok {
+		_spec.SetField(sysmenu.FieldCreatedBy, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedCreatedBy(); ok {
+		_spec.AddField(sysmenu.FieldCreatedBy, field.TypeInt64, value)
+	}
+	if _u.mutation.CreatedByCleared() {
+		_spec.ClearField(sysmenu.FieldCreatedBy, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.UpdatedBy(); ok {
+		_spec.SetField(sysmenu.FieldUpdatedBy, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedUpdatedBy(); ok {
+		_spec.AddField(sysmenu.FieldUpdatedBy, field.TypeInt64, value)
+	}
+	if _u.mutation.UpdatedByCleared() {
+		_spec.ClearField(sysmenu.FieldUpdatedBy, field.TypeInt64)
 	}
 	if _u.mutation.RoleMenusCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -19,16 +19,6 @@ type SysConfig struct {
 	// ID of the ent.
 	// 雪花算法生成的主键 ID。
 	ID idgen.ID `json:"id,omitempty"`
-	// 逻辑删除时间，NULL 表示未删除。
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// 创建时间。
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	// 最后更新时间。
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// 创建人用户 ID。
-	CreatedBy *idgen.ID `json:"created_by,omitempty"`
-	// 最后更新人用户 ID。
-	UpdatedBy *idgen.ID `json:"updated_by,omitempty"`
 	// 配置键，程序通过该键读取配置。
 	ConfigKey string `json:"config_key,omitempty"`
 	// 配置值。
@@ -38,7 +28,17 @@ type SysConfig struct {
 	// 是否为系统内置配置，内置配置通常不允许删除。
 	IsBuiltin bool `json:"is_builtin,omitempty"`
 	// 排序值。
-	SortID       int `json:"sort_id,omitempty"`
+	SortID int `json:"sort_id,omitempty"`
+	// 逻辑删除时间，NULL 表示未删除。
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// 创建时间。
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// 最后更新时间。
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// 创建人用户 ID。
+	CreatedBy *idgen.ID `json:"created_by,omitempty"`
+	// 最后更新人用户 ID。
+	UpdatedBy    *idgen.ID `json:"updated_by,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -49,7 +49,7 @@ func (*SysConfig) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case sysconfig.FieldIsBuiltin:
 			values[i] = new(sql.NullBool)
-		case sysconfig.FieldID, sysconfig.FieldCreatedBy, sysconfig.FieldUpdatedBy, sysconfig.FieldSortID:
+		case sysconfig.FieldID, sysconfig.FieldSortID, sysconfig.FieldCreatedBy, sysconfig.FieldUpdatedBy:
 			values[i] = new(sql.NullInt64)
 		case sysconfig.FieldConfigKey, sysconfig.FieldConfigValue, sysconfig.FieldConfigDesc:
 			values[i] = new(sql.NullString)
@@ -75,6 +75,37 @@ func (_m *SysConfig) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = idgen.ID(value.Int64)
+			}
+		case sysconfig.FieldConfigKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field config_key", values[i])
+			} else if value.Valid {
+				_m.ConfigKey = value.String
+			}
+		case sysconfig.FieldConfigValue:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field config_value", values[i])
+			} else if value.Valid {
+				_m.ConfigValue = value.String
+			}
+		case sysconfig.FieldConfigDesc:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field config_desc", values[i])
+			} else if value.Valid {
+				_m.ConfigDesc = new(string)
+				*_m.ConfigDesc = value.String
+			}
+		case sysconfig.FieldIsBuiltin:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_builtin", values[i])
+			} else if value.Valid {
+				_m.IsBuiltin = value.Bool
+			}
+		case sysconfig.FieldSortID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field sort_id", values[i])
+			} else if value.Valid {
+				_m.SortID = int(value.Int64)
 			}
 		case sysconfig.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -108,37 +139,6 @@ func (_m *SysConfig) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.UpdatedBy = new(idgen.ID)
 				*_m.UpdatedBy = idgen.ID(value.Int64)
-			}
-		case sysconfig.FieldConfigKey:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field config_key", values[i])
-			} else if value.Valid {
-				_m.ConfigKey = value.String
-			}
-		case sysconfig.FieldConfigValue:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field config_value", values[i])
-			} else if value.Valid {
-				_m.ConfigValue = value.String
-			}
-		case sysconfig.FieldConfigDesc:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field config_desc", values[i])
-			} else if value.Valid {
-				_m.ConfigDesc = new(string)
-				*_m.ConfigDesc = value.String
-			}
-		case sysconfig.FieldIsBuiltin:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field is_builtin", values[i])
-			} else if value.Valid {
-				_m.IsBuiltin = value.Bool
-			}
-		case sysconfig.FieldSortID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field sort_id", values[i])
-			} else if value.Valid {
-				_m.SortID = int(value.Int64)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -176,6 +176,23 @@ func (_m *SysConfig) String() string {
 	var builder strings.Builder
 	builder.WriteString("SysConfig(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("config_key=")
+	builder.WriteString(_m.ConfigKey)
+	builder.WriteString(", ")
+	builder.WriteString("config_value=")
+	builder.WriteString(_m.ConfigValue)
+	builder.WriteString(", ")
+	if v := _m.ConfigDesc; v != nil {
+		builder.WriteString("config_desc=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("is_builtin=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IsBuiltin))
+	builder.WriteString(", ")
+	builder.WriteString("sort_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SortID))
+	builder.WriteString(", ")
 	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
@@ -196,23 +213,6 @@ func (_m *SysConfig) String() string {
 		builder.WriteString("updated_by=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
-	builder.WriteString(", ")
-	builder.WriteString("config_key=")
-	builder.WriteString(_m.ConfigKey)
-	builder.WriteString(", ")
-	builder.WriteString("config_value=")
-	builder.WriteString(_m.ConfigValue)
-	builder.WriteString(", ")
-	if v := _m.ConfigDesc; v != nil {
-		builder.WriteString("config_desc=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	builder.WriteString("is_builtin=")
-	builder.WriteString(fmt.Sprintf("%v", _m.IsBuiltin))
-	builder.WriteString(", ")
-	builder.WriteString("sort_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.SortID))
 	builder.WriteByte(')')
 	return builder.String()
 }

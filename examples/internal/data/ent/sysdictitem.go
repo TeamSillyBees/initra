@@ -20,16 +20,6 @@ type SysDictItem struct {
 	// ID of the ent.
 	// 雪花算法生成的主键 ID。
 	ID idgen.ID `json:"id,omitempty"`
-	// 逻辑删除时间，NULL 表示未删除。
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// 创建时间。
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	// 最后更新时间。
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// 创建人用户 ID。
-	CreatedBy *idgen.ID `json:"created_by,omitempty"`
-	// 最后更新人用户 ID。
-	UpdatedBy *idgen.ID `json:"updated_by,omitempty"`
 	// 字典集 ID，关联 sys_dict_collection.id。
 	CollectionID idgen.ID `json:"collection_id,omitempty"`
 	// 字典集编码，便于按编码直接查询字典项。
@@ -48,6 +38,16 @@ type SysDictItem struct {
 	Description *string `json:"description,omitempty"`
 	// 排序值。
 	SortID int `json:"sort_id,omitempty"`
+	// 逻辑删除时间，NULL 表示未删除。
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// 创建时间。
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// 最后更新时间。
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// 创建人用户 ID。
+	CreatedBy *idgen.ID `json:"created_by,omitempty"`
+	// 最后更新人用户 ID。
+	UpdatedBy *idgen.ID `json:"updated_by,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SysDictItemQuery when eager-loading is set.
 	Edges        SysDictItemEdges `json:"edges"`
@@ -81,7 +81,7 @@ func (*SysDictItem) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case sysdictitem.FieldIsDefaultValue, sysdictitem.FieldIsEnable:
 			values[i] = new(sql.NullBool)
-		case sysdictitem.FieldID, sysdictitem.FieldCreatedBy, sysdictitem.FieldUpdatedBy, sysdictitem.FieldCollectionID, sysdictitem.FieldSortID:
+		case sysdictitem.FieldID, sysdictitem.FieldCollectionID, sysdictitem.FieldSortID, sysdictitem.FieldCreatedBy, sysdictitem.FieldUpdatedBy:
 			values[i] = new(sql.NullInt64)
 		case sysdictitem.FieldCollectionCode, sysdictitem.FieldCode, sysdictitem.FieldParentCode, sysdictitem.FieldLabel, sysdictitem.FieldDescription:
 			values[i] = new(sql.NullString)
@@ -107,39 +107,6 @@ func (_m *SysDictItem) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = idgen.ID(value.Int64)
-			}
-		case sysdictitem.FieldDeletedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
-			} else if value.Valid {
-				_m.DeletedAt = new(time.Time)
-				*_m.DeletedAt = value.Time
-			}
-		case sysdictitem.FieldCreatedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field created_at", values[i])
-			} else if value.Valid {
-				_m.CreatedAt = value.Time
-			}
-		case sysdictitem.FieldUpdatedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
-			} else if value.Valid {
-				_m.UpdatedAt = value.Time
-			}
-		case sysdictitem.FieldCreatedBy:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field created_by", values[i])
-			} else if value.Valid {
-				_m.CreatedBy = new(idgen.ID)
-				*_m.CreatedBy = idgen.ID(value.Int64)
-			}
-		case sysdictitem.FieldUpdatedBy:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field updated_by", values[i])
-			} else if value.Valid {
-				_m.UpdatedBy = new(idgen.ID)
-				*_m.UpdatedBy = idgen.ID(value.Int64)
 			}
 		case sysdictitem.FieldCollectionID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -196,6 +163,39 @@ func (_m *SysDictItem) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.SortID = int(value.Int64)
 			}
+		case sysdictitem.FieldDeletedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
+			} else if value.Valid {
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
+			}
+		case sysdictitem.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				_m.CreatedAt = value.Time
+			}
+		case sysdictitem.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				_m.UpdatedAt = value.Time
+			}
+		case sysdictitem.FieldCreatedBy:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field created_by", values[i])
+			} else if value.Valid {
+				_m.CreatedBy = new(idgen.ID)
+				*_m.CreatedBy = idgen.ID(value.Int64)
+			}
+		case sysdictitem.FieldUpdatedBy:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_by", values[i])
+			} else if value.Valid {
+				_m.UpdatedBy = new(idgen.ID)
+				*_m.UpdatedBy = idgen.ID(value.Int64)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -237,27 +237,6 @@ func (_m *SysDictItem) String() string {
 	var builder strings.Builder
 	builder.WriteString("SysDictItem(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
-	if v := _m.DeletedAt; v != nil {
-		builder.WriteString("deleted_at=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
-	builder.WriteString("created_at=")
-	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("updated_at=")
-	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
-	builder.WriteString(", ")
-	if v := _m.CreatedBy; v != nil {
-		builder.WriteString("created_by=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := _m.UpdatedBy; v != nil {
-		builder.WriteString("updated_by=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
 	builder.WriteString("collection_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.CollectionID))
 	builder.WriteString(", ")
@@ -286,6 +265,27 @@ func (_m *SysDictItem) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("sort_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SortID))
+	builder.WriteString(", ")
+	if v := _m.DeletedAt; v != nil {
+		builder.WriteString("deleted_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.CreatedBy; v != nil {
+		builder.WriteString("created_by=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.UpdatedBy; v != nil {
+		builder.WriteString("updated_by=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }
