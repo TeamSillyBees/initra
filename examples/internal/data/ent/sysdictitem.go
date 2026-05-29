@@ -37,7 +37,7 @@ type SysDictItem struct {
 	// 字典项描述。
 	Description *string `json:"description,omitempty"`
 	// 排序值。
-	SortID int `json:"sort_id,omitempty"`
+	SortID int32 `json:"sort_id,omitempty"`
 	// 逻辑删除时间，NULL 表示未删除。
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// 创建时间。
@@ -161,7 +161,7 @@ func (_m *SysDictItem) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field sort_id", values[i])
 			} else if value.Valid {
-				_m.SortID = int(value.Int64)
+				_m.SortID = int32(value.Int64)
 			}
 		case sysdictitem.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

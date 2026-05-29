@@ -63,13 +63,13 @@ func (_c *SysDictCollectionCreate) SetNillableDescription(v *string) *SysDictCol
 }
 
 // SetItemLength sets the "item_length" field.
-func (_c *SysDictCollectionCreate) SetItemLength(v int) *SysDictCollectionCreate {
+func (_c *SysDictCollectionCreate) SetItemLength(v int32) *SysDictCollectionCreate {
 	_c.mutation.SetItemLength(v)
 	return _c
 }
 
 // SetNillableItemLength sets the "item_length" field if the given value is not nil.
-func (_c *SysDictCollectionCreate) SetNillableItemLength(v *int) *SysDictCollectionCreate {
+func (_c *SysDictCollectionCreate) SetNillableItemLength(v *int32) *SysDictCollectionCreate {
 	if v != nil {
 		_c.SetItemLength(*v)
 	}
@@ -91,13 +91,13 @@ func (_c *SysDictCollectionCreate) SetNillableIsBuiltin(v *bool) *SysDictCollect
 }
 
 // SetSortID sets the "sort_id" field.
-func (_c *SysDictCollectionCreate) SetSortID(v int) *SysDictCollectionCreate {
+func (_c *SysDictCollectionCreate) SetSortID(v int32) *SysDictCollectionCreate {
 	_c.mutation.SetSortID(v)
 	return _c
 }
 
 // SetNillableSortID sets the "sort_id" field if the given value is not nil.
-func (_c *SysDictCollectionCreate) SetNillableSortID(v *int) *SysDictCollectionCreate {
+func (_c *SysDictCollectionCreate) SetNillableSortID(v *int32) *SysDictCollectionCreate {
 	if v != nil {
 		_c.SetSortID(*v)
 	}
@@ -351,7 +351,7 @@ func (_c *SysDictCollectionCreate) createSpec() (*SysDictCollection, *sqlgraph.C
 		_node.Description = &value
 	}
 	if value, ok := _c.mutation.ItemLength(); ok {
-		_spec.SetField(sysdictcollection.FieldItemLength, field.TypeInt, value)
+		_spec.SetField(sysdictcollection.FieldItemLength, field.TypeInt32, value)
 		_node.ItemLength = &value
 	}
 	if value, ok := _c.mutation.IsBuiltin(); ok {
@@ -359,7 +359,7 @@ func (_c *SysDictCollectionCreate) createSpec() (*SysDictCollection, *sqlgraph.C
 		_node.IsBuiltin = value
 	}
 	if value, ok := _c.mutation.SortID(); ok {
-		_spec.SetField(sysdictcollection.FieldSortID, field.TypeInt, value)
+		_spec.SetField(sysdictcollection.FieldSortID, field.TypeInt32, value)
 		_node.SortID = value
 	}
 	if value, ok := _c.mutation.DeletedAt(); ok {

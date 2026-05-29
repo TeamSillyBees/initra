@@ -77,7 +77,7 @@ func Description(v string) predicate.SysDictCollection {
 }
 
 // ItemLength applies equality check predicate on the "item_length" field. It's identical to ItemLengthEQ.
-func ItemLength(v int) predicate.SysDictCollection {
+func ItemLength(v int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldEQ(FieldItemLength, v))
 }
 
@@ -87,7 +87,7 @@ func IsBuiltin(v bool) predicate.SysDictCollection {
 }
 
 // SortID applies equality check predicate on the "sort_id" field. It's identical to SortIDEQ.
-func SortID(v int) predicate.SysDictCollection {
+func SortID(v int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldEQ(FieldSortID, v))
 }
 
@@ -334,42 +334,42 @@ func DescriptionContainsFold(v string) predicate.SysDictCollection {
 }
 
 // ItemLengthEQ applies the EQ predicate on the "item_length" field.
-func ItemLengthEQ(v int) predicate.SysDictCollection {
+func ItemLengthEQ(v int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldEQ(FieldItemLength, v))
 }
 
 // ItemLengthNEQ applies the NEQ predicate on the "item_length" field.
-func ItemLengthNEQ(v int) predicate.SysDictCollection {
+func ItemLengthNEQ(v int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldNEQ(FieldItemLength, v))
 }
 
 // ItemLengthIn applies the In predicate on the "item_length" field.
-func ItemLengthIn(vs ...int) predicate.SysDictCollection {
+func ItemLengthIn(vs ...int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldIn(FieldItemLength, vs...))
 }
 
 // ItemLengthNotIn applies the NotIn predicate on the "item_length" field.
-func ItemLengthNotIn(vs ...int) predicate.SysDictCollection {
+func ItemLengthNotIn(vs ...int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldNotIn(FieldItemLength, vs...))
 }
 
 // ItemLengthGT applies the GT predicate on the "item_length" field.
-func ItemLengthGT(v int) predicate.SysDictCollection {
+func ItemLengthGT(v int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldGT(FieldItemLength, v))
 }
 
 // ItemLengthGTE applies the GTE predicate on the "item_length" field.
-func ItemLengthGTE(v int) predicate.SysDictCollection {
+func ItemLengthGTE(v int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldGTE(FieldItemLength, v))
 }
 
 // ItemLengthLT applies the LT predicate on the "item_length" field.
-func ItemLengthLT(v int) predicate.SysDictCollection {
+func ItemLengthLT(v int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldLT(FieldItemLength, v))
 }
 
 // ItemLengthLTE applies the LTE predicate on the "item_length" field.
-func ItemLengthLTE(v int) predicate.SysDictCollection {
+func ItemLengthLTE(v int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldLTE(FieldItemLength, v))
 }
 
@@ -394,42 +394,42 @@ func IsBuiltinNEQ(v bool) predicate.SysDictCollection {
 }
 
 // SortIDEQ applies the EQ predicate on the "sort_id" field.
-func SortIDEQ(v int) predicate.SysDictCollection {
+func SortIDEQ(v int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldEQ(FieldSortID, v))
 }
 
 // SortIDNEQ applies the NEQ predicate on the "sort_id" field.
-func SortIDNEQ(v int) predicate.SysDictCollection {
+func SortIDNEQ(v int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldNEQ(FieldSortID, v))
 }
 
 // SortIDIn applies the In predicate on the "sort_id" field.
-func SortIDIn(vs ...int) predicate.SysDictCollection {
+func SortIDIn(vs ...int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldIn(FieldSortID, vs...))
 }
 
 // SortIDNotIn applies the NotIn predicate on the "sort_id" field.
-func SortIDNotIn(vs ...int) predicate.SysDictCollection {
+func SortIDNotIn(vs ...int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldNotIn(FieldSortID, vs...))
 }
 
 // SortIDGT applies the GT predicate on the "sort_id" field.
-func SortIDGT(v int) predicate.SysDictCollection {
+func SortIDGT(v int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldGT(FieldSortID, v))
 }
 
 // SortIDGTE applies the GTE predicate on the "sort_id" field.
-func SortIDGTE(v int) predicate.SysDictCollection {
+func SortIDGTE(v int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldGTE(FieldSortID, v))
 }
 
 // SortIDLT applies the LT predicate on the "sort_id" field.
-func SortIDLT(v int) predicate.SysDictCollection {
+func SortIDLT(v int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldLT(FieldSortID, v))
 }
 
 // SortIDLTE applies the LTE predicate on the "sort_id" field.
-func SortIDLTE(v int) predicate.SysDictCollection {
+func SortIDLTE(v int32) predicate.SysDictCollection {
 	return predicate.SysDictCollection(sql.FieldLTE(FieldSortID, v))
 }
 

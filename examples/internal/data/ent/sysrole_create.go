@@ -78,13 +78,13 @@ func (_c *SysRoleCreate) SetNillableIsEnable(v *bool) *SysRoleCreate {
 }
 
 // SetSortID sets the "sort_id" field.
-func (_c *SysRoleCreate) SetSortID(v int) *SysRoleCreate {
+func (_c *SysRoleCreate) SetSortID(v int32) *SysRoleCreate {
 	_c.mutation.SetSortID(v)
 	return _c
 }
 
 // SetNillableSortID sets the "sort_id" field if the given value is not nil.
-func (_c *SysRoleCreate) SetNillableSortID(v *int) *SysRoleCreate {
+func (_c *SysRoleCreate) SetNillableSortID(v *int32) *SysRoleCreate {
 	if v != nil {
 		_c.SetSortID(*v)
 	}
@@ -357,7 +357,7 @@ func (_c *SysRoleCreate) createSpec() (*SysRole, *sqlgraph.CreateSpec) {
 		_node.IsEnable = value
 	}
 	if value, ok := _c.mutation.SortID(); ok {
-		_spec.SetField(sysrole.FieldSortID, field.TypeInt, value)
+		_spec.SetField(sysrole.FieldSortID, field.TypeInt32, value)
 		_node.SortID = value
 	}
 	if value, ok := _c.mutation.DeletedAt(); ok {

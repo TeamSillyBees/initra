@@ -149,14 +149,14 @@ func (_u *SysDictItemUpdate) ClearDescription() *SysDictItemUpdate {
 }
 
 // SetSortID sets the "sort_id" field.
-func (_u *SysDictItemUpdate) SetSortID(v int) *SysDictItemUpdate {
+func (_u *SysDictItemUpdate) SetSortID(v int32) *SysDictItemUpdate {
 	_u.mutation.ResetSortID()
 	_u.mutation.SetSortID(v)
 	return _u
 }
 
 // SetNillableSortID sets the "sort_id" field if the given value is not nil.
-func (_u *SysDictItemUpdate) SetNillableSortID(v *int) *SysDictItemUpdate {
+func (_u *SysDictItemUpdate) SetNillableSortID(v *int32) *SysDictItemUpdate {
 	if v != nil {
 		_u.SetSortID(*v)
 	}
@@ -164,7 +164,7 @@ func (_u *SysDictItemUpdate) SetNillableSortID(v *int) *SysDictItemUpdate {
 }
 
 // AddSortID adds value to the "sort_id" field.
-func (_u *SysDictItemUpdate) AddSortID(v int) *SysDictItemUpdate {
+func (_u *SysDictItemUpdate) AddSortID(v int32) *SysDictItemUpdate {
 	_u.mutation.AddSortID(v)
 	return _u
 }
@@ -371,10 +371,10 @@ func (_u *SysDictItemUpdate) sqlSave(ctx context.Context) (_node int, err error)
 		_spec.ClearField(sysdictitem.FieldDescription, field.TypeString)
 	}
 	if value, ok := _u.mutation.SortID(); ok {
-		_spec.SetField(sysdictitem.FieldSortID, field.TypeInt, value)
+		_spec.SetField(sysdictitem.FieldSortID, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.AddedSortID(); ok {
-		_spec.AddField(sysdictitem.FieldSortID, field.TypeInt, value)
+		_spec.AddField(sysdictitem.FieldSortID, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(sysdictitem.FieldDeletedAt, field.TypeTime, value)
@@ -571,14 +571,14 @@ func (_u *SysDictItemUpdateOne) ClearDescription() *SysDictItemUpdateOne {
 }
 
 // SetSortID sets the "sort_id" field.
-func (_u *SysDictItemUpdateOne) SetSortID(v int) *SysDictItemUpdateOne {
+func (_u *SysDictItemUpdateOne) SetSortID(v int32) *SysDictItemUpdateOne {
 	_u.mutation.ResetSortID()
 	_u.mutation.SetSortID(v)
 	return _u
 }
 
 // SetNillableSortID sets the "sort_id" field if the given value is not nil.
-func (_u *SysDictItemUpdateOne) SetNillableSortID(v *int) *SysDictItemUpdateOne {
+func (_u *SysDictItemUpdateOne) SetNillableSortID(v *int32) *SysDictItemUpdateOne {
 	if v != nil {
 		_u.SetSortID(*v)
 	}
@@ -586,7 +586,7 @@ func (_u *SysDictItemUpdateOne) SetNillableSortID(v *int) *SysDictItemUpdateOne 
 }
 
 // AddSortID adds value to the "sort_id" field.
-func (_u *SysDictItemUpdateOne) AddSortID(v int) *SysDictItemUpdateOne {
+func (_u *SysDictItemUpdateOne) AddSortID(v int32) *SysDictItemUpdateOne {
 	_u.mutation.AddSortID(v)
 	return _u
 }
@@ -823,10 +823,10 @@ func (_u *SysDictItemUpdateOne) sqlSave(ctx context.Context) (_node *SysDictItem
 		_spec.ClearField(sysdictitem.FieldDescription, field.TypeString)
 	}
 	if value, ok := _u.mutation.SortID(); ok {
-		_spec.SetField(sysdictitem.FieldSortID, field.TypeInt, value)
+		_spec.SetField(sysdictitem.FieldSortID, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.AddedSortID(); ok {
-		_spec.AddField(sysdictitem.FieldSortID, field.TypeInt, value)
+		_spec.AddField(sysdictitem.FieldSortID, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(sysdictitem.FieldDeletedAt, field.TypeTime, value)

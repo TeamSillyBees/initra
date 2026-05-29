@@ -30,7 +30,7 @@ func (SysRole) Fields() []ent.Field {
 			Comment("是否为系统内置角色，内置角色通常不允许删除。"),
 		field.Bool("is_enable").Default(true).
 			Comment("角色是否启用，禁用后不参与授权。"),
-		field.Int("sort_id").Default(0).
+		field.Int32("sort_id").Default(0).
 			Comment("角色排序值，值越小越靠前。"),
 	}
 

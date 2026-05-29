@@ -45,7 +45,7 @@ func TestServiceGetHTTPBingoFormPage(t *testing.T) {
 	require.Equal(t, "trace-1", client.options.Headers["X-Trace-ID"])
 	require.Equal(t, "text/html; charset=utf-8", vo.ContentType)
 	require.Equal(t, "<form>demo</form>", vo.Body)
-	require.Equal(t, len("<form>demo</form>"), vo.Size)
+	require.Equal(t, int32(len("<form>demo</form>")), vo.Size)
 }
 
 func TestServiceMapsHTTPClientError(t *testing.T) {

@@ -53,8 +53,6 @@ func NewEntClientFromDB(db *sql.DB, generator *idgen.Generator) *ent.Client {
 	client := ent.NewClient(ent.Driver(drv))
 
 	client.Use(entx.AuditHook(entx.AuditHookOptions{
-		IDGen: generator,
-		Now:   time.Now,
 		Operator: func(ctx context.Context) (idgen.ID, bool) {
 			if id, ok := entx.OperatorIDFromContext(ctx); ok {
 				return id, true

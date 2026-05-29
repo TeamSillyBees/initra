@@ -52,7 +52,7 @@ func init() {
 	// sysconfigDescSortID is the schema descriptor for sort_id field.
 	sysconfigDescSortID := sysconfigFields[5].Descriptor()
 	// sysconfig.DefaultSortID holds the default value on creation for the sort_id field.
-	sysconfig.DefaultSortID = sysconfigDescSortID.Default.(int)
+	sysconfig.DefaultSortID = sysconfigDescSortID.Default.(int32)
 	// sysconfigDescCreatedAt is the schema descriptor for created_at field.
 	sysconfigDescCreatedAt := sysconfigFields[7].Descriptor()
 	// sysconfig.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -118,7 +118,7 @@ func init() {
 	// sysdictcollectionDescSortID is the schema descriptor for sort_id field.
 	sysdictcollectionDescSortID := sysdictcollectionFields[7].Descriptor()
 	// sysdictcollection.DefaultSortID holds the default value on creation for the sort_id field.
-	sysdictcollection.DefaultSortID = sysdictcollectionDescSortID.Default.(int)
+	sysdictcollection.DefaultSortID = sysdictcollectionDescSortID.Default.(int32)
 	// sysdictcollectionDescCreatedAt is the schema descriptor for created_at field.
 	sysdictcollectionDescCreatedAt := sysdictcollectionFields[9].Descriptor()
 	// sysdictcollection.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -212,7 +212,7 @@ func init() {
 	// sysdictitemDescSortID is the schema descriptor for sort_id field.
 	sysdictitemDescSortID := sysdictitemFields[9].Descriptor()
 	// sysdictitem.DefaultSortID holds the default value on creation for the sort_id field.
-	sysdictitem.DefaultSortID = sysdictitemDescSortID.Default.(int)
+	sysdictitem.DefaultSortID = sysdictitemDescSortID.Default.(int32)
 	// sysdictitemDescCreatedAt is the schema descriptor for created_at field.
 	sysdictitemDescCreatedAt := sysdictitemFields[11].Descriptor()
 	// sysdictitem.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -272,7 +272,7 @@ func init() {
 	// sysmenuDescSortID is the schema descriptor for sort_id field.
 	sysmenuDescSortID := sysmenuFields[11].Descriptor()
 	// sysmenu.DefaultSortID holds the default value on creation for the sort_id field.
-	sysmenu.DefaultSortID = sysmenuDescSortID.Default.(int)
+	sysmenu.DefaultSortID = sysmenuDescSortID.Default.(int32)
 	// sysmenuDescCreatedAt is the schema descriptor for created_at field.
 	sysmenuDescCreatedAt := sysmenuFields[13].Descriptor()
 	// sysmenu.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -338,7 +338,7 @@ func init() {
 	// sysroleDescSortID is the schema descriptor for sort_id field.
 	sysroleDescSortID := sysroleFields[6].Descriptor()
 	// sysrole.DefaultSortID holds the default value on creation for the sort_id field.
-	sysrole.DefaultSortID = sysroleDescSortID.Default.(int)
+	sysrole.DefaultSortID = sysroleDescSortID.Default.(int32)
 	// sysroleDescCreatedAt is the schema descriptor for created_at field.
 	sysroleDescCreatedAt := sysroleFields[8].Descriptor()
 	// sysrole.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -428,7 +428,7 @@ func init() {
 	// sysuserDescSortID is the schema descriptor for sort_id field.
 	sysuserDescSortID := sysuserFields[9].Descriptor()
 	// sysuser.DefaultSortID holds the default value on creation for the sort_id field.
-	sysuser.DefaultSortID = sysuserDescSortID.Default.(int)
+	sysuser.DefaultSortID = sysuserDescSortID.Default.(int32)
 	// sysuserDescCreatedAt is the schema descriptor for created_at field.
 	sysuserDescCreatedAt := sysuserFields[11].Descriptor()
 	// sysuser.DefaultCreatedAt holds the default value on creation for the created_at field.

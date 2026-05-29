@@ -53,7 +53,6 @@ func TestExampleUsesAPIFoundationLayout(t *testing.T) {
 		requireNoTransportTypes(t, filepath.Join(moduleDir, moduleName+".handler.go"))
 		requireHTTPNaming(t, filepath.Join(moduleDir, moduleName+".dto.go"))
 	}
-	require.FileExists(t, filepath.Join(root, "db", "schema", "01_sys_user.sql"))
 	require.FileExists(t, filepath.Join(root, "db", "seeds", "001_seed_admin.sql"))
 	require.NoDirExists(t, filepath.Join(root, "internal", "gen", "jet"))
 	require.NoDirExists(t, filepath.Join(root, "tools", "jetgen"))

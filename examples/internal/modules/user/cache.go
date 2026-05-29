@@ -23,7 +23,7 @@ type User struct {
 	RoleCodes    []string
 	IsSuperAdmin bool
 	IsEnable     bool
-	SortID       int
+	SortID       int32
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	DeletedAt    *time.Time

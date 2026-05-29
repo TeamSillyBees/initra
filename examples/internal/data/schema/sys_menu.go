@@ -42,7 +42,7 @@ func (SysMenu) Fields() []ent.Field {
 			Comment("是否在前端菜单树中可见。"),
 		field.Bool("is_cached").Default(true).
 			Comment("前端页面是否缓存。"),
-		field.Int("sort_id").Default(0).
+		field.Int32("sort_id").Default(0).
 			Comment("排序值，值越小越靠前。"),
 	}
 

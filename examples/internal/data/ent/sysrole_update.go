@@ -108,14 +108,14 @@ func (_u *SysRoleUpdate) SetNillableIsEnable(v *bool) *SysRoleUpdate {
 }
 
 // SetSortID sets the "sort_id" field.
-func (_u *SysRoleUpdate) SetSortID(v int) *SysRoleUpdate {
+func (_u *SysRoleUpdate) SetSortID(v int32) *SysRoleUpdate {
 	_u.mutation.ResetSortID()
 	_u.mutation.SetSortID(v)
 	return _u
 }
 
 // SetNillableSortID sets the "sort_id" field if the given value is not nil.
-func (_u *SysRoleUpdate) SetNillableSortID(v *int) *SysRoleUpdate {
+func (_u *SysRoleUpdate) SetNillableSortID(v *int32) *SysRoleUpdate {
 	if v != nil {
 		_u.SetSortID(*v)
 	}
@@ -123,7 +123,7 @@ func (_u *SysRoleUpdate) SetNillableSortID(v *int) *SysRoleUpdate {
 }
 
 // AddSortID adds value to the "sort_id" field.
-func (_u *SysRoleUpdate) AddSortID(v int) *SysRoleUpdate {
+func (_u *SysRoleUpdate) AddSortID(v int32) *SysRoleUpdate {
 	_u.mutation.AddSortID(v)
 	return _u
 }
@@ -367,10 +367,10 @@ func (_u *SysRoleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		_spec.SetField(sysrole.FieldIsEnable, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.SortID(); ok {
-		_spec.SetField(sysrole.FieldSortID, field.TypeInt, value)
+		_spec.SetField(sysrole.FieldSortID, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.AddedSortID(); ok {
-		_spec.AddField(sysrole.FieldSortID, field.TypeInt, value)
+		_spec.AddField(sysrole.FieldSortID, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(sysrole.FieldDeletedAt, field.TypeTime, value)
@@ -586,14 +586,14 @@ func (_u *SysRoleUpdateOne) SetNillableIsEnable(v *bool) *SysRoleUpdateOne {
 }
 
 // SetSortID sets the "sort_id" field.
-func (_u *SysRoleUpdateOne) SetSortID(v int) *SysRoleUpdateOne {
+func (_u *SysRoleUpdateOne) SetSortID(v int32) *SysRoleUpdateOne {
 	_u.mutation.ResetSortID()
 	_u.mutation.SetSortID(v)
 	return _u
 }
 
 // SetNillableSortID sets the "sort_id" field if the given value is not nil.
-func (_u *SysRoleUpdateOne) SetNillableSortID(v *int) *SysRoleUpdateOne {
+func (_u *SysRoleUpdateOne) SetNillableSortID(v *int32) *SysRoleUpdateOne {
 	if v != nil {
 		_u.SetSortID(*v)
 	}
@@ -601,7 +601,7 @@ func (_u *SysRoleUpdateOne) SetNillableSortID(v *int) *SysRoleUpdateOne {
 }
 
 // AddSortID adds value to the "sort_id" field.
-func (_u *SysRoleUpdateOne) AddSortID(v int) *SysRoleUpdateOne {
+func (_u *SysRoleUpdateOne) AddSortID(v int32) *SysRoleUpdateOne {
 	_u.mutation.AddSortID(v)
 	return _u
 }
@@ -875,10 +875,10 @@ func (_u *SysRoleUpdateOne) sqlSave(ctx context.Context) (_node *SysRole, err er
 		_spec.SetField(sysrole.FieldIsEnable, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.SortID(); ok {
-		_spec.SetField(sysrole.FieldSortID, field.TypeInt, value)
+		_spec.SetField(sysrole.FieldSortID, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.AddedSortID(); ok {
-		_spec.AddField(sysrole.FieldSortID, field.TypeInt, value)
+		_spec.AddField(sysrole.FieldSortID, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(sysrole.FieldDeletedAt, field.TypeTime, value)

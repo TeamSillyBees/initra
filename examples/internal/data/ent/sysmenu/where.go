@@ -108,7 +108,7 @@ func IsCached(v bool) predicate.SysMenu {
 }
 
 // SortID applies equality check predicate on the "sort_id" field. It's identical to SortIDEQ.
-func SortID(v int) predicate.SysMenu {
+func SortID(v int32) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldEQ(FieldSortID, v))
 }
 
@@ -704,42 +704,42 @@ func IsCachedNEQ(v bool) predicate.SysMenu {
 }
 
 // SortIDEQ applies the EQ predicate on the "sort_id" field.
-func SortIDEQ(v int) predicate.SysMenu {
+func SortIDEQ(v int32) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldEQ(FieldSortID, v))
 }
 
 // SortIDNEQ applies the NEQ predicate on the "sort_id" field.
-func SortIDNEQ(v int) predicate.SysMenu {
+func SortIDNEQ(v int32) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldNEQ(FieldSortID, v))
 }
 
 // SortIDIn applies the In predicate on the "sort_id" field.
-func SortIDIn(vs ...int) predicate.SysMenu {
+func SortIDIn(vs ...int32) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldIn(FieldSortID, vs...))
 }
 
 // SortIDNotIn applies the NotIn predicate on the "sort_id" field.
-func SortIDNotIn(vs ...int) predicate.SysMenu {
+func SortIDNotIn(vs ...int32) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldNotIn(FieldSortID, vs...))
 }
 
 // SortIDGT applies the GT predicate on the "sort_id" field.
-func SortIDGT(v int) predicate.SysMenu {
+func SortIDGT(v int32) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldGT(FieldSortID, v))
 }
 
 // SortIDGTE applies the GTE predicate on the "sort_id" field.
-func SortIDGTE(v int) predicate.SysMenu {
+func SortIDGTE(v int32) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldGTE(FieldSortID, v))
 }
 
 // SortIDLT applies the LT predicate on the "sort_id" field.
-func SortIDLT(v int) predicate.SysMenu {
+func SortIDLT(v int32) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldLT(FieldSortID, v))
 }
 
 // SortIDLTE applies the LTE predicate on the "sort_id" field.
-func SortIDLTE(v int) predicate.SysMenu {
+func SortIDLTE(v int32) predicate.SysMenu {
 	return predicate.SysMenu(sql.FieldLTE(FieldSortID, v))
 }
 

@@ -105,7 +105,7 @@ var (
 	// DefaultIsCached holds the default value on creation for the "is_cached" field.
 	DefaultIsCached bool
 	// DefaultSortID holds the default value on creation for the "sort_id" field.
-	DefaultSortID int
+	DefaultSortID int32
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.

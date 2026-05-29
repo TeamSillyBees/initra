@@ -92,14 +92,14 @@ func (_u *SysConfigUpdate) SetNillableIsBuiltin(v *bool) *SysConfigUpdate {
 }
 
 // SetSortID sets the "sort_id" field.
-func (_u *SysConfigUpdate) SetSortID(v int) *SysConfigUpdate {
+func (_u *SysConfigUpdate) SetSortID(v int32) *SysConfigUpdate {
 	_u.mutation.ResetSortID()
 	_u.mutation.SetSortID(v)
 	return _u
 }
 
 // SetNillableSortID sets the "sort_id" field if the given value is not nil.
-func (_u *SysConfigUpdate) SetNillableSortID(v *int) *SysConfigUpdate {
+func (_u *SysConfigUpdate) SetNillableSortID(v *int32) *SysConfigUpdate {
 	if v != nil {
 		_u.SetSortID(*v)
 	}
@@ -107,7 +107,7 @@ func (_u *SysConfigUpdate) SetNillableSortID(v *int) *SysConfigUpdate {
 }
 
 // AddSortID adds value to the "sort_id" field.
-func (_u *SysConfigUpdate) AddSortID(v int) *SysConfigUpdate {
+func (_u *SysConfigUpdate) AddSortID(v int32) *SysConfigUpdate {
 	_u.mutation.AddSortID(v)
 	return _u
 }
@@ -271,10 +271,10 @@ func (_u *SysConfigUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		_spec.SetField(sysconfig.FieldIsBuiltin, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.SortID(); ok {
-		_spec.SetField(sysconfig.FieldSortID, field.TypeInt, value)
+		_spec.SetField(sysconfig.FieldSortID, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.AddedSortID(); ok {
-		_spec.AddField(sysconfig.FieldSortID, field.TypeInt, value)
+		_spec.AddField(sysconfig.FieldSortID, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(sysconfig.FieldDeletedAt, field.TypeTime, value)
@@ -386,14 +386,14 @@ func (_u *SysConfigUpdateOne) SetNillableIsBuiltin(v *bool) *SysConfigUpdateOne 
 }
 
 // SetSortID sets the "sort_id" field.
-func (_u *SysConfigUpdateOne) SetSortID(v int) *SysConfigUpdateOne {
+func (_u *SysConfigUpdateOne) SetSortID(v int32) *SysConfigUpdateOne {
 	_u.mutation.ResetSortID()
 	_u.mutation.SetSortID(v)
 	return _u
 }
 
 // SetNillableSortID sets the "sort_id" field if the given value is not nil.
-func (_u *SysConfigUpdateOne) SetNillableSortID(v *int) *SysConfigUpdateOne {
+func (_u *SysConfigUpdateOne) SetNillableSortID(v *int32) *SysConfigUpdateOne {
 	if v != nil {
 		_u.SetSortID(*v)
 	}
@@ -401,7 +401,7 @@ func (_u *SysConfigUpdateOne) SetNillableSortID(v *int) *SysConfigUpdateOne {
 }
 
 // AddSortID adds value to the "sort_id" field.
-func (_u *SysConfigUpdateOne) AddSortID(v int) *SysConfigUpdateOne {
+func (_u *SysConfigUpdateOne) AddSortID(v int32) *SysConfigUpdateOne {
 	_u.mutation.AddSortID(v)
 	return _u
 }
@@ -595,10 +595,10 @@ func (_u *SysConfigUpdateOne) sqlSave(ctx context.Context) (_node *SysConfig, er
 		_spec.SetField(sysconfig.FieldIsBuiltin, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.SortID(); ok {
-		_spec.SetField(sysconfig.FieldSortID, field.TypeInt, value)
+		_spec.SetField(sysconfig.FieldSortID, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.AddedSortID(); ok {
-		_spec.AddField(sysconfig.FieldSortID, field.TypeInt, value)
+		_spec.AddField(sysconfig.FieldSortID, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(sysconfig.FieldDeletedAt, field.TypeTime, value)

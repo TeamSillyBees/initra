@@ -35,7 +35,7 @@ func (SysUser) Fields() []ent.Field {
 			Comment("是否为超级管理员，超级管理员通常拥有全量权限。"),
 		field.Bool("is_enable").Default(true).
 			Comment("账号是否启用。"),
-		field.Int("sort_id").Default(0).
+		field.Int32("sort_id").Default(0).
 			Comment("排序值，便于后台列表定制顺序。"),
 	}
 	fields = append(fields, fieldx.SoftDelete()...)

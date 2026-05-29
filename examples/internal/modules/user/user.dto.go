@@ -23,7 +23,7 @@ type CreateUserBody struct {
 	RoleCodes    []string `json:"roleCodes" example:"admin"`
 	IsSuperAdmin bool     `json:"isSuperAdmin" example:"false"`
 	IsEnable     *bool    `json:"isEnable,omitempty" example:"true"`
-	SortID       int      `json:"sortId" example:"0"`
+	SortID       int32    `json:"sortId" example:"0"`
 }
 
 // UpdateUserBody 描述更新用户请求体。
@@ -35,7 +35,7 @@ type UpdateUserBody struct {
 	RoleCodes    *[]string `json:"roleCodes,omitempty" example:"viewer"`
 	IsSuperAdmin *bool     `json:"isSuperAdmin,omitempty" example:"false"`
 	IsEnable     *bool     `json:"isEnable,omitempty" example:"true"`
-	SortID       *int      `json:"sortId,omitempty" example:"10"`
+	SortID       *int32    `json:"sortId,omitempty" example:"10"`
 }
 
 // UserVO 是 user 模块对外暴露的用户 JSON DTO。
@@ -49,7 +49,7 @@ type UserVO struct {
 	RoleCodes    []string `json:"roleCodes"`
 	IsSuperAdmin bool     `json:"isSuperAdmin"`
 	IsEnable     bool     `json:"isEnable"`
-	SortID       int      `json:"sortId"`
+	SortID       int32    `json:"sortId"`
 }
 
 type getUserRequest struct {

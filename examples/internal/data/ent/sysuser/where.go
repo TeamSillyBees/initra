@@ -97,7 +97,7 @@ func IsEnable(v bool) predicate.SysUser {
 }
 
 // SortID applies equality check predicate on the "sort_id" field. It's identical to SortIDEQ.
-func SortID(v int) predicate.SysUser {
+func SortID(v int32) predicate.SysUser {
 	return predicate.SysUser(sql.FieldEQ(FieldSortID, v))
 }
 
@@ -579,42 +579,42 @@ func IsEnableNEQ(v bool) predicate.SysUser {
 }
 
 // SortIDEQ applies the EQ predicate on the "sort_id" field.
-func SortIDEQ(v int) predicate.SysUser {
+func SortIDEQ(v int32) predicate.SysUser {
 	return predicate.SysUser(sql.FieldEQ(FieldSortID, v))
 }
 
 // SortIDNEQ applies the NEQ predicate on the "sort_id" field.
-func SortIDNEQ(v int) predicate.SysUser {
+func SortIDNEQ(v int32) predicate.SysUser {
 	return predicate.SysUser(sql.FieldNEQ(FieldSortID, v))
 }
 
 // SortIDIn applies the In predicate on the "sort_id" field.
-func SortIDIn(vs ...int) predicate.SysUser {
+func SortIDIn(vs ...int32) predicate.SysUser {
 	return predicate.SysUser(sql.FieldIn(FieldSortID, vs...))
 }
 
 // SortIDNotIn applies the NotIn predicate on the "sort_id" field.
-func SortIDNotIn(vs ...int) predicate.SysUser {
+func SortIDNotIn(vs ...int32) predicate.SysUser {
 	return predicate.SysUser(sql.FieldNotIn(FieldSortID, vs...))
 }
 
 // SortIDGT applies the GT predicate on the "sort_id" field.
-func SortIDGT(v int) predicate.SysUser {
+func SortIDGT(v int32) predicate.SysUser {
 	return predicate.SysUser(sql.FieldGT(FieldSortID, v))
 }
 
 // SortIDGTE applies the GTE predicate on the "sort_id" field.
-func SortIDGTE(v int) predicate.SysUser {
+func SortIDGTE(v int32) predicate.SysUser {
 	return predicate.SysUser(sql.FieldGTE(FieldSortID, v))
 }
 
 // SortIDLT applies the LT predicate on the "sort_id" field.
-func SortIDLT(v int) predicate.SysUser {
+func SortIDLT(v int32) predicate.SysUser {
 	return predicate.SysUser(sql.FieldLT(FieldSortID, v))
 }
 
 // SortIDLTE applies the LTE predicate on the "sort_id" field.
-func SortIDLTE(v int) predicate.SysUser {
+func SortIDLTE(v int32) predicate.SysUser {
 	return predicate.SysUser(sql.FieldLTE(FieldSortID, v))
 }
 

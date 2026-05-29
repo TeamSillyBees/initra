@@ -28,11 +28,11 @@ type SysDictCollection struct {
 	// 字典集说明。
 	Description *string `json:"description,omitempty"`
 	// 字典值推荐长度上限。
-	ItemLength *int `json:"item_length,omitempty"`
+	ItemLength *int32 `json:"item_length,omitempty"`
 	// 是否为系统内置字典集。
 	IsBuiltin bool `json:"is_builtin,omitempty"`
 	// 排序值。
-	SortID int `json:"sort_id,omitempty"`
+	SortID int32 `json:"sort_id,omitempty"`
 	// 逻辑删除时间，NULL 表示未删除。
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// 创建时间。
@@ -130,8 +130,8 @@ func (_m *SysDictCollection) assignValues(columns []string, values []any) error 
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field item_length", values[i])
 			} else if value.Valid {
-				_m.ItemLength = new(int)
-				*_m.ItemLength = int(value.Int64)
+				_m.ItemLength = new(int32)
+				*_m.ItemLength = int32(value.Int64)
 			}
 		case sysdictcollection.FieldIsBuiltin:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -143,7 +143,7 @@ func (_m *SysDictCollection) assignValues(columns []string, values []any) error 
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field sort_id", values[i])
 			} else if value.Valid {
-				_m.SortID = int(value.Int64)
+				_m.SortID = int32(value.Int64)
 			}
 		case sysdictcollection.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

@@ -93,14 +93,14 @@ func (_u *SysDictCollectionUpdate) ClearDescription() *SysDictCollectionUpdate {
 }
 
 // SetItemLength sets the "item_length" field.
-func (_u *SysDictCollectionUpdate) SetItemLength(v int) *SysDictCollectionUpdate {
+func (_u *SysDictCollectionUpdate) SetItemLength(v int32) *SysDictCollectionUpdate {
 	_u.mutation.ResetItemLength()
 	_u.mutation.SetItemLength(v)
 	return _u
 }
 
 // SetNillableItemLength sets the "item_length" field if the given value is not nil.
-func (_u *SysDictCollectionUpdate) SetNillableItemLength(v *int) *SysDictCollectionUpdate {
+func (_u *SysDictCollectionUpdate) SetNillableItemLength(v *int32) *SysDictCollectionUpdate {
 	if v != nil {
 		_u.SetItemLength(*v)
 	}
@@ -108,7 +108,7 @@ func (_u *SysDictCollectionUpdate) SetNillableItemLength(v *int) *SysDictCollect
 }
 
 // AddItemLength adds value to the "item_length" field.
-func (_u *SysDictCollectionUpdate) AddItemLength(v int) *SysDictCollectionUpdate {
+func (_u *SysDictCollectionUpdate) AddItemLength(v int32) *SysDictCollectionUpdate {
 	_u.mutation.AddItemLength(v)
 	return _u
 }
@@ -134,14 +134,14 @@ func (_u *SysDictCollectionUpdate) SetNillableIsBuiltin(v *bool) *SysDictCollect
 }
 
 // SetSortID sets the "sort_id" field.
-func (_u *SysDictCollectionUpdate) SetSortID(v int) *SysDictCollectionUpdate {
+func (_u *SysDictCollectionUpdate) SetSortID(v int32) *SysDictCollectionUpdate {
 	_u.mutation.ResetSortID()
 	_u.mutation.SetSortID(v)
 	return _u
 }
 
 // SetNillableSortID sets the "sort_id" field if the given value is not nil.
-func (_u *SysDictCollectionUpdate) SetNillableSortID(v *int) *SysDictCollectionUpdate {
+func (_u *SysDictCollectionUpdate) SetNillableSortID(v *int32) *SysDictCollectionUpdate {
 	if v != nil {
 		_u.SetSortID(*v)
 	}
@@ -149,7 +149,7 @@ func (_u *SysDictCollectionUpdate) SetNillableSortID(v *int) *SysDictCollectionU
 }
 
 // AddSortID adds value to the "sort_id" field.
-func (_u *SysDictCollectionUpdate) AddSortID(v int) *SysDictCollectionUpdate {
+func (_u *SysDictCollectionUpdate) AddSortID(v int32) *SysDictCollectionUpdate {
 	_u.mutation.AddSortID(v)
 	return _u
 }
@@ -354,22 +354,22 @@ func (_u *SysDictCollectionUpdate) sqlSave(ctx context.Context) (_node int, err 
 		_spec.ClearField(sysdictcollection.FieldDescription, field.TypeString)
 	}
 	if value, ok := _u.mutation.ItemLength(); ok {
-		_spec.SetField(sysdictcollection.FieldItemLength, field.TypeInt, value)
+		_spec.SetField(sysdictcollection.FieldItemLength, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.AddedItemLength(); ok {
-		_spec.AddField(sysdictcollection.FieldItemLength, field.TypeInt, value)
+		_spec.AddField(sysdictcollection.FieldItemLength, field.TypeInt32, value)
 	}
 	if _u.mutation.ItemLengthCleared() {
-		_spec.ClearField(sysdictcollection.FieldItemLength, field.TypeInt)
+		_spec.ClearField(sysdictcollection.FieldItemLength, field.TypeInt32)
 	}
 	if value, ok := _u.mutation.IsBuiltin(); ok {
 		_spec.SetField(sysdictcollection.FieldIsBuiltin, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.SortID(); ok {
-		_spec.SetField(sysdictcollection.FieldSortID, field.TypeInt, value)
+		_spec.SetField(sysdictcollection.FieldSortID, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.AddedSortID(); ok {
-		_spec.AddField(sysdictcollection.FieldSortID, field.TypeInt, value)
+		_spec.AddField(sysdictcollection.FieldSortID, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(sysdictcollection.FieldDeletedAt, field.TypeTime, value)
@@ -526,14 +526,14 @@ func (_u *SysDictCollectionUpdateOne) ClearDescription() *SysDictCollectionUpdat
 }
 
 // SetItemLength sets the "item_length" field.
-func (_u *SysDictCollectionUpdateOne) SetItemLength(v int) *SysDictCollectionUpdateOne {
+func (_u *SysDictCollectionUpdateOne) SetItemLength(v int32) *SysDictCollectionUpdateOne {
 	_u.mutation.ResetItemLength()
 	_u.mutation.SetItemLength(v)
 	return _u
 }
 
 // SetNillableItemLength sets the "item_length" field if the given value is not nil.
-func (_u *SysDictCollectionUpdateOne) SetNillableItemLength(v *int) *SysDictCollectionUpdateOne {
+func (_u *SysDictCollectionUpdateOne) SetNillableItemLength(v *int32) *SysDictCollectionUpdateOne {
 	if v != nil {
 		_u.SetItemLength(*v)
 	}
@@ -541,7 +541,7 @@ func (_u *SysDictCollectionUpdateOne) SetNillableItemLength(v *int) *SysDictColl
 }
 
 // AddItemLength adds value to the "item_length" field.
-func (_u *SysDictCollectionUpdateOne) AddItemLength(v int) *SysDictCollectionUpdateOne {
+func (_u *SysDictCollectionUpdateOne) AddItemLength(v int32) *SysDictCollectionUpdateOne {
 	_u.mutation.AddItemLength(v)
 	return _u
 }
@@ -567,14 +567,14 @@ func (_u *SysDictCollectionUpdateOne) SetNillableIsBuiltin(v *bool) *SysDictColl
 }
 
 // SetSortID sets the "sort_id" field.
-func (_u *SysDictCollectionUpdateOne) SetSortID(v int) *SysDictCollectionUpdateOne {
+func (_u *SysDictCollectionUpdateOne) SetSortID(v int32) *SysDictCollectionUpdateOne {
 	_u.mutation.ResetSortID()
 	_u.mutation.SetSortID(v)
 	return _u
 }
 
 // SetNillableSortID sets the "sort_id" field if the given value is not nil.
-func (_u *SysDictCollectionUpdateOne) SetNillableSortID(v *int) *SysDictCollectionUpdateOne {
+func (_u *SysDictCollectionUpdateOne) SetNillableSortID(v *int32) *SysDictCollectionUpdateOne {
 	if v != nil {
 		_u.SetSortID(*v)
 	}
@@ -582,7 +582,7 @@ func (_u *SysDictCollectionUpdateOne) SetNillableSortID(v *int) *SysDictCollecti
 }
 
 // AddSortID adds value to the "sort_id" field.
-func (_u *SysDictCollectionUpdateOne) AddSortID(v int) *SysDictCollectionUpdateOne {
+func (_u *SysDictCollectionUpdateOne) AddSortID(v int32) *SysDictCollectionUpdateOne {
 	_u.mutation.AddSortID(v)
 	return _u
 }
@@ -817,22 +817,22 @@ func (_u *SysDictCollectionUpdateOne) sqlSave(ctx context.Context) (_node *SysDi
 		_spec.ClearField(sysdictcollection.FieldDescription, field.TypeString)
 	}
 	if value, ok := _u.mutation.ItemLength(); ok {
-		_spec.SetField(sysdictcollection.FieldItemLength, field.TypeInt, value)
+		_spec.SetField(sysdictcollection.FieldItemLength, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.AddedItemLength(); ok {
-		_spec.AddField(sysdictcollection.FieldItemLength, field.TypeInt, value)
+		_spec.AddField(sysdictcollection.FieldItemLength, field.TypeInt32, value)
 	}
 	if _u.mutation.ItemLengthCleared() {
-		_spec.ClearField(sysdictcollection.FieldItemLength, field.TypeInt)
+		_spec.ClearField(sysdictcollection.FieldItemLength, field.TypeInt32)
 	}
 	if value, ok := _u.mutation.IsBuiltin(); ok {
 		_spec.SetField(sysdictcollection.FieldIsBuiltin, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.SortID(); ok {
-		_spec.SetField(sysdictcollection.FieldSortID, field.TypeInt, value)
+		_spec.SetField(sysdictcollection.FieldSortID, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.AddedSortID(); ok {
-		_spec.AddField(sysdictcollection.FieldSortID, field.TypeInt, value)
+		_spec.AddField(sysdictcollection.FieldSortID, field.TypeInt32, value)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
 		_spec.SetField(sysdictcollection.FieldDeletedAt, field.TypeTime, value)

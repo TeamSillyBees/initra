@@ -93,7 +93,7 @@ func Description(v string) predicate.SysDictItem {
 }
 
 // SortID applies equality check predicate on the "sort_id" field. It's identical to SortIDEQ.
-func SortID(v int) predicate.SysDictItem {
+func SortID(v int32) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldEQ(FieldSortID, v))
 }
 
@@ -510,42 +510,42 @@ func DescriptionContainsFold(v string) predicate.SysDictItem {
 }
 
 // SortIDEQ applies the EQ predicate on the "sort_id" field.
-func SortIDEQ(v int) predicate.SysDictItem {
+func SortIDEQ(v int32) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldEQ(FieldSortID, v))
 }
 
 // SortIDNEQ applies the NEQ predicate on the "sort_id" field.
-func SortIDNEQ(v int) predicate.SysDictItem {
+func SortIDNEQ(v int32) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldNEQ(FieldSortID, v))
 }
 
 // SortIDIn applies the In predicate on the "sort_id" field.
-func SortIDIn(vs ...int) predicate.SysDictItem {
+func SortIDIn(vs ...int32) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldIn(FieldSortID, vs...))
 }
 
 // SortIDNotIn applies the NotIn predicate on the "sort_id" field.
-func SortIDNotIn(vs ...int) predicate.SysDictItem {
+func SortIDNotIn(vs ...int32) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldNotIn(FieldSortID, vs...))
 }
 
 // SortIDGT applies the GT predicate on the "sort_id" field.
-func SortIDGT(v int) predicate.SysDictItem {
+func SortIDGT(v int32) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldGT(FieldSortID, v))
 }
 
 // SortIDGTE applies the GTE predicate on the "sort_id" field.
-func SortIDGTE(v int) predicate.SysDictItem {
+func SortIDGTE(v int32) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldGTE(FieldSortID, v))
 }
 
 // SortIDLT applies the LT predicate on the "sort_id" field.
-func SortIDLT(v int) predicate.SysDictItem {
+func SortIDLT(v int32) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldLT(FieldSortID, v))
 }
 
 // SortIDLTE applies the LTE predicate on the "sort_id" field.
-func SortIDLTE(v int) predicate.SysDictItem {
+func SortIDLTE(v int32) predicate.SysDictItem {
 	return predicate.SysDictItem(sql.FieldLTE(FieldSortID, v))
 }
 

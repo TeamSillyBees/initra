@@ -82,7 +82,7 @@ func IsEnable(v bool) predicate.SysRole {
 }
 
 // SortID applies equality check predicate on the "sort_id" field. It's identical to SortIDEQ.
-func SortID(v int) predicate.SysRole {
+func SortID(v int32) predicate.SysRole {
 	return predicate.SysRole(sql.FieldEQ(FieldSortID, v))
 }
 
@@ -339,42 +339,42 @@ func IsEnableNEQ(v bool) predicate.SysRole {
 }
 
 // SortIDEQ applies the EQ predicate on the "sort_id" field.
-func SortIDEQ(v int) predicate.SysRole {
+func SortIDEQ(v int32) predicate.SysRole {
 	return predicate.SysRole(sql.FieldEQ(FieldSortID, v))
 }
 
 // SortIDNEQ applies the NEQ predicate on the "sort_id" field.
-func SortIDNEQ(v int) predicate.SysRole {
+func SortIDNEQ(v int32) predicate.SysRole {
 	return predicate.SysRole(sql.FieldNEQ(FieldSortID, v))
 }
 
 // SortIDIn applies the In predicate on the "sort_id" field.
-func SortIDIn(vs ...int) predicate.SysRole {
+func SortIDIn(vs ...int32) predicate.SysRole {
 	return predicate.SysRole(sql.FieldIn(FieldSortID, vs...))
 }
 
 // SortIDNotIn applies the NotIn predicate on the "sort_id" field.
-func SortIDNotIn(vs ...int) predicate.SysRole {
+func SortIDNotIn(vs ...int32) predicate.SysRole {
 	return predicate.SysRole(sql.FieldNotIn(FieldSortID, vs...))
 }
 
 // SortIDGT applies the GT predicate on the "sort_id" field.
-func SortIDGT(v int) predicate.SysRole {
+func SortIDGT(v int32) predicate.SysRole {
 	return predicate.SysRole(sql.FieldGT(FieldSortID, v))
 }
 
 // SortIDGTE applies the GTE predicate on the "sort_id" field.
-func SortIDGTE(v int) predicate.SysRole {
+func SortIDGTE(v int32) predicate.SysRole {
 	return predicate.SysRole(sql.FieldGTE(FieldSortID, v))
 }
 
 // SortIDLT applies the LT predicate on the "sort_id" field.
-func SortIDLT(v int) predicate.SysRole {
+func SortIDLT(v int32) predicate.SysRole {
 	return predicate.SysRole(sql.FieldLT(FieldSortID, v))
 }
 
 // SortIDLTE applies the LTE predicate on the "sort_id" field.
-func SortIDLTE(v int) predicate.SysRole {
+func SortIDLTE(v int32) predicate.SysRole {
 	return predicate.SysRole(sql.FieldLTE(FieldSortID, v))
 }
 

@@ -119,13 +119,13 @@ func (_c *SysUserCreate) SetNillableIsEnable(v *bool) *SysUserCreate {
 }
 
 // SetSortID sets the "sort_id" field.
-func (_c *SysUserCreate) SetSortID(v int) *SysUserCreate {
+func (_c *SysUserCreate) SetSortID(v int32) *SysUserCreate {
 	_c.mutation.SetSortID(v)
 	return _c
 }
 
 // SetNillableSortID sets the "sort_id" field if the given value is not nil.
-func (_c *SysUserCreate) SetNillableSortID(v *int) *SysUserCreate {
+func (_c *SysUserCreate) SetNillableSortID(v *int32) *SysUserCreate {
 	if v != nil {
 		_c.SetSortID(*v)
 	}
@@ -410,7 +410,7 @@ func (_c *SysUserCreate) createSpec() (*SysUser, *sqlgraph.CreateSpec) {
 		_node.IsEnable = value
 	}
 	if value, ok := _c.mutation.SortID(); ok {
-		_spec.SetField(sysuser.FieldSortID, field.TypeInt, value)
+		_spec.SetField(sysuser.FieldSortID, field.TypeInt32, value)
 		_node.SortID = value
 	}
 	if value, ok := _c.mutation.DeletedAt(); ok {

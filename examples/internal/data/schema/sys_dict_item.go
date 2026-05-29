@@ -38,7 +38,7 @@ func (SysDictItem) Fields() []ent.Field {
 			Comment("字典项是否启用。"),
 		field.Text("description").Optional().Nillable().
 			Comment("字典项描述。"),
-		field.Int("sort_id").Default(0).
+		field.Int32("sort_id").Default(0).
 			Comment("排序值。"),
 	}
 

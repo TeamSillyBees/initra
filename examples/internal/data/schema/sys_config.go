@@ -26,7 +26,7 @@ func (SysConfig) Fields() []ent.Field {
 			Comment("配置项描述。"),
 		field.Bool("is_builtin").Default(false).
 			Comment("是否为系统内置配置，内置配置通常不允许删除。"),
-		field.Int("sort_id").Default(0).
+		field.Int32("sort_id").Default(0).
 			Comment("排序值。"),
 	}
 

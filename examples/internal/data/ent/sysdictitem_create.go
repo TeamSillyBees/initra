@@ -103,13 +103,13 @@ func (_c *SysDictItemCreate) SetNillableDescription(v *string) *SysDictItemCreat
 }
 
 // SetSortID sets the "sort_id" field.
-func (_c *SysDictItemCreate) SetSortID(v int) *SysDictItemCreate {
+func (_c *SysDictItemCreate) SetSortID(v int32) *SysDictItemCreate {
 	_c.mutation.SetSortID(v)
 	return _c
 }
 
 // SetNillableSortID sets the "sort_id" field if the given value is not nil.
-func (_c *SysDictItemCreate) SetNillableSortID(v *int) *SysDictItemCreate {
+func (_c *SysDictItemCreate) SetNillableSortID(v *int32) *SysDictItemCreate {
 	if v != nil {
 		_c.SetSortID(*v)
 	}
@@ -396,7 +396,7 @@ func (_c *SysDictItemCreate) createSpec() (*SysDictItem, *sqlgraph.CreateSpec) {
 		_node.Description = &value
 	}
 	if value, ok := _c.mutation.SortID(); ok {
-		_spec.SetField(sysdictitem.FieldSortID, field.TypeInt, value)
+		_spec.SetField(sysdictitem.FieldSortID, field.TypeInt32, value)
 		_node.SortID = value
 	}
 	if value, ok := _c.mutation.DeletedAt(); ok {

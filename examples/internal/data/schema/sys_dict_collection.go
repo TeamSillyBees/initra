@@ -26,11 +26,11 @@ func (SysDictCollection) Fields() []ent.Field {
 			Comment("字典集是否启用。"),
 		field.Text("description").Optional().Nillable().
 			Comment("字典集说明。"),
-		field.Int("item_length").Optional().Nillable().
+		field.Int32("item_length").Optional().Nillable().
 			Comment("字典值推荐长度上限。"),
 		field.Bool("is_builtin").Default(false).
 			Comment("是否为系统内置字典集。"),
-		field.Int("sort_id").Default(0).
+		field.Int32("sort_id").Default(0).
 			Comment("排序值。"),
 	}
 

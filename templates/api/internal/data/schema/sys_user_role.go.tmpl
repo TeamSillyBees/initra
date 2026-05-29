@@ -7,8 +7,9 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/teamsillybees/initra/pkg/entx/fieldx"
+	"github.com/teamsillybees/initra/pkg/entx/indexx"
 
-	entxmixin "github.com/teamsillybees/initra/pkg/entx/mixin"
 	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
@@ -17,26 +18,19 @@ type SysUserRole struct {
 	ent.Schema
 }
 
-// Mixin 返回用户角色关系表通用字段。
-func (SysUserRole) Mixin() []ent.Mixin {
-	return []ent.Mixin{
-		entxmixin.ID{},
-		entxmixin.SoftDelete{},
-	}
-}
-
 // Fields 返回用户角色关系表字段定义。
 func (SysUserRole) Fields() []ent.Field {
-	return []ent.Field{
+	fields := []ent.Field{
+		fieldx.ID(),
 		field.Int64("user_id").GoType(idgen.ID(0)).Positive().
 			Comment("系统用户 ID，关联 sys_user.id。"),
 		field.Int64("role_id").GoType(idgen.ID(0)).Positive().
 			Comment("系统角色 ID，关联 sys_role.id。"),
-		field.Int64("created_by").GoType(idgen.ID(0)).Optional().Nillable().
-			Comment("创建人用户 ID。"),
-		field.Time("created_at").Immutable().
-			Comment("创建时间。"),
 	}
+	fields = append(fields, fieldx.SoftDelete()...)
+	fields = append(fields, fieldx.Audit()...)
+
+	return fields
 }
 
 // Edges 返回用户角色关系表关系定义。
@@ -61,6 +55,7 @@ func (SysUserRole) Indexes() []ent.Index {
 		index.Fields("user_id"),
 		index.Fields("role_id"),
 		index.Fields("user_id", "role_id").Unique(),
+		indexx.SoftDelete(),
 	}
 }
 

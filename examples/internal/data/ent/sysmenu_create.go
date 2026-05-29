@@ -147,13 +147,13 @@ func (_c *SysMenuCreate) SetNillableIsCached(v *bool) *SysMenuCreate {
 }
 
 // SetSortID sets the "sort_id" field.
-func (_c *SysMenuCreate) SetSortID(v int) *SysMenuCreate {
+func (_c *SysMenuCreate) SetSortID(v int32) *SysMenuCreate {
 	_c.mutation.SetSortID(v)
 	return _c
 }
 
 // SetNillableSortID sets the "sort_id" field if the given value is not nil.
-func (_c *SysMenuCreate) SetNillableSortID(v *int) *SysMenuCreate {
+func (_c *SysMenuCreate) SetNillableSortID(v *int32) *SysMenuCreate {
 	if v != nil {
 		_c.SetSortID(*v)
 	}
@@ -441,7 +441,7 @@ func (_c *SysMenuCreate) createSpec() (*SysMenu, *sqlgraph.CreateSpec) {
 		_node.IsCached = value
 	}
 	if value, ok := _c.mutation.SortID(); ok {
-		_spec.SetField(sysmenu.FieldSortID, field.TypeInt, value)
+		_spec.SetField(sysmenu.FieldSortID, field.TypeInt32, value)
 		_node.SortID = value
 	}
 	if value, ok := _c.mutation.DeletedAt(); ok {

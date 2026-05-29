@@ -70,13 +70,13 @@ func (_c *SysConfigCreate) SetNillableIsBuiltin(v *bool) *SysConfigCreate {
 }
 
 // SetSortID sets the "sort_id" field.
-func (_c *SysConfigCreate) SetSortID(v int) *SysConfigCreate {
+func (_c *SysConfigCreate) SetSortID(v int32) *SysConfigCreate {
 	_c.mutation.SetSortID(v)
 	return _c
 }
 
 // SetNillableSortID sets the "sort_id" field if the given value is not nil.
-func (_c *SysConfigCreate) SetNillableSortID(v *int) *SysConfigCreate {
+func (_c *SysConfigCreate) SetNillableSortID(v *int32) *SysConfigCreate {
 	if v != nil {
 		_c.SetSortID(*v)
 	}
@@ -307,7 +307,7 @@ func (_c *SysConfigCreate) createSpec() (*SysConfig, *sqlgraph.CreateSpec) {
 		_node.IsBuiltin = value
 	}
 	if value, ok := _c.mutation.SortID(); ok {
-		_spec.SetField(sysconfig.FieldSortID, field.TypeInt, value)
+		_spec.SetField(sysconfig.FieldSortID, field.TypeInt32, value)
 		_node.SortID = value
 	}
 	if value, ok := _c.mutation.DeletedAt(); ok {

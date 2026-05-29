@@ -60,7 +60,7 @@ func (s *Service) GetHTTPBingoFormPage(ctx context.Context, traceID string) (HTT
 	}
 	return HTTPBingoFormPageVO{
 		ContentType: resp.Header.Get("Content-Type"),
-		Size:        len(resp.Body),
+		Size:        int32(len(resp.Body)),
 		Body:        string(resp.Body),
 	}, nil
 }
