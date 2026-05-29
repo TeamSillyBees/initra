@@ -14,24 +14,21 @@ func TestServiceGetHTTPBingo(t *testing.T) {
 	client := &fakeHTTPClient{}
 	service := NewService(client)
 
-	result, err := service.GetHTTPBingo(context.Background(), GetHTTPBingoDTO{
-		Message: "hello",
-		TraceID: "trace-1",
-	})
+	vo, err := service.GetHTTPBingo(context.Background(), "hello", "trace-1")
 
 	require.NoError(t, err)
 	require.Equal(t, "/get", client.path)
 	require.Equal(t, "hello", client.options.QueryParams["message"])
 	require.Equal(t, "trace-1", client.options.Headers["X-Trace-ID"])
-	require.Equal(t, "GET", result.Method)
-	require.Equal(t, []string{"hello"}, result.Args["message"])
+	require.Equal(t, "GET", vo.Method)
+	require.Equal(t, []string{"hello"}, vo.Args["message"])
 }
 
 func TestServiceGetHTTPBingoUsesDefaultMessage(t *testing.T) {
 	client := &fakeHTTPClient{}
 	service := NewService(client)
 
-	_, err := service.GetHTTPBingo(context.Background(), GetHTTPBingoDTO{})
+	_, err := service.GetHTTPBingo(context.Background(), "", "")
 
 	require.NoError(t, err)
 	require.Equal(t, defaultMessage, client.options.QueryParams["message"])
@@ -41,14 +38,14 @@ func TestServiceGetHTTPBingoFormPage(t *testing.T) {
 	client := &fakeHTTPClient{}
 	service := NewService(client)
 
-	page, err := service.GetHTTPBingoFormPage(context.Background(), GetHTTPBingoFormPageDTO{TraceID: "trace-1"})
+	vo, err := service.GetHTTPBingoFormPage(context.Background(), "trace-1")
 
 	require.NoError(t, err)
 	require.Equal(t, "/forms/post", client.path)
 	require.Equal(t, "trace-1", client.options.Headers["X-Trace-ID"])
-	require.Equal(t, "text/html; charset=utf-8", page.ContentType)
-	require.Equal(t, "<form>demo</form>", page.Body)
-	require.Equal(t, len("<form>demo</form>"), page.Size)
+	require.Equal(t, "text/html; charset=utf-8", vo.ContentType)
+	require.Equal(t, "<form>demo</form>", vo.Body)
+	require.Equal(t, len("<form>demo</form>"), vo.Size)
 }
 
 func TestServiceMapsHTTPClientError(t *testing.T) {
@@ -61,7 +58,7 @@ func TestServiceMapsHTTPClientError(t *testing.T) {
 		},
 	})
 
-	_, err := service.GetHTTPBingo(context.Background(), GetHTTPBingoDTO{})
+	_, err := service.GetHTTPBingo(context.Background(), "", "")
 
 	require.Error(t, err)
 	require.True(t, errors.Is(err, service.client.(*fakeHTTPClient).err))

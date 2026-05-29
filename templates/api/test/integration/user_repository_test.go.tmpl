@@ -12,12 +12,31 @@ import (
 	"github.com/teamsillybees/initra/pkg/pagination"
 )
 
-// TestUserRepositoryCreateUsesEntHooks 验证创建用户后自动填充 ID 和审计字段，并创建角色关系。
-func TestUserRepositoryCreateUsesEntHooks(t *testing.T) {
+// stubPasswordManager 在集成测试中提供简单的密码哈希，不连接真实 bcrypt。
+type stubPasswordManager struct{}
+
+func (stubPasswordManager) Hash(password string) (string, error) {
+	return "hashed:" + password, nil
+}
+func (stubPasswordManager) Compare(hash string, password string) error {
+	return nil
+}
+
+// stubUserCache 在集成测试中始终模拟缓存未命中。
+type stubUserCache struct{}
+
+func (stubUserCache) Get(context.Context, idgen.ID) (*user.User, bool, error) {
+	return nil, false, nil
+}
+func (stubUserCache) Set(context.Context, *user.User) error { return nil }
+func (stubUserCache) Delete(context.Context, idgen.ID) error { return nil }
+
+// TestUserServiceCreateUsesEntHooks 验证创建用户后自动填充 ID 和审计字段。
+func TestUserServiceCreateUsesEntHooks(t *testing.T) {
 	db, mock, client := newMockEntClient(t)
 	defer db.Close()
 
-	repo := user.NewRepository(client)
+	service := user.NewService(client, stubUserCache{}, stubPasswordManager{})
 	mock.ExpectBegin()
 	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "code"}).AddRow(int64(1002), "admin"))
@@ -29,36 +48,35 @@ func TestUserRepositoryCreateUsesEntHooks(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
-	record := &user.User{
+	isEnable := true
+	ctx := entx.WithOperatorID(context.Background(), idgen.New(9001))
+	vo, err := service.Create(ctx, user.CreateUserBody{
 		Username:     "alice",
-		PasswordHash: "hashed:secret-123",
+		Password:     "secret-123",
 		Nickname:     "Alice",
 		Phone:        "13800000000",
 		Email:        "alice@example.com",
 		RoleCodes:    []string{"admin"},
 		IsSuperAdmin: true,
-		IsEnable:     true,
+		IsEnable:     &isEnable,
 		SortID:       1,
-	}
-	ctx := entx.WithOperatorID(context.Background(), idgen.New(9001))
-
-	err := repo.Create(ctx, record)
+	}, idgen.New(9001))
 
 	require.NoError(t, err)
-	require.NotZero(t, record.ID)
-	require.False(t, record.CreatedAt.IsZero())
-	require.False(t, record.UpdatedAt.IsZero())
-	require.Equal(t, idgen.New(9001), record.CreatedBy)
-	require.Equal(t, idgen.New(9001), record.UpdatedBy)
+	require.NotZero(t, vo.ID)
+	require.Equal(t, "alice", vo.Username)
+	require.Equal(t, "Alice", vo.Nickname)
+	require.Equal(t, []string{"admin"}, vo.RoleCodes)
+	require.True(t, vo.IsSuperAdmin)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
-// TestUserRepositoryFindByID 验证 user 仓储能按 ID 查询用户并补齐角色编码。
-func TestUserRepositoryFindByID(t *testing.T) {
+// TestUserServiceFindByID 验证 user 服务能按 ID 查询用户并补齐角色编码。
+func TestUserServiceFindByID(t *testing.T) {
 	db, mock, client := newMockEntClient(t)
 	defer db.Close()
 
-	repo := user.NewRepository(client)
+	service := user.NewService(client, stubUserCache{}, stubPasswordManager{})
 	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
 		WillReturnRows(sysUserRows().AddRow(
 			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
@@ -68,22 +86,22 @@ func TestUserRepositoryFindByID(t *testing.T) {
 	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
 		WillReturnRows(sqlmock.NewRows([]string{"code"}).AddRow("admin").AddRow("viewer"))
 
-	record, err := repo.FindByID(context.Background(), idgen.New(1001))
+	vo, err := service.Get(context.Background(), idgen.New(1001))
 
 	require.NoError(t, err)
-	require.Equal(t, idgen.New(1001), record.ID)
-	require.Equal(t, "Alice", record.Nickname)
-	require.Equal(t, []string{"admin", "viewer"}, record.RoleCodes)
-	require.True(t, record.IsSuperAdmin)
+	require.Equal(t, idgen.New(1001), vo.ID)
+	require.Equal(t, "Alice", vo.Nickname)
+	require.Equal(t, []string{"admin", "viewer"}, vo.RoleCodes)
+	require.True(t, vo.IsSuperAdmin)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
-// TestUserRepositoryPageLoadsRolesInBatch 验证分页查询和批量角色加载。
-func TestUserRepositoryPageLoadsRolesInBatch(t *testing.T) {
+// TestUserServicePageLoadsRolesInBatch 验证分页查询和批量角色加载。
+func TestUserServicePageLoadsRolesInBatch(t *testing.T) {
 	db, mock, client := newMockEntClient(t)
 	defer db.Close()
 
-	repo := user.NewRepository(client)
+	service := user.NewService(client, stubUserCache{}, stubPasswordManager{})
 	mock.ExpectQuery(`SELECT COUNT.*FROM "sys_user".*`).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
 		WillReturnRows(sysUserRows().AddRow(
@@ -98,29 +116,29 @@ func TestUserRepositoryPageLoadsRolesInBatch(t *testing.T) {
 	mock.ExpectQuery(`SELECT .*FROM "sys_user_role".*`).
 		WillReturnRows(sysUserRoleRows().AddRow(int64(2001), nil, int64(1001), int64(1002), int64(9001), testNow))
 
-	items, total, err := repo.Page(context.Background(), user.PageUsersDTO{
-		Page: pagination.PageDTO{Page: 1, PageSize: 20},
+	pageVO, err := service.Page(context.Background(), user.PageUsersQuery{
+		PageQuery: pagination.PageQuery{Page: 1, PageSize: 20},
 	})
 
 	require.NoError(t, err)
-	require.Equal(t, int64(1), total)
-	require.Len(t, items, 1)
-	require.Equal(t, []string{"viewer"}, items[0].RoleCodes)
+	require.Equal(t, int32(1), pageVO.Total)
+	require.Len(t, pageVO.Items, 1)
+	require.Equal(t, []string{"viewer"}, pageVO.Items[0].RoleCodes)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
-// TestUserRepositoryDeleteSoftDeletesUserAndRoles 验证删除用户使用软删除并同步软删除关系。
-func TestUserRepositoryDeleteSoftDeletesUserAndRoles(t *testing.T) {
+// TestUserServiceDeleteSoftDeletesUserAndRoles 验证删除用户使用软删除并同步软删除关系。
+func TestUserServiceDeleteSoftDeletesUserAndRoles(t *testing.T) {
 	db, mock, client := newMockEntClient(t)
 	defer db.Close()
 
-	repo := user.NewRepository(client)
+	service := user.NewService(client, stubUserCache{}, stubPasswordManager{})
 	mock.ExpectBegin()
 	mock.ExpectExec(`UPDATE "sys_user".*`).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`UPDATE "sys_user_role".*`).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
-	err := repo.Delete(context.Background(), idgen.New(1001), idgen.New(9001))
+	err := service.Delete(context.Background(), idgen.New(1001), idgen.New(9001))
 
 	require.NoError(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())

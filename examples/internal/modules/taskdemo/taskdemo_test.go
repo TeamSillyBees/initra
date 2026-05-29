@@ -13,11 +13,10 @@ func TestServicePublishEmail(t *testing.T) {
 	publisher := &fakeTaskPublisher{}
 	service := NewService(publisher)
 
-	result, err := service.PublishEmail(context.Background(), PublishEmailDTO{
-		UserID:  idgen.New(1001),
-		Email:   "alice@example.com",
-		TraceID: "trace-1",
-	})
+	result, err := service.PublishEmail(context.Background(), PublishEmailBody{
+		UserID: idgen.New(1001),
+		Email:  "alice@example.com",
+	}, "trace-1")
 
 	require.NoError(t, err)
 	require.Equal(t, sendEmailTaskType, publisher.item.Type)
@@ -31,7 +30,7 @@ func TestServicePublishEmail(t *testing.T) {
 func TestServicePublishEmailValidatesInput(t *testing.T) {
 	service := NewService(&fakeTaskPublisher{})
 
-	_, err := service.PublishEmail(context.Background(), PublishEmailDTO{Email: "alice@example.com"})
+	_, err := service.PublishEmail(context.Background(), PublishEmailBody{Email: "alice@example.com"}, "")
 
 	require.Error(t, err)
 }

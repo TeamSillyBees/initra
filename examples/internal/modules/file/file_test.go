@@ -15,18 +15,13 @@ func TestServiceUploadLocal(t *testing.T) {
 	store := &fakeStorage{}
 	service := NewService(store)
 
-	file, err := service.UploadLocal(context.Background(), UploadLocalFileDTO{
-		FileName:    "demo.txt",
-		ContentType: "text/plain",
-		Size:        int64(len("hello")),
-		Body:        bytes.NewBufferString("hello"),
-	})
+	vo, err := service.UploadLocal(context.Background(), "demo.txt", "text/plain", int64(len("hello")), bytes.NewBufferString("hello"))
 
 	require.NoError(t, err)
-	require.Equal(t, "local/demo.txt", file.Key)
-	require.Equal(t, "demo.txt", file.FileName)
-	require.Equal(t, "text/plain", file.ContentType)
-	require.Equal(t, int64(5), file.Size)
+	require.Equal(t, "local/demo.txt", vo.Key)
+	require.Equal(t, "demo.txt", vo.FileName)
+	require.Equal(t, "text/plain", vo.ContentType)
+	require.Equal(t, int64(5), vo.Size)
 	require.Equal(t, "hello", store.uploaded)
 }
 
@@ -46,7 +41,7 @@ func TestServiceDownloadLocal(t *testing.T) {
 	result, err := service.DownloadLocal(context.Background(), "local/demo.txt")
 
 	require.NoError(t, err)
-	require.Equal(t, "demo.txt", result.File.FileName)
+	require.Equal(t, "demo.txt", result.Info.FileName)
 	require.Equal(t, []byte("hello"), result.Body)
 }
 

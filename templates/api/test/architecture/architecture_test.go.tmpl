@@ -46,13 +46,12 @@ func TestExampleUsesAPIFoundationLayout(t *testing.T) {
 	for _, moduleName := range []string{"auth", "user"} {
 		moduleDir := filepath.Join(root, "internal", "modules", moduleName)
 		require.DirExists(t, moduleDir)
-		for _, suffix := range []string{"handler", "service", "repo", "model", "dto", "routes"} {
+		for _, suffix := range []string{"handler", "service", "dto", "routes"} {
 			require.FileExists(t, filepath.Join(moduleDir, moduleName+"."+suffix+".go"))
 		}
 		require.FileExists(t, filepath.Join(moduleDir, "providers.go"))
 		requireNoTransportTypes(t, filepath.Join(moduleDir, moduleName+".handler.go"))
 		requireHTTPNaming(t, filepath.Join(moduleDir, moduleName+".dto.go"))
-		requireNoHTTPNamingInModel(t, filepath.Join(moduleDir, moduleName+".model.go"))
 	}
 	require.FileExists(t, filepath.Join(root, "db", "schema", "01_sys_user.sql"))
 	require.FileExists(t, filepath.Join(root, "db", "seeds", "001_seed_admin.sql"))
@@ -93,17 +92,6 @@ func requireHTTPNaming(t *testing.T, path string) {
 	require.Falsef(t, exportedWrapper.Match(content), "%s should keep Huma Request/Response wrappers unexported", path)
 }
 
-// requireNoHTTPNamingInModel 确认领域模型文件不承载 HTTP 边界类型。
-func requireNoHTTPNamingInModel(t *testing.T, path string) {
-	t.Helper()
-
-	content, err := os.ReadFile(path)
-	require.NoError(t, err)
-
-	httpType := regexp.MustCompile(`(?m)^type\s+\w+(Input|Output|Request|Response|Query|Body|VO|Params)\s+`)
-	require.Falsef(t, httpType.Match(content), "%s should keep HTTP boundary types in *.dto.go", path)
-}
-
 // requireNoEntImportOutsideRepositories 确认 Ent 只出现在持久化边界，不泄漏到 handler/service/dto。
 func requireNoEntImportOutsideRepositories(t *testing.T, root string) {
 	t.Helper()
@@ -111,7 +99,7 @@ func requireNoEntImportOutsideRepositories(t *testing.T, root string) {
 	moduleRoot := filepath.Join(root, "internal", "modules")
 	require.NoError(t, filepath.WalkDir(moduleRoot, func(path string, entry os.DirEntry, err error) error {
 		require.NoError(t, err)
-		if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, ".repo.go") || filepath.Base(path) == "providers.go" {
+		if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, ".service.go") || strings.HasSuffix(path, "_test.go") || filepath.Base(path) == "providers.go" {
 			return nil
 		}
 		content, err := os.ReadFile(path)

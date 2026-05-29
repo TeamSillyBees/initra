@@ -2,34 +2,37 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
+	"github.com/teamsillybees/initra/examples/internal/data"
+	appent "github.com/teamsillybees/initra/examples/internal/data/ent"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
 var errLoginFailed = errors.New("login failed")
+var testNow = time.Date(2026, 5, 6, 10, 0, 0, 0, time.UTC)
 
-type fakeIdentityRepository struct {
-	byID       map[idgen.ID]*Identity
-	byUsername map[string]*Identity
+func newMockEntClient(t *testing.T) (*sql.DB, sqlmock.Sqlmock, *appent.Client) {
+	t.Helper()
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	generator, err := idgen.NewGenerator(1)
+	require.NoError(t, err)
+	return db, mock, data.NewEntClientFromDB(db, generator)
 }
 
-func (f *fakeIdentityRepository) FindByUsername(_ context.Context, username string) (*Identity, error) {
-	if identity, ok := f.byUsername[username]; ok {
-		return new(*identity), nil
-	}
-	return nil, nil
-}
-
-func (f *fakeIdentityRepository) FindByID(_ context.Context, id idgen.ID) (*Identity, error) {
-	if identity, ok := f.byID[id]; ok {
-		return new(*identity), nil
-	}
-	return nil, nil
+func sysUserRows() *sqlmock.Rows {
+	return sqlmock.NewRows([]string{
+		"id", "deleted_at", "created_at", "updated_at", "created_by", "updated_by",
+		"username", "password_hash", "nickname", "phone", "email", "avatar_url",
+		"is_super_admin", "is_enable", "sort_id",
+	})
 }
 
 type fakePasswordVerifier struct{}
@@ -113,43 +116,31 @@ func TestServiceLoginReturnsTokenPairForValidCredentials(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	repo := &fakeIdentityRepository{
-		byID: map[idgen.ID]*Identity{
-			idgen.New(1001): {
-				UserID:       idgen.New(1001),
-				Username:     "alice",
-				Nickname:     "Alice",
-				PasswordHash: "hashed:secret-123",
-				RoleCodes:    []string{"admin"},
-				IsEnable:     true,
-			},
-		},
-		byUsername: map[string]*Identity{
-			"alice": {
-				UserID:       idgen.New(1001),
-				Username:     "alice",
-				Nickname:     "Alice",
-				PasswordHash: "hashed:secret-123",
-				RoleCodes:    []string{"admin"},
-				IsEnable:     true,
-			},
-		},
-	}
+	db, mock, client := newMockEntClient(t)
+	defer db.Close()
 
-	service := NewService(repo, fakePasswordVerifier{}, tokenManager)
+	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
+		WillReturnRows(sysUserRows().AddRow(
+			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
+			"alice", "hashed:secret-123", "Alice", nil, nil, nil, false, true, 1,
+		))
+	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
+		WillReturnRows(sqlmock.NewRows([]string{"code"}).AddRow("admin"))
 
-	identity, tokenPair, err := service.Login(context.Background(), LoginDTO{
+	service := NewService(client, fakePasswordVerifier{}, tokenManager)
+
+	vo, err := service.Login(context.Background(), LoginBody{
 		Username: "alice",
 		Password: "secret-123",
 	})
 	require.NoError(t, err)
-	require.Equal(t, idgen.New(1001), identity.UserID)
-	require.Equal(t, "Alice", identity.Nickname)
-	require.Equal(t, []string{"admin"}, identity.RoleCodes)
-	require.NotEmpty(t, tokenPair.AccessToken)
-	require.NotEmpty(t, tokenPair.RefreshToken)
+	require.Equal(t, "Alice", vo.User.Nickname)
+	require.Equal(t, []string{"admin"}, vo.User.RoleCodes)
+	require.NotEmpty(t, vo.AccessToken)
+	require.NotEmpty(t, vo.RefreshToken)
 	require.NotEmpty(t, store.storedRefreshTokenID)
 	require.Empty(t, store.blacklistedTokenID)
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestServiceRefreshIssuesNewAccessToken(t *testing.T) {
@@ -163,38 +154,37 @@ func TestServiceRefreshIssuesNewAccessToken(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	repo := &fakeIdentityRepository{
-		byID: map[idgen.ID]*Identity{
-			idgen.New(1001): {
-				UserID:       idgen.New(1001),
-				Username:     "alice",
-				Nickname:     "Alice",
-				PasswordHash: "hashed:secret-123",
-				RoleCodes:    []string{"admin"},
-				IsEnable:     true,
-			},
-		},
-	}
+	db, mock, client := newMockEntClient(t)
+	defer db.Close()
 
-	service := NewService(repo, fakePasswordVerifier{}, tokenManager)
+	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
+		WillReturnRows(sysUserRows().AddRow(
+			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
+			"alice", "hashed:secret-123", "Alice", nil, nil, nil, false, true, 1,
+		))
+	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
+		WillReturnRows(sqlmock.NewRows([]string{"code"}).AddRow("admin"))
+
+	service := NewService(client, fakePasswordVerifier{}, tokenManager)
 	pair, err := tokenManager.IssueTokenPair(context.Background(), platformauth.Principal{
 		UserID: idgen.New(1001),
 		Roles:  []string{"admin"},
 	})
 	require.NoError(t, err)
 
-	tokenPair, err := service.Refresh(context.Background(), pair.RefreshToken)
+	vo, err := service.Refresh(context.Background(), RefreshBody{RefreshToken: pair.RefreshToken})
 	require.NoError(t, err)
-	require.NotEmpty(t, tokenPair.AccessToken)
-	require.NotEmpty(t, tokenPair.RefreshToken)
+	require.NotEmpty(t, vo.AccessToken)
+	require.NotEmpty(t, vo.RefreshToken)
 
-	claims, err := tokenManager.ParseAccessToken(context.Background(), tokenPair.AccessToken)
+	claims, err := tokenManager.ParseAccessToken(context.Background(), vo.AccessToken)
 	require.NoError(t, err)
 	require.Equal(t, idgen.New(1001), claims.UserID)
 
 	_, err = tokenManager.ValidateRefreshToken(context.Background(), pair.RefreshToken)
 	require.Error(t, err)
 
-	_, err = tokenManager.ValidateRefreshToken(context.Background(), tokenPair.RefreshToken)
+	_, err = tokenManager.ValidateRefreshToken(context.Background(), vo.RefreshToken)
 	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
 }

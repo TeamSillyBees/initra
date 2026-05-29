@@ -5,15 +5,24 @@ import (
 	"errors"
 	"strings"
 
+	appent "github.com/teamsillybees/initra/examples/internal/data/ent"
+	"github.com/teamsillybees/initra/examples/internal/data/ent/sysrole"
+	"github.com/teamsillybees/initra/examples/internal/data/ent/sysuser"
+	"github.com/teamsillybees/initra/examples/internal/data/ent/sysuserrole"
 	"github.com/teamsillybees/initra/examples/internal/modules/bizerrors"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
-// identityRepo 定义 auth 模块读取身份信息所需的最小能力。
-type identityRepo interface {
-	FindByUsername(ctx context.Context, username string) (*Identity, error)
-	FindByID(ctx context.Context, id idgen.ID) (*Identity, error)
+// Identity 描述 auth 模块关心的最小用户身份聚合。
+type Identity struct {
+	UserID       idgen.ID
+	Username     string
+	Nickname     string
+	PasswordHash string
+	RoleCodes    []string
+	IsSuperAdmin bool
+	IsEnable     bool
 }
 
 // passwordVerifier 抽象密码校验行为。
@@ -27,37 +36,37 @@ type tokenManager interface {
 	ConsumeRefreshToken(ctx context.Context, token string) (*platformauth.RefreshTokenRecord, error)
 }
 
-// Service 是 auth 模块的应用服务。
+// Service 是 auth 模块的应用服务，直接通过 Ent Client 操作数据库。
 type Service struct {
-	repo      identityRepo
+	client    *appent.Client
 	passwords passwordVerifier
 	tokens    tokenManager
 }
 
 // NewService 构造 auth 模块应用服务。
-func NewService(repo identityRepo, passwords passwordVerifier, tokens tokenManager) *Service {
+func NewService(client *appent.Client, passwords passwordVerifier, tokens tokenManager) *Service {
 	return &Service{
-		repo:      repo,
+		client:    client,
 		passwords: passwords,
 		tokens:    tokens,
 	}
 }
 
 // Login 校验账号密码并签发 access JWT 与 opaque refresh token。
-func (s *Service) Login(ctx context.Context, input LoginDTO) (*Identity, platformauth.TokenPair, error) {
-	if strings.TrimSpace(input.Username) == "" || strings.TrimSpace(input.Password) == "" {
-		return nil, platformauth.TokenPair{}, bizerrors.BadRequest("username and password are required")
+func (s *Service) Login(ctx context.Context, body LoginBody) (LoginVO, error) {
+	if strings.TrimSpace(body.Username) == "" || strings.TrimSpace(body.Password) == "" {
+		return LoginVO{}, bizerrors.BadRequest("username and password are required")
 	}
 
-	identity, err := s.repo.FindByUsername(ctx, strings.TrimSpace(input.Username))
+	identity, err := s.findByUsername(ctx, strings.TrimSpace(body.Username))
 	if err != nil {
-		return nil, platformauth.TokenPair{}, err
+		return LoginVO{}, err
 	}
 	if identity == nil || !identity.IsEnable {
-		return nil, platformauth.TokenPair{}, bizerrors.LoginFailed()
+		return LoginVO{}, bizerrors.LoginFailed()
 	}
-	if err := s.passwords.Compare(identity.PasswordHash, input.Password); err != nil {
-		return nil, platformauth.TokenPair{}, bizerrors.LoginFailed()
+	if err := s.passwords.Compare(identity.PasswordHash, body.Password); err != nil {
+		return LoginVO{}, bizerrors.LoginFailed()
 	}
 
 	tokenPair, err := s.tokens.IssueTokenPair(ctx, platformauth.Principal{
@@ -65,32 +74,36 @@ func (s *Service) Login(ctx context.Context, input LoginDTO) (*Identity, platfor
 		Roles:  append([]string(nil), identity.RoleCodes...),
 	})
 	if err != nil {
-		return nil, platformauth.TokenPair{}, bizerrors.WrapInternal(err, "issue token failed")
+		return LoginVO{}, bizerrors.WrapInternal(err, "issue token failed")
 	}
 
-	return cloneIdentity(identity), tokenPair, nil
+	return LoginVO{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		User:         toUserIdentityVO(identity),
+	}, nil
 }
 
 // Refresh 校验 opaque refresh token 并轮转新的 token pair。
-func (s *Service) Refresh(ctx context.Context, refreshToken string) (platformauth.TokenPair, error) {
-	if strings.TrimSpace(refreshToken) == "" {
-		return platformauth.TokenPair{}, bizerrors.BadRequest("refresh token is required")
+func (s *Service) Refresh(ctx context.Context, body RefreshBody) (RefreshVO, error) {
+	if strings.TrimSpace(body.RefreshToken) == "" {
+		return RefreshVO{}, bizerrors.BadRequest("refresh token is required")
 	}
 
-	record, err := s.tokens.ConsumeRefreshToken(ctx, refreshToken)
+	record, err := s.tokens.ConsumeRefreshToken(ctx, body.RefreshToken)
 	if err != nil {
 		if errors.Is(err, platformauth.ErrTokenStoreFailure) {
-			return platformauth.TokenPair{}, bizerrors.WrapInternal(err, "consume refresh token failed")
+			return RefreshVO{}, bizerrors.WrapInternal(err, "consume refresh token failed")
 		}
-		return platformauth.TokenPair{}, bizerrors.Unauthorized("refresh token is invalid")
+		return RefreshVO{}, bizerrors.Unauthorized("refresh token is invalid")
 	}
 
-	identity, err := s.repo.FindByID(ctx, record.UserID)
+	identity, err := s.findByID(ctx, record.UserID)
 	if err != nil {
-		return platformauth.TokenPair{}, err
+		return RefreshVO{}, err
 	}
 	if identity == nil || !identity.IsEnable {
-		return platformauth.TokenPair{}, bizerrors.Unauthorized("refresh token is invalid")
+		return RefreshVO{}, bizerrors.Unauthorized("refresh token is invalid")
 	}
 
 	tokenPair, err := s.tokens.IssueTokenPair(ctx, platformauth.Principal{
@@ -98,29 +111,118 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (platformaut
 		Roles:  append([]string(nil), identity.RoleCodes...),
 	})
 	if err != nil {
-		return platformauth.TokenPair{}, bizerrors.WrapInternal(err, "issue token failed")
+		return RefreshVO{}, bizerrors.WrapInternal(err, "issue token failed")
 	}
 
-	return tokenPair, nil
+	return RefreshVO{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+	}, nil
 }
 
 // Me 查询当前登录用户信息。
-func (s *Service) Me(ctx context.Context, userID idgen.ID) (*Identity, error) {
-	identity, err := s.repo.FindByID(ctx, userID)
+func (s *Service) Me(ctx context.Context, userID idgen.ID) (UserIdentityVO, error) {
+	identity, err := s.findByID(ctx, userID)
+	if err != nil {
+		return UserIdentityVO{}, err
+	}
+	if identity == nil {
+		return UserIdentityVO{}, bizerrors.UserNotFound(userID)
+	}
+	return toUserIdentityVO(identity), nil
+}
+
+// ---- Ent 数据库操作 ----
+
+func (s *Service) findByUsername(ctx context.Context, username string) (*Identity, error) {
+	record, err := s.client.SysUser.Query().
+		Where(
+			sysuser.Username(strings.TrimSpace(username)),
+			sysuser.DeletedAtIsNil(),
+		).
+		Only(ctx)
+	if appent.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, bizerrors.WrapDB(err, "query identity failed")
+	}
+	return s.toIdentity(ctx, record)
+}
+
+func (s *Service) findByID(ctx context.Context, id idgen.ID) (*Identity, error) {
+	record, err := s.client.SysUser.Query().
+		Where(
+			sysuser.ID(id),
+			sysuser.DeletedAtIsNil(),
+		).
+		Only(ctx)
+	if appent.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, bizerrors.WrapDB(err, "query identity failed")
+	}
+	return s.toIdentity(ctx, record)
+}
+
+func (s *Service) toIdentity(ctx context.Context, record *appent.SysUser) (*Identity, error) {
+	roleCodes, err := s.loadRoleCodes(ctx, record.ID)
 	if err != nil {
 		return nil, err
 	}
-	if identity == nil {
-		return nil, bizerrors.UserNotFound(userID)
-	}
-	return cloneIdentity(identity), nil
+	return &Identity{
+		UserID:       record.ID,
+		Username:     record.Username,
+		Nickname:     stringValue(record.Nickname),
+		PasswordHash: record.PasswordHash,
+		RoleCodes:    roleCodes,
+		IsSuperAdmin: record.IsSuperAdmin,
+		IsEnable:     record.IsEnable,
+	}, nil
 }
 
-func cloneIdentity(identity *Identity) *Identity {
-	if identity == nil {
-		return nil
+func (s *Service) loadRoleCodes(ctx context.Context, userID idgen.ID) ([]string, error) {
+	var rows []struct {
+		Code string `json:"code"`
 	}
-	cloned := *identity
-	cloned.RoleCodes = append([]string(nil), identity.RoleCodes...)
-	return &cloned
+	err := s.client.SysRole.Query().
+		Where(
+			sysrole.DeletedAtIsNil(),
+			sysrole.IsEnable(true),
+			sysrole.HasUserRolesWith(
+				sysuserrole.UserID(userID),
+				sysuserrole.DeletedAtIsNil(),
+			),
+		).
+		Order(appent.Asc(sysrole.FieldSortID), appent.Asc(sysrole.FieldID)).
+		Select(sysrole.FieldCode).
+		Scan(ctx, &rows)
+	if err != nil {
+		return nil, bizerrors.WrapDB(err, "query identity roles failed")
+	}
+
+	roleCodes := make([]string, 0, len(rows))
+	for _, row := range rows {
+		roleCodes = append(roleCodes, row.Code)
+	}
+	return roleCodes, nil
+}
+
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
+}
+
+func toUserIdentityVO(identity *Identity) UserIdentityVO {
+	return UserIdentityVO{
+		UserID:       identity.UserID,
+		Username:     identity.Username,
+		Nickname:     identity.Nickname,
+		RoleCodes:    append([]string(nil), identity.RoleCodes...),
+		IsSuperAdmin: identity.IsSuperAdmin,
+		IsEnable:     identity.IsEnable,
+	}
 }

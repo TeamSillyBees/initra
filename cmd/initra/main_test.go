@@ -41,7 +41,7 @@ func TestNewGeneratesAPIProjectWithFrameworkRequireAndNoPkgCopy(t *testing.T) {
 	for _, moduleName := range []string{"auth", "user"} {
 		moduleDir := filepath.Join(target, "internal", "modules", moduleName)
 		require.DirExists(t, moduleDir)
-		for _, suffix := range []string{"handler", "service", "repo", "model", "dto", "routes"} {
+		for _, suffix := range []string{"handler", "service", "dto", "routes"} {
 			require.FileExists(t, filepath.Join(moduleDir, moduleName+"."+suffix+".go"))
 		}
 		require.FileExists(t, filepath.Join(moduleDir, "providers.go"))
@@ -331,7 +331,7 @@ func TestModuleAddGeneratesVerticalSliceModule(t *testing.T) {
 
 	require.NoError(t, err)
 	moduleDir := filepath.Join(target, "internal", "modules", "order")
-	for _, suffix := range []string{"handler", "service", "repo", "model", "dto", "routes"} {
+	for _, suffix := range []string{"handler", "service", "dto", "routes"} {
 		require.FileExists(t, filepath.Join(moduleDir, "order."+suffix+".go"))
 	}
 	require.FileExists(t, filepath.Join(moduleDir, "providers.go"))

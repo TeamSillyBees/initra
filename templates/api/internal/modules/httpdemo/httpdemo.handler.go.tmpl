@@ -18,50 +18,21 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) get(ctx context.Context, input *getHTTPBingoRequest) (*getHTTPBingoResponse, error) {
-	result, err := h.service.GetHTTPBingo(ctx, GetHTTPBingoDTO{
-		Message: input.Message,
-		TraceID: requestctx.TraceIDFromContext(ctx),
-	})
+	vo, err := h.service.GetHTTPBingo(ctx, input.Message, requestctx.TraceIDFromContext(ctx))
 	if err != nil {
 		return nil, err
 	}
 	return &getHTTPBingoResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), toHTTPBingoGetVO(result)),
+		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
 	}, nil
 }
 
 func (h *Handler) formPage(ctx context.Context, input *getHTTPBingoFormPageRequest) (*getHTTPBingoFormPageResponse, error) {
-	result, err := h.service.GetHTTPBingoFormPage(ctx, GetHTTPBingoFormPageDTO{
-		TraceID: requestctx.TraceIDFromContext(ctx),
-	})
+	vo, err := h.service.GetHTTPBingoFormPage(ctx, requestctx.TraceIDFromContext(ctx))
 	if err != nil {
 		return nil, err
 	}
 	return &getHTTPBingoFormPageResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), toHTTPBingoFormPageVO(result)),
+		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
 	}, nil
-}
-
-func toHTTPBingoGetVO(result *HTTPBingoGetResult) HTTPBingoGetVO {
-	if result == nil {
-		return HTTPBingoGetVO{}
-	}
-	return HTTPBingoGetVO{
-		Args:    result.Args,
-		Headers: result.Headers,
-		Method:  result.Method,
-		Origin:  result.Origin,
-		URL:     result.URL,
-	}
-}
-
-func toHTTPBingoFormPageVO(result *HTTPBingoFormPage) HTTPBingoFormPageVO {
-	if result == nil {
-		return HTTPBingoFormPageVO{}
-	}
-	return HTTPBingoFormPageVO{
-		ContentType: result.ContentType,
-		Size:        result.Size,
-		Body:        result.Body,
-	}
 }

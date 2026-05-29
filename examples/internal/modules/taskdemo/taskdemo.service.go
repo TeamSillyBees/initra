@@ -6,10 +6,16 @@ import (
 	"strings"
 
 	"github.com/teamsillybees/initra/examples/internal/modules/bizerrors"
+	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/task"
 )
 
 const sendEmailTaskType = "demo:send_email"
+
+type sendEmailPayload struct {
+	UserID idgen.ID `json:"userId"`
+	Email  string   `json:"email"`
+}
 
 // taskPublisher 定义 taskdemo 示例模块依赖的最小任务发布能力。
 type taskPublisher interface {
@@ -27,23 +33,23 @@ func NewService(publisher taskPublisher) *Service {
 }
 
 // PublishEmail 发布 demo:send_email 异步任务。
-func (s *Service) PublishEmail(ctx context.Context, input PublishEmailDTO) (*PublishedTaskResult, error) {
+func (s *Service) PublishEmail(ctx context.Context, body PublishEmailBody, traceID string) (PublishedTaskVO, error) {
 	if s == nil || s.publisher == nil {
-		return nil, bizerrors.Internal("task publisher is not configured")
+		return PublishedTaskVO{}, bizerrors.Internal("task publisher is not configured")
 	}
-	email := strings.TrimSpace(input.Email)
-	if input.UserID <= 0 {
-		return nil, bizerrors.BadRequest("userId 不能为空")
+	email := strings.TrimSpace(body.Email)
+	if body.UserID <= 0 {
+		return PublishedTaskVO{}, bizerrors.BadRequest("userId 不能为空")
 	}
 	if email == "" {
-		return nil, bizerrors.BadRequest("email 不能为空")
+		return PublishedTaskVO{}, bizerrors.BadRequest("email 不能为空")
 	}
 
-	bizKey := fmt.Sprintf("demo:%s:send_email", input.UserID.String())
+	bizKey := fmt.Sprintf("demo:%s:send_email", body.UserID.String())
 	result, err := s.publisher.Publish(ctx, task.Task{
 		Type: sendEmailTaskType,
 		Payload: sendEmailPayload{
-			UserID: input.UserID,
+			UserID: body.UserID,
 			Email:  email,
 		},
 		Meta: task.TaskMeta{
@@ -57,13 +63,13 @@ func (s *Service) PublishEmail(ctx context.Context, input PublishEmailDTO) (*Pub
 			SideEffect:     true,
 			CostLevel:      task.CostLevelLow,
 			Idempotent:     true,
-			TraceID:        strings.TrimSpace(input.TraceID),
+			TraceID:        strings.TrimSpace(traceID),
 		},
 	}, task.WithQueue(task.QueueDefault), task.WithMaxRetry(3), task.WithBizKey(bizKey))
 	if err != nil {
-		return nil, bizerrors.WrapInternal(err, "publish demo email task failed")
+		return PublishedTaskVO{}, bizerrors.WrapInternal(err, "publish demo email task failed")
 	}
-	return &PublishedTaskResult{
+	return PublishedTaskVO{
 		TaskID: result.TaskID,
 		Type:   result.Type,
 		Queue:  result.Queue,

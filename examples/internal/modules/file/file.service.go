@@ -3,11 +3,29 @@ package file
 import (
 	"context"
 	"errors"
+	"io"
 	"strings"
+	"time"
 
 	"github.com/teamsillybees/initra/examples/internal/modules/bizerrors"
 	"github.com/teamsillybees/initra/pkg/storage"
 )
+
+// LocalFile 是 file 示例模块的本地文件领域模型。
+type LocalFile struct {
+	Key          string
+	FileName     string
+	Size         int64
+	ContentType  string
+	URL          string
+	LastModified time.Time
+}
+
+// DownloadLocalResult 描述下载本地文件的结果。
+type DownloadLocalResult struct {
+	Info LocalFileVO
+	Body []byte
+}
 
 // fileStorage 定义 file 示例模块依赖的最小存储能力。
 type fileStorage interface {
@@ -28,69 +46,69 @@ func NewService(storage fileStorage) *Service {
 }
 
 // UploadLocal 上传文件到当前配置的存储 provider。
-func (s *Service) UploadLocal(ctx context.Context, input UploadLocalFileDTO) (*LocalFile, error) {
+func (s *Service) UploadLocal(ctx context.Context, fileName string, contentType string, size int64, body io.Reader) (LocalFileVO, error) {
 	if err := s.ensureStorage(); err != nil {
-		return nil, err
+		return LocalFileVO{}, err
 	}
-	fileName := strings.TrimSpace(input.FileName)
+	fileName = strings.TrimSpace(fileName)
 	if fileName == "" {
-		return nil, bizerrors.BadRequest("file name is required")
+		return LocalFileVO{}, bizerrors.BadRequest("file name is required")
 	}
-	if input.Body == nil {
-		return nil, bizerrors.BadRequest("file body is required")
+	if body == nil {
+		return LocalFileVO{}, bizerrors.BadRequest("file body is required")
 	}
 
 	object, err := s.storage.Upload(ctx, storage.UploadInput{
 		FileName:    fileName,
-		Body:        input.Body,
-		Size:        input.Size,
-		ContentType: strings.TrimSpace(input.ContentType),
+		Body:        body,
+		Size:        size,
+		ContentType: strings.TrimSpace(contentType),
 	})
 	if err != nil {
-		return nil, mapStorageError(err, "upload local file failed")
+		return LocalFileVO{}, mapStorageError(err, "upload local file failed")
 	}
-	return localFileFromObject(object), nil
+	return toLocalFileVOFromObject(object), nil
 }
 
 // DownloadLocal 下载本地文件示例对象。
-func (s *Service) DownloadLocal(ctx context.Context, key string) (*DownloadLocalFileResult, error) {
+func (s *Service) DownloadLocal(ctx context.Context, key string) (DownloadLocalResult, error) {
 	if err := s.ensureStorage(); err != nil {
-		return nil, err
+		return DownloadLocalResult{}, err
 	}
 	key = strings.TrimSpace(key)
 	if key == "" {
-		return nil, bizerrors.BadRequest("key is required")
+		return DownloadLocalResult{}, bizerrors.BadRequest("key is required")
 	}
 
 	object, err := s.storage.Stat(ctx, storage.ObjectInput{Key: key})
 	if err != nil {
-		return nil, mapStorageError(err, "load local file metadata failed")
+		return DownloadLocalResult{}, mapStorageError(err, "load local file metadata failed")
 	}
 	body, err := s.storage.DownloadBytes(ctx, storage.DownloadInput{Key: key})
 	if err != nil {
-		return nil, mapStorageError(err, "download local file failed")
+		return DownloadLocalResult{}, mapStorageError(err, "download local file failed")
 	}
-	return &DownloadLocalFileResult{
-		File: localFileFromObject(object),
+	return DownloadLocalResult{
+		Info: toLocalFileVOFromObject(object),
 		Body: body,
 	}, nil
 }
 
 // StatLocal 查询本地文件示例对象元信息。
-func (s *Service) StatLocal(ctx context.Context, key string) (*LocalFile, error) {
+func (s *Service) StatLocal(ctx context.Context, key string) (LocalFileVO, error) {
 	if err := s.ensureStorage(); err != nil {
-		return nil, err
+		return LocalFileVO{}, err
 	}
 	key = strings.TrimSpace(key)
 	if key == "" {
-		return nil, bizerrors.BadRequest("key is required")
+		return LocalFileVO{}, bizerrors.BadRequest("key is required")
 	}
 
 	object, err := s.storage.Stat(ctx, storage.ObjectInput{Key: key})
 	if err != nil {
-		return nil, mapStorageError(err, "load local file metadata failed")
+		return LocalFileVO{}, mapStorageError(err, "load local file metadata failed")
 	}
-	return localFileFromObject(object), nil
+	return toLocalFileVOFromObject(object), nil
 }
 
 // DeleteLocal 删除本地文件示例对象。
@@ -115,9 +133,9 @@ func (s *Service) ensureStorage() error {
 	return nil
 }
 
-func localFileFromObject(object *storage.Object) *LocalFile {
+func toLocalFileVOFromObject(object *storage.Object) LocalFileVO {
 	if object == nil {
-		return nil
+		return LocalFileVO{}
 	}
 	contentType := object.ContentType
 	if contentType == "" {
@@ -127,7 +145,7 @@ func localFileFromObject(object *storage.Object) *LocalFile {
 	if fileName == "" {
 		fileName = storage.FileNameFromKey(object.Key)
 	}
-	return &LocalFile{
+	return LocalFileVO{
 		Key:          object.Key,
 		FileName:     fileName,
 		Size:         object.Size,

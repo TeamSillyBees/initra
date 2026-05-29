@@ -18,28 +18,11 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) publishEmail(ctx context.Context, input *publishEmailRequest) (*publishEmailResponse, error) {
-	result, err := h.service.PublishEmail(ctx, PublishEmailDTO{
-		UserID:  input.Body.UserID,
-		Email:   input.Body.Email,
-		TraceID: requestctx.TraceIDFromContext(ctx),
-	})
+	vo, err := h.service.PublishEmail(ctx, input.Body, requestctx.TraceIDFromContext(ctx))
 	if err != nil {
 		return nil, err
 	}
 	return &publishEmailResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), toPublishedTaskVO(result)),
+		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
 	}, nil
-}
-
-func toPublishedTaskVO(result *PublishedTaskResult) PublishedTaskVO {
-	if result == nil {
-		return PublishedTaskVO{}
-	}
-	return PublishedTaskVO{
-		TaskID: result.TaskID,
-		Type:   result.Type,
-		Queue:  result.Queue,
-		State:  result.State,
-		BizKey: result.BizKey,
-	}
 }

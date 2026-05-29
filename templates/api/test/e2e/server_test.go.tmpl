@@ -3,6 +3,7 @@ package e2e_test
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"mime/multipart"
 	"net/http"
@@ -14,10 +15,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
 	authmodule "{{ .ModulePath }}/internal/modules/auth"
 	filemodule "{{ .ModulePath }}/internal/modules/file"
 	usermodule "{{ .ModulePath }}/internal/modules/user"
+	"{{ .ModulePath }}/internal/data"
+	appent "{{ .ModulePath }}/internal/data/ent"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/observability"
@@ -27,98 +31,33 @@ import (
 	"go.uber.org/zap"
 )
 
-// memoryUserRepository 为端到端测试提供无需数据库的 user 仓储实现。
-type memoryUserRepository struct {
-	items map[idgen.ID]*usermodule.User
-}
+// noopUserCache 用于 e2e 测试，始终模拟缓存未命中。
+type noopUserCache struct{}
 
-// Create 保存用户副本，避免后续修改影响测试仓储状态。
-func (m *memoryUserRepository) Create(_ context.Context, user *usermodule.User) error {
-	m.items[user.ID] = new(*user)
-	return nil
-}
-
-// FindByID 按 ID 返回用户副本。
-func (m *memoryUserRepository) FindByID(_ context.Context, id idgen.ID) (*usermodule.User, error) {
-	user, ok := m.items[id]
-	if !ok {
-		return nil, nil
-	}
-	return new(*user), nil
-}
-
-// FindByUsername 遍历内存数据并返回匹配用户名的用户副本。
-func (m *memoryUserRepository) FindByUsername(_ context.Context, username string) (*usermodule.User, error) {
-	for _, user := range m.items {
-		if user.Username == username {
-			return new(*user), nil
-		}
-	}
-	return nil, nil
-}
-
-// Page 返回全部用户副本和总数。
-func (m *memoryUserRepository) Page(_ context.Context, _ usermodule.PageUsersDTO) ([]*usermodule.User, int64, error) {
-	items := make([]*usermodule.User, 0, len(m.items))
-	for _, user := range m.items {
-		items = append(items, new(*user))
-	}
-	return items, int64(len(items)), nil
-}
-
-// Update 覆盖保存用户副本。
-func (m *memoryUserRepository) Update(_ context.Context, user *usermodule.User) error {
-	m.items[user.ID] = new(*user)
-	return nil
-}
-
-// Delete 从内存仓储中删除用户。
-func (m *memoryUserRepository) Delete(_ context.Context, id idgen.ID, _ idgen.ID) error {
-	delete(m.items, id)
-	return nil
-}
-
-// memoryUserCache 在端到端测试中始终模拟缓存未命中。
-type memoryUserCache struct{}
-
-// Get 始终返回未命中。
-func (memoryUserCache) Get(context.Context, idgen.ID) (*usermodule.User, bool, error) {
+func (noopUserCache) Get(context.Context, idgen.ID) (*usermodule.User, bool, error) {
 	return nil, false, nil
 }
+func (noopUserCache) Set(context.Context, *usermodule.User) error { return nil }
+func (noopUserCache) Delete(context.Context, idgen.ID) error      { return nil }
 
-// Set 忽略缓存写入。
-func (memoryUserCache) Set(context.Context, *usermodule.User) error {
-	return nil
+func newMockEntClient(t *testing.T) (*sql.DB, sqlmock.Sqlmock, *appent.Client) {
+	t.Helper()
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	generator, err := idgen.NewGenerator(1)
+	require.NoError(t, err)
+	return db, mock, data.NewEntClientFromDB(db, generator)
 }
 
-// Delete 忽略缓存删除。
-func (memoryUserCache) Delete(context.Context, idgen.ID) error {
-	return nil
+func sysUserRows() *sqlmock.Rows {
+	return sqlmock.NewRows([]string{
+		"id", "deleted_at", "created_at", "updated_at", "created_by", "updated_by",
+		"username", "password_hash", "nickname", "phone", "email", "avatar_url",
+		"is_super_admin", "is_enable", "sort_id",
+	})
 }
 
-// memoryIdentityRepository 为端到端测试提供无需数据库的 auth 身份仓储实现。
-type memoryIdentityRepository struct {
-	byID       map[idgen.ID]*authmodule.Identity
-	byUsername map[string]*authmodule.Identity
-}
-
-// FindByUsername 按用户名返回身份副本。
-func (m *memoryIdentityRepository) FindByUsername(_ context.Context, username string) (*authmodule.Identity, error) {
-	identity, ok := m.byUsername[username]
-	if !ok {
-		return nil, nil
-	}
-	return new(*identity), nil
-}
-
-// FindByID 按用户 ID 返回身份副本。
-func (m *memoryIdentityRepository) FindByID(_ context.Context, id idgen.ID) (*authmodule.Identity, error) {
-	identity, ok := m.byID[id]
-	if !ok {
-		return nil, nil
-	}
-	return new(*identity), nil
-}
+var testNow = time.Date(2026, 5, 6, 10, 0, 0, 0, time.UTC)
 
 // TestServer_LoginMeAndUserDetail 覆盖登录、当前用户、用户详情和健康检查的完整 HTTP 流程。
 func TestServer_LoginMeAndUserDetail(t *testing.T) {
@@ -152,22 +91,40 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 		BuildTime: "2026-04-21T00:00:00Z",
 	}).Register(app.API, app.Registry)
 
-	userRepo := &memoryUserRepository{
-		items: map[idgen.ID]*usermodule.User{
-			idgen.New(1001): {
-				ID:           idgen.New(1001),
-				Username:     "alice",
-				PasswordHash: passwordHash,
-				Nickname:     "Alice",
-				Phone:        "13800000000",
-				Email:        "alice@example.com",
-				RoleCodes:    []string{"admin"},
-				IsEnable:     true,
-			},
-		},
-	}
+	db, mock, entClient := newMockEntClient(t)
+	defer db.Close()
 
-	userService := usermodule.NewService(userRepo, memoryUserCache{}, passwords)
+	// Mock 期望按 HTTP 请求执行顺序排列：
+	// 1) POST /api/v1/auth/login → FindByUsername
+	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
+		WillReturnRows(sysUserRows().AddRow(
+			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
+			"alice", passwordHash, "Alice", nil, nil, nil, false, true, 1,
+		))
+	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
+		WillReturnRows(sqlmock.NewRows([]string{"code"}).AddRow("admin"))
+	// 2) GET /api/v1/auth/me → FindByID
+	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
+		WillReturnRows(sysUserRows().AddRow(
+			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
+			"alice", passwordHash, "Alice", nil, nil, nil, false, true, 1,
+		))
+	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
+		WillReturnRows(sqlmock.NewRows([]string{"code"}).AddRow("admin"))
+	// 3) GET /api/v1/users/1001 → user.FindByID
+	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
+		WillReturnRows(sysUserRows().AddRow(
+			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
+			"alice", passwordHash, "Alice", "13800000000", "alice@example.com",
+			"https://example.com/avatar.png", true, true, 1,
+		))
+	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
+		WillReturnRows(sqlmock.NewRows([]string{"code"}).AddRow("admin"))
+
+	authService := authmodule.NewService(entClient, passwords, jwtManager)
+	authmodule.NewModule(authmodule.NewHandler(authService)).Register(app.API, app.Registry)
+
+	userService := usermodule.NewService(entClient, noopUserCache{}, passwords)
 	usermodule.NewModule(usermodule.NewHandler(userService)).Register(app.API, app.Registry)
 	openAPIJSON, err := json.Marshal(app.API.OpenAPI())
 	require.NoError(t, err)
@@ -175,32 +132,6 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	require.Contains(t, openAPIText, `"type":"string"`)
 	require.Contains(t, openAPIText, `"pattern":"^[1-9][0-9]{0,18}$"`)
 	require.Contains(t, openAPIText, `"1771234567890123456"`)
-
-	identityRepo := &memoryIdentityRepository{
-		byID: map[idgen.ID]*authmodule.Identity{
-			idgen.New(1001): {
-				UserID:       idgen.New(1001),
-				Username:     "alice",
-				Nickname:     "Alice",
-				PasswordHash: passwordHash,
-				RoleCodes:    []string{"admin"},
-				IsEnable:     true,
-			},
-		},
-		byUsername: map[string]*authmodule.Identity{
-			"alice": {
-				UserID:       idgen.New(1001),
-				Username:     "alice",
-				Nickname:     "Alice",
-				PasswordHash: passwordHash,
-				RoleCodes:    []string{"admin"},
-				IsEnable:     true,
-			},
-		},
-	}
-
-	authService := authmodule.NewService(identityRepo, passwords, jwtManager)
-	authmodule.NewModule(authmodule.NewHandler(authService)).Register(app.API, app.Registry)
 
 	localStorage, err := local.New(storage.Config{
 		Enabled:  true,
@@ -296,6 +227,8 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	healthRec := httptest.NewRecorder()
 	app.Engine.ServeHTTP(healthRec, healthReq)
 	require.Equal(t, http.StatusOK, healthRec.Code)
+
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 // writeCasbinFiles 为端到端测试写入临时 Casbin 模型和策略文件。
@@ -307,29 +240,29 @@ func writeCasbinFiles(t *testing.T) (string, string) {
 	policyPath := filepath.Join(dir, "rbac_policy.csv")
 
 	model := `
-[request_definition]
-r = sub, obj, act
+	[request_definition]
+	r = sub, obj, act
 
-[policy_definition]
-p = sub, obj, act
+	[policy_definition]
+	p = sub, obj, act
 
-[role_definition]
-g = _, _
+	[role_definition]
+	g = _, _
 
-[policy_effect]
-e = some(where (p.eft == allow))
+	[policy_effect]
+	e = some(where (p.eft == allow))
 
-[matchers]
-m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
-`
+	[matchers]
+	m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
+	`
 
 	policy := `
-p, admin, user, read
-p, admin, file, read
-p, admin, file, write
-p, admin, file, delete
-g, admin, admin
-`
+	p, admin, user, read
+	p, admin, file, read
+	p, admin, file, write
+	p, admin, file, delete
+	g, admin, admin
+	`
 
 	require.NoError(t, os.WriteFile(modelPath, []byte(strings.TrimSpace(model)), 0o600))
 	require.NoError(t, os.WriteFile(policyPath, []byte(strings.TrimSpace(policy)), 0o600))

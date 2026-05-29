@@ -3,12 +3,33 @@ package user
 import (
 	"context"
 	"errors"
+	"time"
 
 	jetcache "github.com/mgtv-tech/jetcache-go"
 	"github.com/teamsillybees/initra/examples/internal/modules/bizerrors"
 	platformcache "github.com/teamsillybees/initra/pkg/cache"
 	"github.com/teamsillybees/initra/pkg/idgen"
 )
+
+// User 是 user 模块的核心领域实体。
+type User struct {
+	ID           idgen.ID
+	Username     string
+	PasswordHash string
+	Nickname     string
+	Phone        string
+	Email        string
+	AvatarURL    string
+	RoleCodes    []string
+	IsSuperAdmin bool
+	IsEnable     bool
+	SortID       int
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    *time.Time
+	CreatedBy    idgen.ID
+	UpdatedBy    idgen.ID
+}
 
 // UserCache 负责 user 模块详情缓存的读写与 Key 规范封装。
 type UserCache struct {

@@ -58,15 +58,14 @@ go run ./internal/data/migratediff/main.go <name>   # 生成迁移 diff
 | 文件 | 职责 |
 |------|------|
 | `*.dto.go` | HTTP 边界类型：`Body`（请求体）、`Query`（查询参数）、`VO`（对外 JSON DTO）、非导出 `request`/`response`（Huma 包装类型） |
-| `*.model.go` | 领域实体和 service/repo 的结构体入参，使用 `DTO` 后缀 |
 | `*.handler.go` | HTTP Handler，每个方法对应一个 Huma operation |
-| `*.service.go` | 业务逻辑层 |
-| `*.repo.go` | 数据访问层（Ent client） |
+| `*.service.go` | 业务逻辑 + 数据访问（Ent Client），不再拆分 repo 层 |
 | `*.routes.go` | `Module` 结构体，负责注册 Huma operation 和 Casbin 安全策略 |
 | `providers.go` | `Provide()` 函数，用 samber/do 注册该模块的依赖链 |
-| `cache.go` | 缓存层（jetcache-go） |
+| `cache.go` | 缓存层（jetcache-go）+ 领域实体定义 |
 
-依赖注入方向：`Handler → Service → Repository + Cache`，全部通过 `providers.go` 在 do 容器中组装。
+依赖注入方向：`Handler → Service`，Service 直接持有 Ent Client 和 Cache，全部通过 `providers.go` 在 do 容器中组装。
+Service 方法直接接受 HTTP 边界类型（Body/Query）并返回 VO，无需中间 DTO 转换。
 
 ### 启动流程
 

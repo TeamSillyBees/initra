@@ -15,3 +15,7 @@
 
 
 走查时不要走查 internal/data/ent 下的内容，这个目录下的 ent schema 定义是由 entgen 生成的，禁止修改。数据库层面只走查 internal/data/schema 下的内容，完成修改之后调用 d:\Project\TeamSillyBees\paperlingo-golang\internal\data\generate.go 重新生成 schema 即可。接口层面要走查相关的接口定义、请求参数、响应参数、DTO 定义等，确保所有数值字段都符合上述规范。
+
+
+- 检查登录之后是否会自动在当前 ctx 中注入用户信息，确保后续业务逻辑能够正确获取用户信息进行权限校验等操作。 避免手动 ctx = entx.WithOperatorID(ctx, update.OperatorID)
+- 重构项目结构，删除 model.go 合并 service 和 repo。直接在 service 中通过 ent 方法操作数据库读写

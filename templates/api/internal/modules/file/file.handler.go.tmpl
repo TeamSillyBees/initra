@@ -29,17 +29,12 @@ func (h *Handler) upload(ctx context.Context, input *uploadLocalFileRequest) (*u
 	}
 	defer data.File.Close()
 
-	file, err := h.service.UploadLocal(ctx, UploadLocalFileDTO{
-		FileName:    data.File.Filename,
-		ContentType: data.File.ContentType,
-		Size:        data.File.Size,
-		Body:        data.File.File,
-	})
+	vo, err := h.service.UploadLocal(ctx, data.File.Filename, data.File.ContentType, data.File.Size, data.File.File)
 	if err != nil {
 		return nil, err
 	}
 	return &uploadLocalFileResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), toLocalFileVO(file)),
+		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
 	}, nil
 }
 
@@ -49,19 +44,19 @@ func (h *Handler) download(ctx context.Context, input *downloadLocalFileRequest)
 		return nil, err
 	}
 	return &downloadLocalFileResponse{
-		ContentType:        result.File.ContentType,
-		ContentDisposition: attachmentDisposition(result.File.FileName),
+		ContentType:        result.Info.ContentType,
+		ContentDisposition: attachmentDisposition(result.Info.FileName),
 		Body:               result.Body,
 	}, nil
 }
 
 func (h *Handler) stat(ctx context.Context, input *statLocalFileRequest) (*statLocalFileResponse, error) {
-	file, err := h.service.StatLocal(ctx, input.Key)
+	vo, err := h.service.StatLocal(ctx, input.Key)
 	if err != nil {
 		return nil, err
 	}
 	return &statLocalFileResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), toLocalFileVO(file)),
+		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
 	}, nil
 }
 
@@ -72,20 +67,6 @@ func (h *Handler) delete(ctx context.Context, input *deleteLocalFileRequest) (*d
 	return &deleteLocalFileResponse{
 		Body: response.OK(requestctx.TraceIDFromContext(ctx), map[string]any{}),
 	}, nil
-}
-
-func toLocalFileVO(file *LocalFile) LocalFileVO {
-	if file == nil {
-		return LocalFileVO{}
-	}
-	return LocalFileVO{
-		Key:          file.Key,
-		FileName:     file.FileName,
-		Size:         file.Size,
-		ContentType:  file.ContentType,
-		URL:          file.URL,
-		LastModified: file.LastModified,
-	}
 }
 
 func attachmentDisposition(fileName string) string {

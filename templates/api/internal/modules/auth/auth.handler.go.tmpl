@@ -20,34 +20,22 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) login(ctx context.Context, input *loginRequest) (*loginResponse, error) {
-	identity, tokenPair, err := h.service.Login(ctx, LoginDTO{
-		Username: input.Body.Username,
-		Password: input.Body.Password,
-	})
+	vo, err := h.service.Login(ctx, input.Body)
 	if err != nil {
 		return nil, err
 	}
-
 	return &loginResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), LoginVO{
-			AccessToken:  tokenPair.AccessToken,
-			RefreshToken: tokenPair.RefreshToken,
-			User:         toUserIdentityVO(identity),
-		}),
+		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
 	}, nil
 }
 
 func (h *Handler) refresh(ctx context.Context, input *refreshRequest) (*refreshResponse, error) {
-	tokenPair, err := h.service.Refresh(ctx, input.Body.RefreshToken)
+	vo, err := h.service.Refresh(ctx, input.Body)
 	if err != nil {
 		return nil, err
 	}
-
 	return &refreshResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), RefreshVO{
-			AccessToken:  tokenPair.AccessToken,
-			RefreshToken: tokenPair.RefreshToken,
-		}),
+		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
 	}, nil
 }
 
@@ -57,23 +45,11 @@ func (h *Handler) me(ctx context.Context, _ *meRequest) (*meResponse, error) {
 		return nil, bizerrors.Unauthorized("user principal is missing")
 	}
 
-	user, err := h.service.Me(ctx, principal.UserID)
+	vo, err := h.service.Me(ctx, principal.UserID)
 	if err != nil {
 		return nil, err
 	}
-
 	return &meResponse{
-		Body: response.OK(requestctx.TraceIDFromContext(ctx), toUserIdentityVO(user)),
+		Body: response.OK(requestctx.TraceIDFromContext(ctx), vo),
 	}, nil
-}
-
-func toUserIdentityVO(identity *Identity) UserIdentityVO {
-	return UserIdentityVO{
-		UserID:       identity.UserID,
-		Username:     identity.Username,
-		Nickname:     identity.Nickname,
-		RoleCodes:    append([]string(nil), identity.RoleCodes...),
-		IsSuperAdmin: identity.IsSuperAdmin,
-		IsEnable:     identity.IsEnable,
-	}
 }

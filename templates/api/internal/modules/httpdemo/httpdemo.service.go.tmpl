@@ -27,38 +27,38 @@ func NewService(client remoteHTTPClient) *Service {
 }
 
 // GetHTTPBingo 调用 HTTPBingo /get 并返回 JSON 回显结果。
-func (s *Service) GetHTTPBingo(ctx context.Context, input GetHTTPBingoDTO) (*HTTPBingoGetResult, error) {
+func (s *Service) GetHTTPBingo(ctx context.Context, message string, traceID string) (HTTPBingoGetVO, error) {
 	if err := s.ensureClient(); err != nil {
-		return nil, err
+		return HTTPBingoGetVO{}, err
 	}
-	message := strings.TrimSpace(input.Message)
+	message = strings.TrimSpace(message)
 	if message == "" {
 		message = defaultMessage
 	}
 	payload := httpBingoGetPayload{}
 	_, err := s.client.Get(ctx, "/get",
 		httpclient.WithQuery("message", message),
-		httpclient.WithHeader("X-Trace-ID", strings.TrimSpace(input.TraceID)),
+		httpclient.WithHeader("X-Trace-ID", strings.TrimSpace(traceID)),
 		httpclient.WithResult(&payload),
 	)
 	if err != nil {
-		return nil, mapHTTPClientError(err, "call httpbingo get failed")
+		return HTTPBingoGetVO{}, mapHTTPClientError(err, "call httpbingo get failed")
 	}
-	return httpBingoGetResultFromPayload(payload), nil
+	return httpBingoGetVOFromPayload(payload), nil
 }
 
 // GetHTTPBingoFormPage 调用 HTTPBingo /forms/post 并返回 HTML 表单页内容。
-func (s *Service) GetHTTPBingoFormPage(ctx context.Context, input GetHTTPBingoFormPageDTO) (*HTTPBingoFormPage, error) {
+func (s *Service) GetHTTPBingoFormPage(ctx context.Context, traceID string) (HTTPBingoFormPageVO, error) {
 	if err := s.ensureClient(); err != nil {
-		return nil, err
+		return HTTPBingoFormPageVO{}, err
 	}
 	resp, err := s.client.Get(ctx, "/forms/post",
-		httpclient.WithHeader("X-Trace-ID", strings.TrimSpace(input.TraceID)),
+		httpclient.WithHeader("X-Trace-ID", strings.TrimSpace(traceID)),
 	)
 	if err != nil {
-		return nil, mapHTTPClientError(err, "call httpbingo form page failed")
+		return HTTPBingoFormPageVO{}, mapHTTPClientError(err, "call httpbingo form page failed")
 	}
-	return &HTTPBingoFormPage{
+	return HTTPBingoFormPageVO{
 		ContentType: resp.Header.Get("Content-Type"),
 		Size:        len(resp.Body),
 		Body:        string(resp.Body),
@@ -72,8 +72,8 @@ func (s *Service) ensureClient() error {
 	return nil
 }
 
-func httpBingoGetResultFromPayload(payload httpBingoGetPayload) *HTTPBingoGetResult {
-	return &HTTPBingoGetResult{
+func httpBingoGetVOFromPayload(payload httpBingoGetPayload) HTTPBingoGetVO {
+	return HTTPBingoGetVO{
 		Args:    payload.Args,
 		Headers: payload.Headers,
 		Method:  payload.Method,

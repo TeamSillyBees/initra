@@ -17,13 +17,13 @@
 `initra` 是面向企业内部 Go 服务的快速开发脚手架。理解和描述本仓库时必须区分三类内容：
 
 - **标准项目模板**：`templates/api` 提供包含 auth/user/file 示例模块、Ent schema 与生成代码、seed 和 Atlas migrations 的 RESTful API 服务模板；`examples` 是 API 模板的可运行验证样例。
-- **可复用 Go package**：根模块 `github.com/teamsillybees/initra` 的 `pkg/*`，沉淀 Web、配置、错误、日志、认证、数据库、Redis、缓存、文件与对象存储、HTTP Client、任务队列、任务调度等通用能力；其中 Redis 基础能力统一放在 `pkg/redisx`，支持 standalone/sentinel，不支持 cluster；任务队列能力统一放在 `pkg/task`，默认底层适配 Asynq。
+- **可复用 Go package**：根模块 `github.com/teamsillybees/initra` 的 `pkg/*`，沉淀 Web、配置、错误、日志、认证、数据库、Redis、缓存、文件与对象存储、HTTP Client、任务队列、任务调度等通用能力；
 - **工程化 CLI**：`cmd/initra`，负责生成项目、业务模块、CRUD 样例、迁移文件、配置样例、接口骨架、测试骨架和代码生成命令。
 
 重要边界：
 
 - `examples` 是独立 Go module 的可运行 API 示例项目，属于标准项目模板。
-- `templates/api` 是 CLI API 项目模板，内容应与 `examples` 保持同步，并保留 auth/user 基础模块、file 本地文件示例模块、Ent schema 与生成代码、seed 数据和 Atlas migrations。
+- `templates/api` 是 CLI API 项目模板，内容应与 `examples` 保持同步。
 - `cmd/initra` 只负责生成和维护工程骨架，不承载运行时业务能力。
 - `internal/` 只服务脚手架仓库自身；标准项目模板、生成项目和外部业务项目不得 import 根仓库 `internal/`。
 
@@ -76,18 +76,20 @@ go run ./cmd/initra new $target --type api --module example.com/demo-api --repla
 
 ```text
 internal/modules/<module>/
-  <module>.handler.go Handler + HTTP 适配方法 + DTO/领域模型转换
+  <module>.handler.go HTTP 适配方法，调用 service 并包装响应
   <module>.dto.go     HTTP 边界类型：内部 Request/Response、Query、Body、VO
-  <module>.service.go 业务逻辑 + 私有接口定义
-  <module>.repo.go    数据库实现
-  <module>.model.go   领域实体 + service/repo DTO 与结果类型
+  <module>.service.go 业务逻辑 + Ent 数据库操作（不再拆分 repo）
   <module>.routes.go  路由注册 + Module 结构体
   providers.go        samber/do 依赖注入
-  cache.go            可选，缓存适配器
+  cache.go            可选，缓存适配器 + 领域实体定义
   <module>_test.go    单元测试
 ```
 
-- `*.model.go` 只放模块内部稳定模型，不放 `json`、`path`、`query` 等传输层 tag；service/repo 层的结构体入参统一使用 `DTO` 后缀，不再使用 `Params`。
+- `*.handler.go` 直接调用 service 方法，service 接受 Body/Query 类型、返回 VO，无需中间 DTO 转换。
+- `*.service.go` 直接通过 Ent Client 操作数据库，不再拆分独立的 Repository 层。
+- `*.model.go` 已废弃，领域实体移入 `cache.go` 或 `*.service.go`。
+- 不再定义 service 层 DTO（如 CreateUserDTO、UpdateUserDTO）；service 方法直接接受 HTTP 边界类型（Body/Query）并返回 VO。
+
 - `*.dto.go` 只放 HTTP 边界类型：Huma/Gin 包装类型用非导出的 `request`/`response` 后缀；HTTP 查询参数用 `Query` 后缀；HTTP 请求体用 `Body` 后缀；对外 JSON DTO 用 `VO` 后缀。
 - `Response` 只表示 Huma/Gin 内部响应包装，不作为对外 JSON DTO 后缀；统一成功/错误响应等 JSON 结构使用 `VO` 命名。
 - `*.handler.go` 可引用 DTO 类型，但不再定义 DTO；它只负责参数转换、调用 service 和包装响应。
