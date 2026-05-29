@@ -15,6 +15,7 @@ func TestAuthServiceFindByID(t *testing.T) {
 	db, mock, client := newMockEntClient(t)
 	defer db.Close()
 
+	// Me 只使用 FindByID，不访问 passwords 或 tokens，故可传 nil。
 	svc := auth.NewService(client, nil, nil)
 	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
 		WillReturnRows(sysUserRows().AddRow(

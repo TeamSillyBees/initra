@@ -28,7 +28,7 @@ type stubUserCache struct{}
 func (stubUserCache) Get(context.Context, idgen.ID) (*user.User, bool, error) {
 	return nil, false, nil
 }
-func (stubUserCache) Set(context.Context, *user.User) error { return nil }
+func (stubUserCache) Set(context.Context, *user.User) error  { return nil }
 func (stubUserCache) Delete(context.Context, idgen.ID) error { return nil }
 
 // TestUserServiceCreateUsesEntHooks 验证创建用户后自动填充 ID 和审计字段。

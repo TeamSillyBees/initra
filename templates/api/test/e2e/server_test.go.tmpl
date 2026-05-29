@@ -17,11 +17,11 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
+	"{{ .ModulePath }}/internal/data"
+	appent "{{ .ModulePath }}/internal/data/ent"
 	authmodule "{{ .ModulePath }}/internal/modules/auth"
 	filemodule "{{ .ModulePath }}/internal/modules/file"
 	usermodule "{{ .ModulePath }}/internal/modules/user"
-	"{{ .ModulePath }}/internal/data"
-	appent "{{ .ModulePath }}/internal/data/ent"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/observability"
@@ -30,15 +30,6 @@ import (
 	"github.com/teamsillybees/initra/pkg/storage/local"
 	"go.uber.org/zap"
 )
-
-// noopUserCache 用于 e2e 测试，始终模拟缓存未命中。
-type noopUserCache struct{}
-
-func (noopUserCache) Get(context.Context, idgen.ID) (*usermodule.User, bool, error) {
-	return nil, false, nil
-}
-func (noopUserCache) Set(context.Context, *usermodule.User) error { return nil }
-func (noopUserCache) Delete(context.Context, idgen.ID) error      { return nil }
 
 func newMockEntClient(t *testing.T) (*sql.DB, sqlmock.Sqlmock, *appent.Client) {
 	t.Helper()
@@ -58,6 +49,15 @@ func sysUserRows() *sqlmock.Rows {
 }
 
 var testNow = time.Date(2026, 5, 6, 10, 0, 0, 0, time.UTC)
+
+// noopUserCache 用于 e2e 测试，始终模拟缓存未命中。
+type noopUserCache struct{}
+
+func (noopUserCache) Get(context.Context, idgen.ID) (*usermodule.User, bool, error) {
+	return nil, false, nil
+}
+func (noopUserCache) Set(context.Context, *usermodule.User) error { return nil }
+func (noopUserCache) Delete(context.Context, idgen.ID) error      { return nil }
 
 // TestServer_LoginMeAndUserDetail 覆盖登录、当前用户、用户详情和健康检查的完整 HTTP 流程。
 func TestServer_LoginMeAndUserDetail(t *testing.T) {

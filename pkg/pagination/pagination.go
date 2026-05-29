@@ -6,6 +6,14 @@ type PageQuery struct {
 	PageSize int32 `query:"pageSize" example:"20" minimum:"1" default:"20" doc:"每页记录数，不传默认为 20"`
 }
 
+func (p PageQuery) Offset() int32 {
+	return (p.Page - 1) * p.PageSize
+}
+
+func (p PageQuery) Limit() int32 {
+	return p.PageSize
+}
+
 // PageMetaVO 描述带总数分页响应中的通用 JSON 字段，可嵌入业务 VO。
 type PageMetaVO struct {
 	Total      int32 `json:"total" doc:"总记录数"`

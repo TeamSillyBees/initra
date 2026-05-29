@@ -5,10 +5,21 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"time"
 
 	"{{ .ModulePath }}/internal/modules/bizerrors"
 	"github.com/teamsillybees/initra/pkg/storage"
 )
+
+// LocalFile 是 file 示例模块的本地文件领域模型。
+type LocalFile struct {
+	Key          string
+	FileName     string
+	Size         int64
+	ContentType  string
+	URL          string
+	LastModified time.Time
+}
 
 // DownloadLocalResult 描述下载本地文件的结果。
 type DownloadLocalResult struct {

@@ -124,7 +124,7 @@ func (s *Service) Page(ctx context.Context, query PageUsersQuery) (pagination.Pa
 		vos = append(vos, userToVO(item))
 	}
 
-	return pagination.NewPageVO(vos, int32(total), query.PageQuery), nil
+	return pagination.NewPageVO(vos, total, query.PageQuery), nil
 }
 
 // Update 更新用户并清理缓存。
@@ -253,8 +253,8 @@ func (s *Service) page(ctx context.Context, input PageUsersQuery) ([]*User, int3
 		return nil, 0, bizerrors.WrapDB(err, "count users failed")
 	}
 
-	offset := int((input.Page - 1) * input.PageSize)
-	limit := int(input.PageSize)
+	offset := int(input.Offset())
+	limit := int(input.Limit())
 	records, err := query.
 		Order(appent.Asc(sysuser.FieldSortID), appent.Asc(sysuser.FieldID)).
 		Limit(limit).
