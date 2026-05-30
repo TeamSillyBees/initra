@@ -123,6 +123,6 @@ initra doctor                         诊断环境
 
 - **任务队列不直接依赖 Asynq**：`pkg/task` 定义抽象接口，`pkg/task/asynqadapter` 提供 Asynq 适配，业务代码只依赖 `task.Publisher` / `task.TaskMeta`
 - **Ent 代码不入库**：模板只保存 schema、mixin、`generate.go`，`initra new` 生成项目后自动执行 Ent 代码生成
-- **统一错误模型**：`pkg/errors.AppError` 携带 Code + Message + HTTP Status + Details + Cause，通过 `oops` 包装底层错误
+- **统一错误模型**：`pkg/errors` 基于 `oops` 提供统一错误链、业务错误码、HTTP 状态和公开详情映射
 - **路由安全元信息**：每个路由注册时必须同时注册 `RouteSecurity{Resource, Action}`，Casbin 中间件据此鉴权
 - **泛型配置加载**：`pkg/config` 不绑定任何业务配置结构，通过泛型 `LoadInto[T]` 实现

@@ -1,10 +1,6 @@
 package requestctx
 
-import (
-	"context"
-
-	"go.uber.org/zap"
-)
+import "context"
 
 // requestContextKey 是当前包内部使用的上下文 key 类型，避免与外部字符串 key 冲突。
 type requestContextKey string
@@ -138,34 +134,6 @@ func WithAppID(ctx context.Context, appID string) context.Context {
 // AppIDFromContext 从上下文中提取 app_id。
 func AppIDFromContext(ctx context.Context) (string, bool) {
 	return stringFromContext(ctx, appIDKey)
-}
-
-// LogFields 根据请求上下文构造 zap 日志字段，空值不会输出。
-func LogFields(ctx context.Context) []zap.Field {
-	values := ValuesFromContext(ctx)
-	fields := make([]zap.Field, 0, 6)
-	if values.RequestID != "" {
-		fields = append(fields, zap.String("request_id", values.RequestID))
-	}
-	if values.TraceID != "" {
-		fields = append(fields, zap.String("trace_id", values.TraceID))
-	}
-	if values.UserID != "" {
-		fields = append(fields, zap.String("user_id", values.UserID))
-	}
-	if len(values.Roles) > 0 {
-		fields = append(fields, zap.Strings("roles", values.Roles))
-	}
-	if values.TenantID != "" {
-		fields = append(fields, zap.String("tenant_id", values.TenantID))
-	}
-	if values.SessionID != "" {
-		fields = append(fields, zap.String("session_id", values.SessionID))
-	}
-	if values.AppID != "" {
-		fields = append(fields, zap.String("app_id", values.AppID))
-	}
-	return fields
 }
 
 func withString(ctx context.Context, key requestContextKey, value string) context.Context {

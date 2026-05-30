@@ -7,7 +7,7 @@ import (
 	"github.com/teamsillybees/initra/examples/internal/data"
 	platformconfig "github.com/teamsillybees/initra/pkg/config"
 	"github.com/teamsillybees/initra/pkg/httpclient"
-	"github.com/teamsillybees/initra/pkg/logging"
+	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/redisx"
 	platformstorage "github.com/teamsillybees/initra/pkg/storage"
 	"github.com/teamsillybees/initra/pkg/task"
@@ -20,7 +20,7 @@ type Config struct {
 	Database      data.DatabaseConfig    `mapstructure:"database"`
 	Redis         redisx.Config          `mapstructure:"redis"`
 	Auth          AuthConfig             `mapstructure:"auth"`
-	Log           logging.Config         `mapstructure:"log"`
+	Log           logx.Config            `mapstructure:"log"`
 	Observability ObservabilityConfig    `mapstructure:"observability"`
 	Casbin        CasbinConfig           `mapstructure:"casbin"`
 	Cache         CacheConfig            `mapstructure:"cache"`
@@ -103,7 +103,7 @@ func LoadConfig(env string, configDir string) (*Config, error) {
 
 // SafeForLog 返回脱敏后的配置副本，可安全用于结构化日志打印。
 func (c *Config) SafeForLog() map[string]any {
-	return platformconfig.Sanitize(c, c.Log.Mask.Fields)
+	return platformconfig.Sanitize(c, c.Log.Redact.Fields)
 }
 
 // Validate 对启动所需关键配置进行兜底校验。
@@ -197,10 +197,17 @@ func configDefaults() map[string]any {
 		"auth.jwt.issuer":                                    "",
 		"auth.jwt.secret":                                    "",
 		"log.level":                                          "info",
-		"log.format":                                         "json",
-		"log.output":                                         "stdout",
-		"log.mask.enabled":                                   true,
-		"log.mask.fields":                                    []string{"password", "token", "secret", "authorization"},
+		"log.console.enabled":                                true,
+		"log.console.level":                                  "debug",
+		"log.console.stack":                                  string(logx.StackShort),
+		"log.console.color":                                  true,
+		"log.console.output":                                 "stderr",
+		"log.jsonl.enabled":                                  true,
+		"log.jsonl.level":                                    "info",
+		"log.jsonl.stack":                                    string(logx.StackFull),
+		"log.jsonl.path":                                     "stdout",
+		"log.redact.enabled":                                 true,
+		"log.redact.fields":                                  []string{"password", "token", "secret", "authorization"},
 		"observability.metrics.enabled":                      true,
 		"observability.tracing.enabled":                      false,
 		"observability.pprof.enabled":                        false,

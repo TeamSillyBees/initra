@@ -2,7 +2,7 @@
 
 统一错误码、HTTP 映射、响应结构、错误细节和错误包装由 `github.com/teamsillybees/initra/pkg/errors` 提供。业务模块不要直接依赖 `pkg/errors` 或 `github.com/samber/oops`，应通过项目内的 `internal/modules/bizerrors` 门面创建和包装错误。
 
-`AppError` 是业务错误模型，负责业务错误码、HTTP 状态码、对外 message 和对外 details；`oops` 只作为底层 cause 增强器，负责 stacktrace、domain、hint、trace 和内部 attrs。
+`pkg/errors` 是 oops 的框架门面，不再定义自定义错误结构。业务错误码只在错误源头设置；后续层用 `Wrap` / `WrapContext` 保留根因、追加当前语义和必要排障上下文。日志、响应转换和 panic recover 只在 HTTP / Worker / CLI 等边界层统一处理。
 
 ## 标准用法
 
@@ -12,7 +12,7 @@
 return apperrors.New(apperrors.CodeBadRequest, "文件名不能为空")
 ```
 
-框架层或 `bizerrors` 门面可以使用 `apperrors.WrapContext` 包装底层错误并补充内部 cause metadata：
+框架层或 `bizerrors` 门面可以使用 `apperrors.WrapContext` 包装底层错误并补充内部 metadata：
 
 ```go
 return apperrors.WrapContext(ctx, err, apperrors.CodeInternalError, "调用短信服务失败",
@@ -21,18 +21,18 @@ return apperrors.WrapContext(ctx, err, apperrors.CodeInternalError, "调用短�
 )
 ```
 
-`Details` 只放允许返回给客户端的信息；SQL、token、password、secret、手机号、身份证、OSS object key、第三方完整响应体等排障字段应使用 `WithCauseAttr` 或 `WithCauseAttrs`，最终只进入日志。
+`WithDetail` / `WithDetails` 只放允许返回给客户端的信息；SQL、token、password、secret、手机号、身份证、OSS object key、第三方完整响应体等排障字段应使用 `WithCauseAttr` 或 `WithCauseAttrs`，最终只进入边界日志。
 
 业务专属错误码放在独立的 `internal/modules/bizerrors` package：
 
 ```go
 const CodeLoginFailed apperrors.Code = "LOGIN_FAILED"
 
-func LoginFailed() *apperrors.AppError {
+func LoginFailed() error {
 	return apperrors.New(CodeLoginFailed, "登录失败", apperrors.WithStatus(http.StatusUnauthorized))
 }
 
-func WrapDBContext(ctx context.Context, err error, message string, opts ...Option) *apperrors.AppError {
+func WrapDBContext(ctx context.Context, err error, message string, opts ...Option) error {
 	return apperrors.WrapContext(ctx, err, apperrors.CodeDBError, message,
 		append([]Option{
 			apperrors.WithCauseDomain(apperrors.DomainDB),
@@ -57,6 +57,8 @@ type ErrorVO struct {
 }
 ```
 
+`apperrors.ToHTTP` 从 oops 链读取最深层 code 并映射 HTTP 状态；`Public` 作为响应 message，5xx 默认返回 `internal error`。排障上下文和 stacktrace 只进入边界日志，不返回给前端。
+
 ## 错误边界
 
 - Handler：只做必要的传输层校验，调用 service，返回 service error。
@@ -72,10 +74,11 @@ type ErrorVO struct {
 - 不要把底层 cause、stacktrace 或 oops attrs 返回给前端。
 - 不要用 panic 表达业务错误。
 - 不要吞掉错误；返回带上下文的错误。
+- 不要在非边界层记录同一个错误。
 
 ## 检查清单
 
-- 每个面向用户的错误是否都是 `apperrors.AppError` 或已包装成它？
-- 业务错误码是否集中定义？
+- 每个面向用户的错误是否都是 oops 包装后的 `error`？
+- 业务错误码是否只在错误源头设置？
 - 非默认业务错误码是否明确 HTTP 状态？
 - 敏感细节是否已排除？

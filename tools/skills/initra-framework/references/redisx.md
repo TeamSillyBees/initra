@@ -7,7 +7,7 @@
 在 logger 注册之后，在 boot 层统一注册 Redis：
 
 ```go
-logging.Register(injector, cfg.Log)
+logx.Register(injector, cfg.Log)
 redisx.Register(injector, cfg.Redis)
 ```
 

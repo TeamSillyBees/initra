@@ -8,14 +8,14 @@ import (
 	"github.com/casbin/casbin/v2"
 	"github.com/stretchr/testify/require"
 	"github.com/teamsillybees/initra/pkg/auth"
+	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/observability"
 	"github.com/teamsillybees/initra/pkg/server"
-	"go.uber.org/zap"
 )
 
 // TestModuleRegistersHealthReadyAndVersionEndpoints 验证观测模块注册健康、就绪和版本接口。
 func TestModuleRegistersHealthReadyAndVersionEndpoints(t *testing.T) {
-	logger := zap.NewNop()
+	logger := logx.NewNop()
 	jwtManager, err := auth.NewJWTManager(auth.JWTConfig{
 		Issuer:          "initra",
 		Secret:          "observability-test-secret",

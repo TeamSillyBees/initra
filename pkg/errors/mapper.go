@@ -1,5 +1,7 @@
 package apperrors
 
+import "github.com/samber/oops"
+
 // ErrorVO 是脚手架统一错误响应 JSON DTO。
 type ErrorVO struct {
 	Code    string         `json:"code"`
@@ -10,8 +12,7 @@ type ErrorVO struct {
 
 // ToHTTP 将任意 error 归一化为 HTTP 状态码和统一响应体。
 func ToHTTP(err error, traceID string) (int, ErrorVO) {
-	appErr := From(err)
-	if appErr == nil {
+	if _, ok := oops.AsOops(err); !ok {
 		return statusOf(CodeInternalError), ErrorVO{
 			Code:    string(CodeInternalError),
 			Message: "internal error",
@@ -19,14 +20,10 @@ func ToHTTP(err error, traceID string) (int, ErrorVO) {
 		}
 	}
 
-	var details map[string]any
-	if len(appErr.Details) > 0 {
-		details = SanitizeMap(appErr.Details)
-	}
-	return appErr.Status, ErrorVO{
-		Code:    string(appErr.Code),
-		Message: appErr.Message,
-		Details: details,
+	return StatusOf(err), ErrorVO{
+		Code:    string(CodeOf(err)),
+		Message: PublicMessageOf(err),
+		Details: PublicDetailsOf(err),
 		TraceID: traceID,
 	}
 }

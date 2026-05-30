@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -11,9 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
-	logfields "github.com/teamsillybees/initra/pkg/logging"
+	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/requestctx"
-	"go.uber.org/zap"
 )
 
 // HTTP 头常量集中定义，避免不同中间件拼写不一致。
@@ -47,7 +47,7 @@ func RequestContextMiddleware() gin.HandlerFunc {
 }
 
 // JWTMiddleware 在进入业务处理前完成 JWT 身份解析。
-func JWTMiddleware(manager *JWTManager, lookup RouteSecurityLookup, logger *zap.Logger) gin.HandlerFunc {
+func JWTMiddleware(manager *JWTManager, lookup RouteSecurityLookup) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.Method == http.MethodOptions || shouldSkipAuth(c.Request.URL.Path) {
 			c.Next()
@@ -101,7 +101,7 @@ func JWTMiddleware(manager *JWTManager, lookup RouteSecurityLookup, logger *zap.
 }
 
 // AuthorizationMiddleware 在身份校验后，基于 Casbin 策略继续完成授权判断。
-func AuthorizationMiddleware(enforcer *casbin.Enforcer, lookup RouteSecurityLookup, _ *zap.Logger) gin.HandlerFunc {
+func AuthorizationMiddleware(enforcer *casbin.Enforcer, lookup RouteSecurityLookup) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.Method == http.MethodOptions || shouldSkipAuth(c.Request.URL.Path) {
 			c.Next()
@@ -159,8 +159,8 @@ func AuthorizationMiddleware(enforcer *casbin.Enforcer, lookup RouteSecurityLook
 	}
 }
 
-// RequestLoggerMiddleware 输出结构化请求日志。
-func RequestLoggerMiddleware(logger *zap.Logger) gin.HandlerFunc {
+// RequestLogxMiddleware 输出结构化请求日志。
+func RequestLogxMiddleware(logger *logx.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		c.Next()
@@ -171,37 +171,38 @@ func RequestLoggerMiddleware(logger *zap.Logger) gin.HandlerFunc {
 
 		traceID, _ := requestctx.TraceIDFromContext(c.Request.Context())
 		requestID, _ := requestctx.RequestIDFromContext(c.Request.Context())
-		fields := []zap.Field{
-			zap.String("trace_id", traceID),
-			zap.String("request_id", requestID),
-			zap.String("path", c.Request.URL.Path),
-			zap.String("method", c.Request.Method),
-			zap.Int("status", c.Writer.Status()),
-			zap.Int64("latency_ms", time.Since(start).Milliseconds()),
+		fields := []logx.Field{
+			logx.String("trace_id", traceID),
+			logx.String("request_id", requestID),
+			logx.String("path", c.Request.URL.Path),
+			logx.String("method", c.Request.Method),
+			logx.Int("status", c.Writer.Status()),
+			logx.Int64("latency_ms", time.Since(start).Milliseconds()),
 		}
 
 		if userID, ok := requestctx.UserIDFromContext(c.Request.Context()); ok && strings.TrimSpace(userID) != "" {
-			fields = append(fields, zap.String("user_id", userID))
+			fields = append(fields, logx.String("user_id", userID))
 		}
 
-		if c.Writer.Status() >= http.StatusInternalServerError {
-			logger.Error("http request failed", append(fields, ginErrorFields(c)...)...)
+		if err := ginLastError(c); err != nil {
+			logger.Error(c.Request.Context(), "http request failed", err, append(fields, ginErrorFields(c)...)...)
 		}
-		logger.Info("http request completed", fields...)
+		logger.Info(c.Request.Context(), "http request completed", fields...)
 	}
 }
 
-// RecoveryMiddleware 捕获 panic 并统一转换成标准错误响应。
-func RecoveryMiddleware(logger *zap.Logger) gin.HandlerFunc {
+// RecoveryLogxMiddleware 捕获 panic 并统一转换成标准错误响应。
+func RecoveryLogxMiddleware(logger *logx.Logger) gin.HandlerFunc {
 	return gin.CustomRecovery(func(c *gin.Context, recovered any) {
 		if logger != nil {
-			logger.Error("panic recovered",
-				zap.Any("panic", recovered),
-				zap.String("trace_id", traceIDFromContext(c.Request.Context())),
-				zap.String("request_id", requestIDFromContext(c.Request.Context())),
-				zap.String("path", c.Request.URL.Path),
-				zap.String("method", c.Request.Method),
-				zap.Stack("stacktrace"),
+			err := apperrors.WrapContext(c.Request.Context(), fmt.Errorf("panic recovered: %v", recovered), apperrors.CodeInternalError, "internal error",
+				apperrors.WithCauseDomain(apperrors.DomainServer),
+				apperrors.WithCauseAttr("panic", fmt.Sprint(recovered)),
+			)
+			logger.Error(c.Request.Context(), "panic recovered", err,
+				logx.String("request_id", requestIDFromContext(c.Request.Context())),
+				logx.String("path", c.Request.URL.Path),
+				logx.String("method", c.Request.Method),
 			)
 		}
 		writeError(c, apperrors.New(apperrors.CodeInternalError, "internal error"))
@@ -277,30 +278,20 @@ func writeError(c *gin.Context, err error) {
 	c.AbortWithStatusJSON(status, body)
 }
 
-func traceIDFromContext(ctx context.Context) string {
-	traceID, _ := requestctx.TraceIDFromContext(ctx)
-	return traceID
-}
-
 func requestIDFromContext(ctx context.Context) string {
 	requestID, _ := requestctx.RequestIDFromContext(ctx)
 	return requestID
 }
 
-func ginErrorFields(c *gin.Context) []zap.Field {
-	if c == nil || len(c.Errors) == 0 {
+func ginErrorFields(c *gin.Context) []logx.Field {
+	err := ginLastError(c)
+	if err == nil {
 		return nil
 	}
 
-	last := c.Errors.Last()
-	if last == nil || last.Err == nil {
-		return nil
+	fields := []logx.Field{
+		logx.Int("error_count", len(c.Errors)),
 	}
-
-	fields := []zap.Field{
-		zap.Int("error_count", len(c.Errors)),
-	}
-	fields = append(fields, logfields.ErrorFields(last.Err)...)
 	if len(c.Errors) > 1 {
 		messages := make([]string, 0, len(c.Errors))
 		for _, item := range c.Errors {
@@ -308,9 +299,20 @@ func ginErrorFields(c *gin.Context) []zap.Field {
 				messages = append(messages, item.Err.Error())
 			}
 		}
-		fields = append(fields, zap.Strings("errors", messages))
+		fields = append(fields, logx.Strings("errors", messages))
 	}
 	return fields
+}
+
+func ginLastError(c *gin.Context) error {
+	if c == nil || len(c.Errors) == 0 {
+		return nil
+	}
+	last := c.Errors.Last()
+	if last == nil {
+		return nil
+	}
+	return last.Err
 }
 
 // firstNonEmpty 返回第一个非空字符串，用于请求 ID 和 trace ID 的兜底选择。

@@ -11,8 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
+	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/requestctx"
-	"go.uber.org/zap"
 )
 
 // Options 描述 Web 层初始化所需的最小配置。
@@ -58,19 +58,22 @@ func (r *RouteRegistry) Lookup(method string, path string) (platformauth.RouteSe
 }
 
 // NewApp 创建集成 Gin、Huma、JWT 与 Casbin 的 Web 应用。
-func NewApp(options Options, logger *zap.Logger, jwtManager *platformauth.JWTManager, enforcer *casbin.Enforcer) (*App, error) {
+func NewApp(options Options, logger *logx.Logger, jwtManager *platformauth.JWTManager, enforcer *casbin.Enforcer) (*App, error) {
 	configureGinMode(options.Env)
 	configureHumaErrors()
 
+	if logger == nil {
+		logger = logx.NewNop()
+	}
 	engine := gin.New()
 	registry := NewRouteRegistry()
 	engine.Use(
-		platformauth.RecoveryMiddleware(logger),
+		platformauth.RecoveryLogxMiddleware(logger),
 		platformauth.RequestContextMiddleware(),
-		platformauth.RequestLoggerMiddleware(logger),
+		platformauth.RequestLogxMiddleware(logger),
 		platformauth.CORSMiddleware(),
-		platformauth.JWTMiddleware(jwtManager, registry, logger),
-		platformauth.AuthorizationMiddleware(enforcer, registry, logger),
+		platformauth.JWTMiddleware(jwtManager, registry),
+		platformauth.AuthorizationMiddleware(enforcer, registry),
 	)
 
 	humaConfig := huma.DefaultConfig(options.Title, options.Version)
@@ -192,8 +195,8 @@ func unwrapGinContext(ctx huma.Context) (ginCtx *gin.Context, ok bool) {
 // newHumaError 根据底层错误类型决定错误码、状态码、细节和 traceId。
 func newHumaError(status int, traceID string, message string, errs ...error) huma.StatusError {
 	if len(errs) > 0 {
-		if appErr := apperrors.From(errs[0]); appErr != nil {
-			actualStatus, body := apperrors.ToHTTP(appErr, traceID)
+		if _, ok := apperrors.AsOops(errs[0]); ok {
+			actualStatus, body := apperrors.ToHTTP(errs[0], traceID)
 			return &humaError{
 				Status:  actualStatus,
 				Code:    body.Code,

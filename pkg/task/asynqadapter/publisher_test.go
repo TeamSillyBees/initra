@@ -8,14 +8,14 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/stretchr/testify/require"
+	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/redisx"
 	"github.com/teamsillybees/initra/pkg/task"
-	"go.uber.org/zap"
 )
 
 func TestPublisherPublish(t *testing.T) {
 	redisServer := miniredis.RunT(t)
-	publisher, err := NewPublisher(testConfig(redisServer.Addr()), zap.NewNop())
+	publisher, err := NewPublisher(testConfig(redisServer.Addr()), logx.NewNop())
 	require.NoError(t, err)
 	defer publisher.Close()
 
@@ -41,7 +41,7 @@ func TestPublisherPublish(t *testing.T) {
 
 func TestPublisherMapsDuplicateTask(t *testing.T) {
 	redisServer := miniredis.RunT(t)
-	publisher, err := NewPublisher(testConfig(redisServer.Addr()), zap.NewNop())
+	publisher, err := NewPublisher(testConfig(redisServer.Addr()), logx.NewNop())
 	require.NoError(t, err)
 	defer publisher.Close()
 
@@ -71,9 +71,9 @@ func TestWorkerConsumesPublishedTask(t *testing.T) {
 		task.WithRegisterBizKeyRequired(true),
 	)
 	require.NoError(t, err)
-	worker, err := NewWorker(cfg, registry, zap.NewNop())
+	worker, err := NewWorker(cfg, registry, logx.NewNop())
 	require.NoError(t, err)
-	publisher, err := NewPublisher(cfg, zap.NewNop())
+	publisher, err := NewPublisher(cfg, logx.NewNop())
 	require.NoError(t, err)
 	defer publisher.Close()
 

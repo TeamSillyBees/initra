@@ -18,9 +18,8 @@ import (
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
 	"github.com/teamsillybees/initra/pkg/idgen"
+	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/requestctx"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zaptest/observer"
 )
 
 // TestNewAppAllowsCORSPreflightBeforeAuth 验证 CORS 预检在 JWT 校验前被正确放行。
@@ -52,8 +51,7 @@ func TestNewAppAllowsCORSPreflightBeforeAuth(t *testing.T) {
 func TestNewAppLogsUnauthorizedRequests(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	core, logs := observer.New(zap.InfoLevel)
-	logger := zap.New(core)
+	logger, logPath := newTestLogger(t)
 	manager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
 		Issuer:          "initra",
 		Secret:          "server-test-secret",
@@ -80,15 +78,15 @@ func TestNewAppLogsUnauthorizedRequests(t *testing.T) {
 	app.Engine.ServeHTTP(rec, req)
 
 	require.Equal(t, http.StatusUnauthorized, rec.Code)
-	require.NotEmpty(t, logs.FilterMessage("http request completed").All())
+	require.NoError(t, logger.Sync())
+	require.Contains(t, readTextFile(t, logPath), "http request completed")
 }
 
 // TestNewAppLogsHumaHandlerServerError 验证 Huma handler 返回的 5xx 错误会记录内部错误链。
 func TestNewAppLogsHumaHandlerServerError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	core, logs := observer.New(zap.DebugLevel)
-	logger := zap.New(core)
+	logger, logPath := newTestLogger(t)
 
 	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, logger, nil, nil)
 	require.NoError(t, err)
@@ -109,13 +107,13 @@ func TestNewAppLogsHumaHandlerServerError(t *testing.T) {
 
 	require.Equal(t, http.StatusInternalServerError, rec.Code)
 	require.NotContains(t, rec.Body.String(), "duplicate key")
-	entries := logs.FilterMessage("http request failed").All()
-	require.Len(t, entries, 1)
-	fields := entries[0].ContextMap()
-	require.Equal(t, "DB_ERROR", fields["error_code"])
-	require.Equal(t, "create user failed", fields["error_message"])
-	require.Equal(t, "driver: duplicate key", fields["error_cause"])
-	require.NotEmpty(t, fields["error_stacktrace"])
+	require.NoError(t, logger.Sync())
+	body := readTextFile(t, logPath)
+	require.Contains(t, body, "http request failed")
+	require.Contains(t, body, `"error_code":"DB_ERROR"`)
+	require.Contains(t, body, `"error_message":"create user failed: driver: duplicate key"`)
+	require.Contains(t, body, `"error_cause":"driver: duplicate key"`)
+	require.Contains(t, body, `"error_stacktrace"`)
 }
 
 // TestNewAppAcceptsValidJWTForProtectedAPIRoute 验证受保护 /api 路由会完成 JWT 校验与 Casbin 授权。
@@ -211,8 +209,7 @@ func TestNewAppAllowsAuthenticatedAPIRouteWithoutCasbinPolicy(t *testing.T) {
 func TestNewAppInjectsAuthenticatedContextIntoHumaHandler(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	core, logs := observer.New(zap.InfoLevel)
-	logger := zap.New(core)
+	logger, logPath := newTestLogger(t)
 	manager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
 		Issuer:          "initra",
 		Secret:          "server-test-secret",
@@ -266,12 +263,12 @@ func TestNewAppInjectsAuthenticatedContextIntoHumaHandler(t *testing.T) {
 	require.Equal(t, "req-1", rec.Header().Get("X-Request-ID"))
 	require.Equal(t, "trace-1", rec.Header().Get("X-Trace-ID"))
 
-	entries := logs.FilterMessage("http request completed").All()
-	require.Len(t, entries, 1)
-	fields := entries[0].ContextMap()
-	require.Equal(t, "req-1", fields["request_id"])
-	require.Equal(t, "trace-1", fields["trace_id"])
-	require.Equal(t, "1001", fields["user_id"])
+	require.NoError(t, logger.Sync())
+	body := readTextFile(t, logPath)
+	require.Contains(t, body, "http request completed")
+	require.Contains(t, body, `"request_id":"req-1"`)
+	require.Contains(t, body, `"trace_id":"trace-1"`)
+	require.Contains(t, body, `"user_id":"1001"`)
 }
 
 // TestNewAppAllowsPublicAPIRouteWithoutToken 验证 public 模式的 /api 路由不会触发 JWT 校验。
@@ -364,4 +361,25 @@ p, admin, user, read
 	require.NoError(t, os.WriteFile(modelPath, []byte(strings.TrimSpace(model)), 0o600))
 	require.NoError(t, os.WriteFile(policyPath, []byte(strings.TrimSpace(policy)), 0o600))
 	return modelPath, policyPath
+}
+
+// newTestLogger 创建只写入临时 JSONL 文件的测试 logger。
+func newTestLogger(t *testing.T) (*logx.Logger, string) {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "app.jsonl")
+	logger, err := logx.NewLogger(logx.Config{
+		Console: logx.ConsoleConfig{Enabled: false},
+		JSONL:   logx.JSONLConfig{Enabled: true, Level: "debug", Path: path},
+		Redact:  logx.RedactConfig{Enabled: true},
+	})
+	require.NoError(t, err)
+	return logger, path
+}
+
+// readTextFile 读取测试日志文件内容。
+func readTextFile(t *testing.T, path string) string {
+	t.Helper()
+	content, err := os.ReadFile(path)
+	require.NoError(t, err)
+	return string(content)
 }

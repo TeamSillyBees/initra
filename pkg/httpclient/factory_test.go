@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
+	"github.com/teamsillybees/initra/pkg/logx"
 )
 
 func TestFactoryCachesAndClearsClient(t *testing.T) {
@@ -38,7 +38,7 @@ func TestFactoryGetRejectsUnknownService(t *testing.T) {
 }
 
 func TestFactoryGetRejectsDisabledConfig(t *testing.T) {
-	factory, err := NewFactory(Config{Enabled: false}, zap.NewNop())
+	factory, err := NewFactory(Config{Enabled: false}, logx.NewNop())
 	require.NoError(t, err)
 
 	_, err = factory.Get("svc")
@@ -72,7 +72,7 @@ func newTestFactory(t *testing.T, baseURL string, override ServiceConfig) Factor
 		Services: map[string]ServiceConfig{
 			"svc": service,
 		},
-	}, zap.NewNop())
+	}, logx.NewNop())
 	require.NoError(t, err)
 	return factory
 }

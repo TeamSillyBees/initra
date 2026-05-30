@@ -66,7 +66,7 @@ func TestJWTMiddlewareRejectsBlacklistedToken(t *testing.T) {
 	engine := gin.New()
 	engine.Use(JWTMiddleware(manager, staticRouteSecurityLookup{
 		security: RouteSecurity{AccessMode: AccessModePermission, Resource: "user", Action: "read"},
-	}, nil))
+	}))
 	engine.GET("/protected", func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
@@ -92,7 +92,7 @@ func TestAuthorizationMiddlewareRejectsUnregisteredAPIRoute(t *testing.T) {
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
-	engine.Use(AuthorizationMiddleware(nil, missingRouteSecurityLookup{}, nil))
+	engine.Use(AuthorizationMiddleware(nil, missingRouteSecurityLookup{}))
 	engine.GET("/api/v1/unregistered", func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
@@ -112,7 +112,7 @@ func TestJWTMiddlewareRejectsMissingTokenForAuthenticatedRoute(t *testing.T) {
 	engine := gin.New()
 	engine.Use(JWTMiddleware(nil, staticRouteSecurityLookup{
 		security: RouteSecurity{AccessMode: AccessModeAuthenticated},
-	}, nil))
+	}))
 	engine.GET("/api/v1/me", func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
@@ -140,7 +140,7 @@ func TestAuthorizationMiddlewareAllowsAuthenticatedRouteWithoutPermission(t *tes
 	})
 	engine.Use(AuthorizationMiddleware(nil, staticRouteSecurityLookup{
 		security: RouteSecurity{AccessMode: AccessModeAuthenticated},
-	}, nil))
+	}))
 	engine.GET("/api/v1/me", func(c *gin.Context) {
 		c.Status(http.StatusNoContent)
 	})
@@ -168,7 +168,7 @@ func TestAuthorizationMiddlewareRejectsUnknownAccessMode(t *testing.T) {
 	})
 	engine.Use(AuthorizationMiddleware(nil, staticRouteSecurityLookup{
 		security: RouteSecurity{},
-	}, nil))
+	}))
 	engine.GET("/api/v1/unknown", func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
@@ -187,8 +187,8 @@ func TestAuthMiddlewareReusesRouteSecurityLookup(t *testing.T) {
 
 	lookup := &countingRouteSecurityLookup{security: RouteSecurity{AccessMode: AccessModePublic}}
 	engine := gin.New()
-	engine.Use(JWTMiddleware(nil, lookup, nil))
-	engine.Use(AuthorizationMiddleware(nil, lookup, nil))
+	engine.Use(JWTMiddleware(nil, lookup))
+	engine.Use(AuthorizationMiddleware(nil, lookup))
 	engine.GET("/api/v1/public", func(c *gin.Context) {
 		c.Status(http.StatusNoContent)
 	})

@@ -21,6 +21,13 @@ auth:
 
 log:
   level: info
+  console:
+    enabled: false
+  jsonl:
+    enabled: true
+    level: info
+    stack: full
+    path: stdout
 
 cache:
   local_ttl: 30s

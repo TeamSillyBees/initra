@@ -7,7 +7,7 @@ import (
 
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
-	"go.uber.org/zap"
+	"github.com/teamsillybees/initra/pkg/logx"
 )
 
 // UniversalClient 暴露 go-redis 通用客户端类型，调用方无需直接 import go-redis。
@@ -23,7 +23,7 @@ type CommandClient interface {
 }
 
 // NewClient 创建 Redis 客户端并执行 Ping 检查；禁用时返回 nil。
-func NewClient(ctx context.Context, cfg Config, logger *zap.Logger) (redis.UniversalClient, error) {
+func NewClient(ctx context.Context, cfg Config, logger *logx.Logger) (redis.UniversalClient, error) {
 	if !cfg.Enabled {
 		return nil, nil
 	}

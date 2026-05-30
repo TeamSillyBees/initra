@@ -5,7 +5,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"net/url"
 	"os"
@@ -18,6 +17,7 @@ import (
 	_ "github.com/lib/pq"
 	"{{ .ModulePath }}/internal/boot"
 	"{{ .ModulePath }}/internal/data/ent/migrate"
+	"github.com/teamsillybees/initra/pkg/logx"
 )
 
 const defaultConfigDir = "configs"
@@ -32,15 +32,15 @@ type migrateOptions struct {
 func main() {
 	options, err := parseArgs(os.Args[1:])
 	if err != nil {
-		log.Fatalf("usage: go run ./internal/data/migratediff/main.go <name> [-env <env>] [-config-dir <dir>] [-dev-url <url>]: %v", err)
+		fatal("usage: go run ./internal/data/migratediff/main.go <name> [-env <env>] [-config-dir <dir>] [-dev-url <url>", err)
 	}
 	devURL, err := resolveDevURL(options)
 	if err != nil {
-		log.Fatalf("failed resolving migration database: %v", err)
+		fatal("failed resolving migration database", err)
 	}
 	dir, err := atlas.NewLocalDir("db/migrations")
 	if err != nil {
-		log.Fatalf("failed opening migration directory: %v", err)
+		fatal("failed opening migration directory", err)
 	}
 	opts := []schema.MigrateOption{
 		schema.WithDir(dir),
@@ -50,7 +50,7 @@ func main() {
 		migrate.WithForeignKeys(false),
 	}
 	if err := migrate.NamedDiff(context.Background(), devURL, options.name, opts...); err != nil {
-		log.Fatalf("failed generating migration file: %v", err)
+		fatal("failed generating migration file", err)
 	}
 }
 
@@ -162,4 +162,22 @@ func databaseUser(user string, password string) *url.Userinfo {
 		return url.User(user)
 	}
 	return url.UserPassword(user, password)
+}
+
+func fatal(msg string, err error) {
+	logger, createErr := logx.NewLogger(logx.Config{
+		Level: "error",
+		Console: logx.ConsoleConfig{
+			Enabled: true,
+			Level:   "error",
+			Stack:   logx.StackShort,
+			Output:  "stderr",
+		},
+		Redact: logx.RedactConfig{Enabled: true},
+	})
+	if createErr == nil {
+		logger.Error(context.Background(), msg, err)
+		_ = logger.Sync()
+	}
+	os.Exit(1)
 }

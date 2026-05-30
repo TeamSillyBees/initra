@@ -10,7 +10,7 @@
 type Config struct {
 	App        AppConfig              `mapstructure:"app"`
 	Redis      redisx.Config          `mapstructure:"redis"`
-	Log        logging.Config         `mapstructure:"log"`
+	Log        logx.Config            `mapstructure:"log"`
 	Storage    platformstorage.Config `mapstructure:"storage"`
 	HTTPClient httpclient.Config      `mapstructure:"http_client"`
 }
@@ -56,7 +56,7 @@ if err := c.HTTPClient.Validate(); err != nil {
 
 ```go
 func (c *Config) SafeForLog() map[string]any {
-	return platformconfig.Sanitize(c, c.Log.Mask.Fields)
+	return platformconfig.Sanitize(c, c.Log.Redact.Fields)
 }
 ```
 

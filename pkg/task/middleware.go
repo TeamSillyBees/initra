@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/teamsillybees/initra/pkg/logx"
 )
 
 // Middleware 包装任务处理器。
@@ -28,17 +28,17 @@ func Chain(middleware ...Middleware) Middleware {
 }
 
 // RecoverMiddleware 捕获 handler panic 并转换为错误。
-func RecoverMiddleware(logger *zap.Logger) Middleware {
+func RecoverMiddleware(logger *logx.Logger) Middleware {
 	return func(next Handler) Handler {
 		return HandlerFunc(func(ctx context.Context, task Task) (err error) {
 			defer func() {
 				if value := recover(); value != nil {
 					err = fmt.Errorf("task panic: %v", value)
 					if logger != nil {
-						logger.Error("task panic recovered",
-							zap.String("task_type", task.Type),
-							zap.String("biz_key", task.Meta.BizKey),
-							zap.Any("panic", value),
+						logger.Error(ctx, "task panic recovered", err,
+							logx.String("task_type", task.Type),
+							logx.String("biz_key", task.Meta.BizKey),
+							logx.Any("panic", value),
 						)
 					}
 				}
@@ -49,21 +49,21 @@ func RecoverMiddleware(logger *zap.Logger) Middleware {
 }
 
 // LoggingMiddleware 记录任务开始、成功、失败和耗时，不记录 payload。
-func LoggingMiddleware(logger *zap.Logger) Middleware {
+func LoggingMiddleware(logger *logx.Logger) Middleware {
 	return func(next Handler) Handler {
 		return HandlerFunc(func(ctx context.Context, task Task) error {
 			if logger == nil {
 				return next.HandleTask(ctx, task)
 			}
 			start := time.Now()
-			logger.Info("task processing started", taskLogFields(task, 0, nil)...)
+			logger.Info(ctx, "task processing started", taskLogFields(task, 0)...)
 			err := next.HandleTask(ctx, task)
 			duration := time.Since(start)
 			if err != nil {
-				logger.Error("task processing failed", taskLogFields(task, duration, err)...)
+				logger.Error(ctx, "task processing failed", err, taskLogFields(task, duration)...)
 				return err
 			}
-			logger.Info("task processing succeeded", taskLogFields(task, duration, nil)...)
+			logger.Info(ctx, "task processing succeeded", taskLogFields(task, duration)...)
 			return nil
 		})
 	}
@@ -159,23 +159,20 @@ func IdempotencyMiddleware(checker IdempotencyChecker) Middleware {
 	}
 }
 
-func taskLogFields(task Task, duration time.Duration, err error) []zap.Field {
-	fields := []zap.Field{
-		zap.String("task_type", task.Type),
-		zap.String("task_name", task.Meta.Name),
-		zap.String("biz_key", task.Meta.BizKey),
-		zap.String("module", task.Meta.Module),
-		zap.String("owner", task.Meta.Owner),
-		zap.String("cost_level", string(task.Meta.CostLevel)),
-		zap.String("trace_id", task.Meta.TraceID),
-		zap.String("tenant_id", task.Meta.TenantID),
-		zap.String("correlation_id", task.Meta.CorrelationID),
+func taskLogFields(task Task, duration time.Duration) []logx.Field {
+	fields := []logx.Field{
+		logx.String("task_type", task.Type),
+		logx.String("task_name", task.Meta.Name),
+		logx.String("biz_key", task.Meta.BizKey),
+		logx.String("module", task.Meta.Module),
+		logx.String("owner", task.Meta.Owner),
+		logx.String("cost_level", string(task.Meta.CostLevel)),
+		logx.String("trace_id", task.Meta.TraceID),
+		logx.String("tenant_id", task.Meta.TenantID),
+		logx.String("correlation_id", task.Meta.CorrelationID),
 	}
 	if duration > 0 {
-		fields = append(fields, zap.Int64("duration_ms", duration.Milliseconds()))
-	}
-	if err != nil {
-		fields = append(fields, zap.Error(err))
+		fields = append(fields, logx.Int64("duration_ms", duration.Milliseconds()))
 	}
 	return fields
 }

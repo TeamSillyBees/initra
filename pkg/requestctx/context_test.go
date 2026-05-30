@@ -10,8 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/teamsillybees/initra/pkg/requestctx"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zaptest/observer"
 )
 
 func TestValuesRoundTripFromContext(t *testing.T) {
@@ -159,38 +157,4 @@ func TestIPParsingAndMatching(t *testing.T) {
 	require.True(t, requestctx.IPInRange("2001:db8::1", "2001:db8::/32"))
 	require.True(t, requestctx.IPInRange("203.0.113.1", "203.0.113.1"))
 	require.False(t, requestctx.IPInRange("203.0.113.2", "203.0.113.1"))
-}
-
-func TestLogFieldsFromContext(t *testing.T) {
-	ctx := requestctx.WithValues(context.Background(), requestctx.Values{
-		RequestID: "req-1",
-		TraceID:   "trace-1",
-		UserID:    "user-1",
-		Roles:     []string{"admin", "viewer"},
-		TenantID:  "tenant-1",
-		SessionID: "session-1",
-		AppID:     "app-1",
-	})
-
-	fields := requestctx.LogFields(ctx)
-	core, logs := observer.New(zap.InfoLevel)
-	logger := zap.New(core)
-	logger.Info("request", fields...)
-	got := logs.All()[0].ContextMap()
-	gotStrings := make(map[string]string, len(fields))
-	for _, field := range fields {
-		if field.String != "" {
-			gotStrings[field.Key] = field.String
-		}
-	}
-
-	require.Equal(t, map[string]string{
-		"request_id": "req-1",
-		"trace_id":   "trace-1",
-		"user_id":    "user-1",
-		"tenant_id":  "tenant-1",
-		"session_id": "session-1",
-		"app_id":     "app-1",
-	}, gotStrings)
-	require.Equal(t, []any{"admin", "viewer"}, got["roles"])
 }

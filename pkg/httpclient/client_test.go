@@ -6,13 +6,14 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zaptest/observer"
+	"github.com/teamsillybees/initra/pkg/logx"
 )
 
 type userVO struct {
@@ -99,7 +100,7 @@ func TestClientUsesGlobalProxy(t *testing.T) {
 		Services: map[string]ServiceConfig{
 			"svc": {BaseURL: "http://remote.test"},
 		},
-	}, zap.NewNop())
+	}, logx.NewNop())
 	require.NoError(t, err)
 	client, err := factory.Get("svc")
 	require.NoError(t, err)
@@ -135,7 +136,7 @@ func TestClientServiceProxyOverridesGlobalProxy(t *testing.T) {
 				Proxy:   serviceProxy.URL,
 			},
 		},
-	}, zap.NewNop())
+	}, logx.NewNop())
 	require.NoError(t, err)
 	client, err := factory.Get("svc")
 	require.NoError(t, err)
@@ -301,8 +302,7 @@ func TestClientResponseAndParseErrors(t *testing.T) {
 }
 
 func TestClientLogsWithoutSensitiveHeaders(t *testing.T) {
-	core, logs := observer.New(zap.InfoLevel)
-	logger := zap.New(core)
+	logger, logPath := newHTTPClientTestLogger(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(t, w, map[string]string{"ok": "true"})
 	}))
@@ -324,14 +324,14 @@ func TestClientLogsWithoutSensitiveHeaders(t *testing.T) {
 	)
 
 	require.NoError(t, err)
-	require.Equal(t, 1, logs.Len())
-	entry := logs.All()[0]
-	require.Equal(t, "http client request completed", entry.Message)
-	require.Equal(t, "/ping", entry.ContextMap()["url_path"])
-	require.Equal(t, "trace-1", entry.ContextMap()["trace_id"])
-	require.NotContains(t, entry.ContextMap(), "Authorization")
-	require.NotContains(t, entry.ContextMap(), "token")
-	require.NotContains(t, entry.ContextMap(), "secret")
+	require.NoError(t, logger.Sync())
+	body := readHTTPClientLogFile(t, logPath)
+	require.Contains(t, body, "http client request completed")
+	require.Contains(t, body, `"url_path":"/ping"`)
+	require.Contains(t, body, `"trace_id":"trace-1"`)
+	require.NotContains(t, body, "Authorization")
+	require.NotContains(t, body, "token")
+	require.NotContains(t, body, "secret")
 }
 
 func newTestClient(t *testing.T, baseURL string, override ServiceConfig) *Client {
@@ -355,4 +355,23 @@ func writeJSON(t *testing.T, w http.ResponseWriter, v any) {
 	t.Helper()
 	w.Header().Set("Content-Type", jsonContentType)
 	require.NoError(t, json.NewEncoder(w).Encode(v))
+}
+
+func newHTTPClientTestLogger(t *testing.T) (*logx.Logger, string) {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "httpclient.jsonl")
+	logger, err := logx.NewLogger(logx.Config{
+		Console: logx.ConsoleConfig{Enabled: false},
+		JSONL:   logx.JSONLConfig{Enabled: true, Level: "debug", Path: path},
+		Redact:  logx.RedactConfig{Enabled: true},
+	})
+	require.NoError(t, err)
+	return logger, path
+}
+
+func readHTTPClientLogFile(t *testing.T, path string) string {
+	t.Helper()
+	content, err := os.ReadFile(path)
+	require.NoError(t, err)
+	return string(content)
 }

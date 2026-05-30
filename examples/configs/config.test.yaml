@@ -19,6 +19,12 @@ auth:
 
 log:
   level: debug
+  console:
+    enabled: true
+    level: debug
+  jsonl:
+    enabled: true
+    level: debug
 
 cache:
   local_ttl: 30s

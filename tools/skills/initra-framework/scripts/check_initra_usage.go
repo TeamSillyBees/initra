@@ -169,7 +169,7 @@ func defaultRules() []rule {
 		{
 			id:       "custom-logger",
 			severity: "warning",
-			message:  "使用 logging.Register 和注入的 *zap.Logger，不要初始化第二套全局 logger",
+			message:  "使用 logx.Register 和注入的 *logx.Logger，不要初始化第二套全局 logger",
 			patterns: []string{"zap.NewProduction(", "zap.NewDevelopment(", "zap.Config{"},
 			allowed:  allowFrameworkOrBoot,
 		},

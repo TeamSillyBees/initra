@@ -8,20 +8,20 @@ import (
 
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
+	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/task"
-	"go.uber.org/zap"
 )
 
 // Publisher 是基于 Asynq Client 的任务发布器。
 type Publisher struct {
 	client *asynq.Client
 	cfg    task.Config
-	logger *zap.Logger
+	logger *logx.Logger
 	shared bool
 }
 
 // NewPublisher 使用 task.Config 自建 Redis 连接并创建 Publisher。
-func NewPublisher(cfg task.Config, logger *zap.Logger) (task.Publisher, error) {
+func NewPublisher(cfg task.Config, logger *logx.Logger) (task.Publisher, error) {
 	cfg = cfg.Normalize()
 	if !cfg.Enabled {
 		return task.NewDisabledPublisher(), nil
@@ -41,7 +41,7 @@ func NewPublisher(cfg task.Config, logger *zap.Logger) (task.Publisher, error) {
 }
 
 // NewPublisherFromRedisClient 使用外部 Redis 连接创建 Publisher。
-func NewPublisherFromRedisClient(client redis.UniversalClient, cfg task.Config, logger *zap.Logger) (task.Publisher, error) {
+func NewPublisherFromRedisClient(client redis.UniversalClient, cfg task.Config, logger *logx.Logger) (task.Publisher, error) {
 	cfg = cfg.Normalize()
 	if !cfg.Enabled {
 		return task.NewDisabledPublisher(), nil
@@ -118,12 +118,12 @@ func (p *Publisher) publish(ctx context.Context, item task.Task, extra []asynq.O
 		BizKey:    resolved.BizKey,
 	}
 	if p.logger != nil {
-		p.logger.Info("task published",
-			zap.String("task_id", result.TaskID),
-			zap.String("task_type", result.Type),
-			zap.String("queue", result.Queue),
-			zap.String("state", result.State),
-			zap.String("biz_key", result.BizKey),
+		p.logger.Info(ctx, "task published",
+			logx.String("task_id", result.TaskID),
+			logx.String("task_type", result.Type),
+			logx.String("queue", result.Queue),
+			logx.String("state", result.State),
+			logx.String("biz_key", result.BizKey),
 		)
 	}
 	return result, nil

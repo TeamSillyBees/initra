@@ -9,8 +9,8 @@ import (
 
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
+	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/task"
-	"go.uber.org/zap"
 )
 
 // Scheduler 是基于 Asynq PeriodicTaskManager 的周期任务调度器。
@@ -24,7 +24,7 @@ type Scheduler struct {
 }
 
 // NewScheduler 使用 task.Config 自建 Redis 连接并创建 Scheduler。
-func NewScheduler(cfg task.Config, logger *zap.Logger) (task.Scheduler, error) {
+func NewScheduler(cfg task.Config, logger *logx.Logger) (task.Scheduler, error) {
 	cfg = cfg.Normalize()
 	if !cfg.Enabled || !cfg.Scheduler.Enabled {
 		return task.NewDisabledScheduler(), nil
@@ -50,7 +50,7 @@ func NewScheduler(cfg task.Config, logger *zap.Logger) (task.Scheduler, error) {
 }
 
 // NewSchedulerFromRedisClient 使用外部 Redis 连接创建 Scheduler。
-func NewSchedulerFromRedisClient(client redis.UniversalClient, cfg task.Config, logger *zap.Logger) (task.Scheduler, error) {
+func NewSchedulerFromRedisClient(client redis.UniversalClient, cfg task.Config, logger *logx.Logger) (task.Scheduler, error) {
 	cfg = cfg.Normalize()
 	if !cfg.Enabled || !cfg.Scheduler.Enabled {
 		return task.NewDisabledScheduler(), nil
@@ -159,13 +159,13 @@ func (p *staticConfigProvider) GetConfigs() ([]*asynq.PeriodicTaskConfig, error)
 	return result, nil
 }
 
-func schedulerOpts(cfg task.SchedulerConfig, logger *zap.Logger) *asynq.SchedulerOpts {
+func schedulerOpts(cfg task.SchedulerConfig, logger *logx.Logger) *asynq.SchedulerOpts {
 	location, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
 		location = time.UTC
 	}
 	return &asynq.SchedulerOpts{
-		Logger:   newZapLogger(logger),
+		Logger:   newAsynqLogger(logger),
 		Location: location,
 	}
 }

@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/samber/do"
+	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/observability"
 	"github.com/teamsillybees/initra/pkg/redisx"
 	"github.com/teamsillybees/initra/pkg/server"
 	"github.com/teamsillybees/initra/pkg/task"
-	"go.uber.org/zap"
 )
 
 // Options 描述应用启动时的外部输入。
@@ -25,7 +25,7 @@ type Options struct {
 type Application struct {
 	Container *do.Injector
 	Config    *Config
-	Logger    *zap.Logger
+	Logger    *logx.Logger
 	Web       *server.App
 	Server    *http.Server
 	DB        *sql.DB
@@ -46,7 +46,7 @@ func Bootstrap(options Options) (*Application, error) {
 	registerProviders(injector, cfg, options.BuildInfo)
 	registerModules(injector)
 
-	logger := do.MustInvoke[*zap.Logger](injector)
+	logger := do.MustInvoke[*logx.Logger](injector)
 	db, err := do.Invoke[*sql.DB](injector)
 	if err != nil {
 		return nil, fmt.Errorf("resolve database client: %w", err)

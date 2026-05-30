@@ -39,9 +39,18 @@ auth:
 
 log:
   level: debug
-  format: json
-  output: stdout
-  mask:
+  console:
+    enabled: true
+    level: debug
+    stack: short
+    color: true
+    output: stderr
+  jsonl:
+    enabled: true
+    level: info
+    stack: full
+    path: stdout
+  redact:
     enabled: true
     fields: [ "password", "token", "secret", "authorization" ]
 

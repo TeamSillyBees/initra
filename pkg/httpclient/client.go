@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	"go.uber.org/zap"
+	"github.com/teamsillybees/initra/pkg/logx"
 )
 
 const jsonContentType = "application/json"
@@ -19,13 +19,13 @@ type Client struct {
 	name        string
 	config      ServiceConfig
 	resty       *resty.Client
-	logger      *zap.Logger
+	logger      *logx.Logger
 	authHandler AuthHandler
 }
 
-func newClient(name string, global Config, cfg ServiceConfig, logger *zap.Logger) (*Client, error) {
+func newClient(name string, global Config, cfg ServiceConfig, logger *logx.Logger) (*Client, error) {
 	if logger == nil {
-		logger = zap.NewNop()
+		logger = logx.NewNop()
 	}
 	if err := validateServiceConfig(name, cfg); err != nil {
 		return nil, err
@@ -130,7 +130,7 @@ func (c *Client) do(ctx context.Context, method string, path string, body any, o
 	}
 	if err := c.authHandler.Apply(requestCtx, req, c.config.Auth); err != nil {
 		httpErr := c.enrichError(err, ErrorKindInternal, method, path, 0)
-		c.logRequest(method, path, options.Headers, 0, time.Duration(0), httpErr)
+		c.logRequest(requestCtx, method, path, options.Headers, 0, time.Duration(0), httpErr)
 		return nil, httpErr
 	}
 	req.SetHeaders(options.Headers)
@@ -145,7 +145,7 @@ func (c *Client) do(ctx context.Context, method string, path string, body any, o
 
 	if err != nil {
 		httpErr := c.errorFromExecution(err, resp, method, path)
-		c.logRequest(method, path, options.Headers, statusCode, duration, httpErr)
+		c.logRequest(requestCtx, method, path, options.Headers, statusCode, duration, httpErr)
 		return nil, httpErr
 	}
 	if resp == nil {
@@ -157,7 +157,7 @@ func (c *Client) do(ctx context.Context, method string, path string, body any, o
 			Code:    "empty_response",
 			Message: "HTTP Client 未返回响应",
 		}
-		c.logRequest(method, path, options.Headers, statusCode, duration, httpErr)
+		c.logRequest(requestCtx, method, path, options.Headers, statusCode, duration, httpErr)
 		return nil, httpErr
 	}
 	if !resp.IsSuccess() {
@@ -170,7 +170,7 @@ func (c *Client) do(ctx context.Context, method string, path string, body any, o
 			Code:       fmt.Sprint(statusCode),
 			Message:    responseMessage(resp),
 		}
-		c.logRequest(method, path, options.Headers, statusCode, duration, httpErr)
+		c.logRequest(requestCtx, method, path, options.Headers, statusCode, duration, httpErr)
 		return nil, httpErr
 	}
 
@@ -179,7 +179,7 @@ func (c *Client) do(ctx context.Context, method string, path string, body any, o
 		result = resp.Result()
 	}
 	wrapped := newResponse(resp, result)
-	c.logRequest(method, path, options.Headers, statusCode, duration, nil)
+	c.logRequest(requestCtx, method, path, options.Headers, statusCode, duration, nil)
 	return wrapped, nil
 }
 
@@ -249,28 +249,28 @@ func (c *Client) enrichError(err error, kind ErrorKind, method string, path stri
 	}
 }
 
-func (c *Client) logRequest(method string, path string, headers map[string]string, statusCode int, duration time.Duration, err *Error) {
+func (c *Client) logRequest(ctx context.Context, method string, path string, headers map[string]string, statusCode int, duration time.Duration, err *Error) {
 	if c.logger == nil {
 		return
 	}
-	fields := []zap.Field{
-		zap.String("service", c.name),
-		zap.String("method", method),
-		zap.String("url_path", safeLogPath(path)),
-		zap.Int("status_code", statusCode),
-		zap.Duration("duration", duration),
-		zap.String("trace_id", firstTraceID(headers)),
+	fields := []logx.Field{
+		logx.String("service", c.name),
+		logx.String("method", method),
+		logx.String("url_path", safeLogPath(path)),
+		logx.Int("status_code", statusCode),
+		logx.Duration("duration", duration),
+		logx.String("trace_id", firstTraceID(headers)),
 	}
 	if err != nil {
 		fields = append(fields,
-			zap.String("error_kind", string(err.Kind)),
-			zap.String("error_code", err.Code),
+			logx.String("error_kind", string(err.Kind)),
+			logx.String("error_code", err.Code),
 		)
-		c.logger.Warn("http client request failed", fields...)
+		c.logger.Error(ctx, "http client request failed", err, fields...)
 		return
 	}
-	fields = append(fields, zap.String("error_kind", ""))
-	c.logger.Info("http client request completed", fields...)
+	fields = append(fields, logx.String("error_kind", ""))
+	c.logger.Info(ctx, "http client request completed", fields...)
 }
 
 func (c *Client) closeIdleConnections() {

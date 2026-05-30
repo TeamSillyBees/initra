@@ -1,32 +1,32 @@
-# logging
+# logx
 
-zap logger 构造、输出格式、日志级别和敏感字段脱敏使用 `github.com/teamsillybees/initra/pkg/logging`。
+zap logger 构造、console/jsonl 双输出、oops 错误字段提取和敏感字段脱敏使用 `github.com/teamsillybees/initra/pkg/logx`。
 
 ## 标准装配
 
 在 boot 层优先注册 logger：
 
 ```go
-logging.Register(injector, cfg.Log)
+logx.Register(injector, cfg.Log)
 ```
 
-其他 framework 注册函数可能会从 injector 中解析 `*zap.Logger`。
+业务和框架边界日志统一从 injector 中解析 `*logx.Logger`，不要在业务代码中直接依赖 zap。
 
 ## 配置与脱敏
 
-业务配置中组合 `logging.Config`：
+业务配置中组合 `logx.Config`：
 
 ```go
-Log logging.Config `mapstructure:"log"`
+Log logx.Config `mapstructure:"log"`
 ```
 
-默认脱敏字段包含 password、token、secret、authorization 和 access key 风格字段。项目特有敏感字段放入 `log.mask.fields`。
+默认脱敏字段包含 password、token、secret、authorization、cookie、body、DSN 和 access key 风格字段。项目特有敏感字段放入 `log.redact.fields`。
 
 只通过脱敏方法打印配置：
 
 ```go
 func (c *Config) SafeForLog() map[string]any {
-	return platformconfig.Sanitize(c, c.Log.Mask.Fields)
+	return platformconfig.Sanitize(c, c.Log.Redact.Fields)
 }
 ```
 
@@ -38,8 +38,8 @@ func (c *Config) SafeForLog() map[string]any {
 
 ```go
 logger.Info("短信发送成功",
-	zap.String("provider", provider),
-	zap.String("trace_id", traceID),
+	logx.String("provider", provider),
+	logx.String("trace_id", traceID),
 )
 ```
 
@@ -52,7 +52,7 @@ logger.Info("短信发送成功",
 
 ## 检查清单
 
-- logging 是否早于依赖 `*zap.Logger` 的 package 注册？
+- logx 是否早于依赖 logger 的 package 注册？
 - 配置和应用元数据是否通过 `SafeForLog` 输出？
 - 敏感字段名称是否覆盖完整？
 - 日志字段是否结构化且低基数？

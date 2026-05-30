@@ -16,7 +16,7 @@ import (
 	platformdatabase "github.com/teamsillybees/initra/pkg/database"
 	"github.com/teamsillybees/initra/pkg/httpclient"
 	"github.com/teamsillybees/initra/pkg/idgen"
-	"github.com/teamsillybees/initra/pkg/logging"
+	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/observability"
 	"github.com/teamsillybees/initra/pkg/redisx"
 	"github.com/teamsillybees/initra/pkg/server"
@@ -25,7 +25,7 @@ import (
 )
 
 func registerProviders(injector *do.Injector, cfg *Config, buildInfo observability.BuildInfoVO) {
-	logging.Register(injector, cfg.Log)
+	logx.Register(injector, cfg.Log)
 	httpclient.Register(injector, cfg.HTTPClient)
 	redisx.Register(injector, cfg.Redis)
 	asynqadapter.Register(injector, cfg.Task)

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"go.uber.org/zap"
+	"github.com/teamsillybees/initra/pkg/logx"
 )
 
 // CacheMetricsRecorder 记录缓存命中率和错误计数。
@@ -85,7 +85,7 @@ func (s *CommandStats) Snapshot() CommandStatsSnapshot {
 
 // RedisLogHook 是 go-redis hook，提供慢命令日志、错误日志和命令统计。
 type RedisLogHook struct {
-	logger        *zap.Logger
+	logger        *logx.Logger
 	slowThreshold time.Duration
 	logSlow       bool
 	logError      bool
@@ -93,7 +93,7 @@ type RedisLogHook struct {
 }
 
 // NewRedisLogHook 创建 go-redis hook，仅记录命令名、耗时和错误，不记录 key/value/密码/token。
-func NewRedisLogHook(logger *zap.Logger, cfg LogConfig) *RedisLogHook {
+func NewRedisLogHook(logger *logx.Logger, cfg LogConfig) *RedisLogHook {
 	if cfg.SlowThreshold == 0 {
 		cfg.SlowThreshold = 200 * time.Millisecond
 	}
@@ -122,7 +122,7 @@ func (h *RedisLogHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
 		start := time.Now()
 		err := next(ctx, cmd)
-		h.record(cmd.Name(), time.Since(start), err)
+		h.record(ctx, cmd.Name(), time.Since(start), err)
 		return err
 	}
 }
@@ -135,12 +135,12 @@ func (h *RedisLogHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis
 		for _, cmd := range cmds {
 			names = append(names, cmd.Name())
 		}
-		h.record(strings.Join(names, ","), time.Since(start), err)
+		h.record(ctx, strings.Join(names, ","), time.Since(start), err)
 		return err
 	}
 }
 
-func (h *RedisLogHook) record(name string, cost time.Duration, err error) {
+func (h *RedisLogHook) record(ctx context.Context, name string, cost time.Duration, err error) {
 	if h.stats != nil {
 		h.stats.total.Add(1)
 	}
@@ -149,10 +149,9 @@ func (h *RedisLogHook) record(name string, cost time.Duration, err error) {
 			h.stats.errors.Add(1)
 		}
 		if h.logger != nil && h.logError {
-			h.logger.Warn("redis command failed",
-				zap.String("command", strings.ToUpper(name)),
-				zap.Duration("cost", cost),
-				zap.Error(err),
+			h.logger.Error(ctx, "redis command failed", err,
+				logx.String("command", strings.ToUpper(name)),
+				logx.Duration("cost", cost),
 			)
 		}
 	}
@@ -161,10 +160,10 @@ func (h *RedisLogHook) record(name string, cost time.Duration, err error) {
 			h.stats.slow.Add(1)
 		}
 		if h.logger != nil && h.logSlow {
-			h.logger.Warn("redis slow command",
-				zap.String("command", strings.ToUpper(name)),
-				zap.Duration("cost", cost),
-				zap.Duration("threshold", h.slowThreshold),
+			h.logger.Warn(ctx, "redis slow command",
+				logx.String("command", strings.ToUpper(name)),
+				logx.Duration("cost", cost),
+				logx.Duration("threshold", h.slowThreshold),
 			)
 		}
 	}

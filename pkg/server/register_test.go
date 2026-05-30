@@ -8,7 +8,7 @@ import (
 	"github.com/samber/do"
 	"github.com/stretchr/testify/require"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
-	"go.uber.org/zap"
+	"github.com/teamsillybees/initra/pkg/logx"
 )
 
 func TestRegisterProvidesApp(t *testing.T) {
@@ -22,7 +22,7 @@ func TestRegisterProvidesApp(t *testing.T) {
 	require.NoError(t, err)
 	enforcer, err := casbin.NewEnforcer()
 	require.NoError(t, err)
-	do.ProvideValue(injector, zap.NewNop())
+	do.ProvideValue(injector, logx.NewNop())
 	do.ProvideValue(injector, manager)
 	do.ProvideValue(injector, enforcer)
 	Register(injector, Options{Title: "initra", Version: "test", Env: "test"})

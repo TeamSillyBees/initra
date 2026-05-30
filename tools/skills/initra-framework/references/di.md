@@ -7,7 +7,7 @@ initra 业务项目使用 `github.com/samber/do` 做显式 boot 和 module 装�
 `internal/boot/providers.go` 应使用一步式调用注册框架能力：
 
 ```go
-logging.Register(injector, cfg.Log)
+logx.Register(injector, cfg.Log)
 httpclient.Register(injector, cfg.HTTPClient)
 redisx.Register(injector, cfg.Redis)
 storageprovider.Register(injector, cfg.Storage)

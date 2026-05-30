@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/go-resty/resty/v2"
-	"go.uber.org/zap"
+	"github.com/teamsillybees/initra/pkg/logx"
 )
 
 // Factory 按服务名创建并缓存 HTTP Client。
@@ -21,15 +21,15 @@ type Factory interface {
 
 type factory struct {
 	cfg     Config
-	logger  *zap.Logger
+	logger  *logx.Logger
 	mu      sync.Mutex
 	clients map[string]*Client
 }
 
 // NewFactory 根据配置创建 HTTP Client 工厂。
-func NewFactory(cfg Config, logger *zap.Logger) (Factory, error) {
+func NewFactory(cfg Config, logger *logx.Logger) (Factory, error) {
 	if logger == nil {
-		logger = zap.NewNop()
+		logger = logx.NewNop()
 	}
 	normalized := cfg.withDefaults()
 	if err := normalized.Validate(); err != nil {

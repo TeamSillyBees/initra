@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
+	"github.com/teamsillybees/initra/pkg/logx"
 )
 
 func TestRegistryRejectsDuplicate(t *testing.T) {
@@ -39,7 +39,7 @@ func TestRegistryMergesMetadataAndValidatesBizKey(t *testing.T) {
 }
 
 func TestRecoverMiddlewareConvertsPanicToError(t *testing.T) {
-	handler := RecoverMiddleware(zap.NewNop())(HandlerFunc(func(context.Context, Task) error {
+	handler := RecoverMiddleware(logx.NewNop())(HandlerFunc(func(context.Context, Task) error {
 		panic("boom")
 	}))
 

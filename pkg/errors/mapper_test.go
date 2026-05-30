@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestToHTTPMapsAppError 验证平台错误能映射为统一 HTTP 错误响应。
-func TestToHTTPMapsAppError(t *testing.T) {
+// TestToHTTPMapsOopsError 验证 oops 错误能映射为统一 HTTP 错误响应。
+func TestToHTTPMapsOopsError(t *testing.T) {
 	err := New(
 		CodeNotFound,
 		"user not found",
@@ -35,7 +35,7 @@ func TestToHTTPDoesNotReturnInternalCause(t *testing.T) {
 
 	require.NoError(t, marshalErr)
 	require.Equal(t, http.StatusInternalServerError, status)
-	require.Equal(t, "create user failed", body.Message)
+	require.Equal(t, "internal error", body.Message)
 	require.NotContains(t, string(payload), "duplicate key")
 }
 

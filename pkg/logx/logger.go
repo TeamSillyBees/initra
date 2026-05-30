@@ -1,0 +1,192 @@
+package logx
+
+import (
+	"context"
+
+	"go.uber.org/zap"
+)
+
+// Logger 是项目统一日志入口，内部按 console/jsonl 策略分别渲染字段。
+type Logger struct {
+	console *zap.Logger
+	jsonl   *zap.Logger
+	cfg     Config
+	closers []func()
+}
+
+// NewLogger 根据配置创建统一日志器。
+func NewLogger(cfg Config) (*Logger, error) {
+	cfg = cfg.Normalize()
+	logger := &Logger{cfg: cfg}
+	if cfg.Console.Enabled {
+		console, closeConsole, err := newConsoleLogger(cfg)
+		if err != nil {
+			return nil, err
+		}
+		logger.console = console
+		logger.closers = append(logger.closers, closeConsole)
+	}
+	if cfg.JSONL.Enabled {
+		jsonl, closeJSONL, err := newJSONLLogger(cfg)
+		if err != nil {
+			return nil, err
+		}
+		logger.jsonl = jsonl
+		logger.closers = append(logger.closers, closeJSONL)
+	}
+	if logger.console == nil && logger.jsonl == nil {
+		logger.console = zap.NewNop()
+	}
+	return logger, nil
+}
+
+// writeLevel 描述普通日志写入时使用的级别分支。
+type writeLevel int
+
+const (
+	// debugLevel 表示 debug 级别普通日志。
+	debugLevel writeLevel = iota
+	// infoLevel 表示 info 级别普通日志。
+	infoLevel
+	// warnLevel 表示 warn 级别普通日志。
+	warnLevel
+)
+
+// Debug 输出 debug 级别日志。
+func (l *Logger) Debug(ctx context.Context, msg string, fields ...Field) {
+	l.write(ctx, debugLevel, msg, RedactFields(fields, l.config().Redact)...)
+}
+
+// Info 输出 info 级别日志。
+func (l *Logger) Info(ctx context.Context, msg string, fields ...Field) {
+	l.write(ctx, infoLevel, msg, RedactFields(fields, l.config().Redact)...)
+}
+
+// Warn 输出 warn 级别日志。
+func (l *Logger) Warn(ctx context.Context, msg string, fields ...Field) {
+	l.write(ctx, warnLevel, msg, RedactFields(fields, l.config().Redact)...)
+}
+
+// Error 输出 error 级别日志，并按 console/jsonl 策略渲染错误字段。
+func (l *Logger) Error(ctx context.Context, msg string, err error, fields ...Field) {
+	if l == nil {
+		return
+	}
+	cfg := l.config()
+	info := ExtractError(err, cfg.JSONL.Stack, cfg.Redact)
+	if info.TraceID == "" {
+		for _, field := range baseFields(ctx, cfg.Fields) {
+			if field.Key == "trace_id" {
+				info.TraceID = field.String
+				break
+			}
+		}
+	}
+	if l.console != nil {
+		consoleInfo := info
+		consoleInfo.Stacktrace = renderStack(info.Stacktrace, cfg.Console.Stack)
+		allFields := append(baseFields(ctx, cfg.Fields), fields...)
+		l.console.Error(msg, ConsoleErrorFields(consoleInfo, allFields, cfg.Console.Stack, cfg.Redact)...)
+	}
+	if l.jsonl != nil && l.jsonl != l.console {
+		allFields := append(baseFields(ctx, cfg.Fields), fields...)
+		l.jsonl.Error(msg, JSONLErrorFields(info, allFields, cfg.JSONL.Stack, cfg.Redact)...)
+	}
+}
+
+// With 返回携带固定字段的派生日志器。
+func (l *Logger) With(fields ...Field) *Logger {
+	if l == nil {
+		return NewNop()
+	}
+	return &Logger{
+		console: withLoggerFields(l.console, fields),
+		jsonl:   withLoggerFields(l.jsonl, fields),
+		cfg:     l.cfg,
+		closers: l.closers,
+	}
+}
+
+// Named 返回带名称的派生日志器。
+func (l *Logger) Named(name string) *Logger {
+	if l == nil {
+		return NewNop()
+	}
+	return &Logger{
+		console: namedLogger(l.console, name),
+		jsonl:   namedLogger(l.jsonl, name),
+		cfg:     l.cfg,
+		closers: l.closers,
+	}
+}
+
+// Sync 刷新所有底层 logger。
+func (l *Logger) Sync() error {
+	if l == nil {
+		return nil
+	}
+	err := syncLogger(l.console)
+	if l.jsonl != l.console {
+		err = combineSyncErrors(err, syncLogger(l.jsonl))
+	}
+	for _, closer := range l.closers {
+		if closer != nil {
+			closer()
+		}
+	}
+	l.closers = nil
+	return err
+}
+
+// write 将普通日志写入已启用的 console/jsonl 底层 logger。
+func (l *Logger) write(ctx context.Context, level writeLevel, msg string, fields ...Field) {
+	if l == nil {
+		return
+	}
+	allFields := append(baseFields(ctx, l.config().Fields), fields...)
+	if l.console != nil {
+		writeZap(l.console, level, msg, allFields...)
+	}
+	if l.jsonl != nil && l.jsonl != l.console {
+		writeZap(l.jsonl, level, msg, allFields...)
+	}
+}
+
+// config 返回带默认值的日志配置，nil receiver 使用安全默认值。
+func (l *Logger) config() Config {
+	if l == nil {
+		return Config{Redact: RedactConfig{Enabled: true}}.Normalize()
+	}
+	return l.cfg.Normalize()
+}
+
+// writeZap 根据内部级别枚举调用 zap 对应方法。
+func writeZap(logger *zap.Logger, level writeLevel, msg string, fields ...Field) {
+	if logger == nil {
+		return
+	}
+	switch level {
+	case debugLevel:
+		logger.Debug(msg, fields...)
+	case warnLevel:
+		logger.Warn(msg, fields...)
+	default:
+		logger.Info(msg, fields...)
+	}
+}
+
+// withLoggerFields 为非空 zap logger 附加固定字段。
+func withLoggerFields(logger *zap.Logger, fields []Field) *zap.Logger {
+	if logger == nil {
+		return nil
+	}
+	return logger.With(fields...)
+}
+
+// namedLogger 为非空 zap logger 附加 logger 名称。
+func namedLogger(logger *zap.Logger, name string) *zap.Logger {
+	if logger == nil {
+		return nil
+	}
+	return logger.Named(name)
+}

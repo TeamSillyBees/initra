@@ -99,9 +99,15 @@ auth:
 
 log:
   level: info
-  format: json
-  output: stdout
-  mask:
+  console:
+    enabled: true
+    level: debug
+    output: stderr
+  jsonl:
+    enabled: true
+    level: info
+    path: stdout
+  redact:
     enabled: true
     fields: ["password", "token", "secret", "authorization"]
 
@@ -190,7 +196,7 @@ auth:
 	require.True(t, cfg.Auth.AllowMultipleDevices)
 	require.Equal(t, "example-api", cfg.Auth.JWT.Issuer)
 	require.Equal(t, "change-me", cfg.Auth.JWT.Secret)
-	require.Equal(t, []string{"password", "token", "secret", "authorization"}, cfg.Log.Mask.Fields)
+	require.Equal(t, []string{"password", "token", "secret", "authorization"}, cfg.Log.Redact.Fields)
 	require.True(t, cfg.Observability.Metrics.Enabled)
 	require.True(t, cfg.Storage.Enabled)
 	require.Equal(t, "./var/uploads", cfg.Storage.Local.RootDir)

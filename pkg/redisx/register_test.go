@@ -5,12 +5,12 @@ import (
 
 	"github.com/samber/do"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
+	"github.com/teamsillybees/initra/pkg/logx"
 )
 
 func TestRegisterProvidesDisabledRedisClient(t *testing.T) {
 	injector := do.New()
-	do.ProvideValue(injector, zap.NewNop())
+	do.ProvideValue(injector, logx.NewNop())
 	Register(injector, Config{Enabled: false})
 
 	client := do.MustInvoke[UniversalClient](injector)

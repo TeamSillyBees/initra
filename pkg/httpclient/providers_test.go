@@ -5,12 +5,12 @@ import (
 
 	"github.com/samber/do"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
+	"github.com/teamsillybees/initra/pkg/logx"
 )
 
 func TestRegisterProvidesFactory(t *testing.T) {
 	injector := do.New()
-	do.ProvideValue(injector, zap.NewNop())
+	do.ProvideValue(injector, logx.NewNop())
 	Register(injector, Config{Enabled: false})
 
 	factory := do.MustInvoke[Factory](injector)
@@ -20,7 +20,7 @@ func TestRegisterProvidesFactory(t *testing.T) {
 
 func TestRegisterProvidesNamedServiceClient(t *testing.T) {
 	injector := do.New()
-	do.ProvideValue(injector, zap.NewNop())
+	do.ProvideValue(injector, logx.NewNop())
 	Register(injector, Config{
 		Enabled: true,
 		Services: map[string]ServiceConfig{

@@ -14,3 +14,9 @@ auth:
 
 log:
   level: info
+  console:
+    enabled: true
+    stack: short
+  jsonl:
+    enabled: true
+    stack: full

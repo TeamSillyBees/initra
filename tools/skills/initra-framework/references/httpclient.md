@@ -9,7 +9,7 @@
 在配置中添加 `http_client.services.<name>`，并在 boot 层注册一次：
 
 ```go
-logging.Register(injector, cfg.Log)
+logx.Register(injector, cfg.Log)
 httpclient.Register(injector, cfg.HTTPClient)
 ```
 
@@ -46,7 +46,7 @@ _, err := c.client.Post(ctx, "/messages", body,
 )
 ```
 
-在 service 边界将 `*httpclient.Error` 映射为 `apperrors.AppError`，只放入 service、kind、status code 等安全细节。不要暴露原始 Authorization header、token 或可能包含敏感信息的响应体。
+在 service 边界将 `*httpclient.Error` 映射为 `apperrors.Wrap` / `apperrors.WrapContext` 返回的 oops 错误，只放入 service、kind、status code 等安全细节。不要暴露原始 Authorization header、token 或可能包含敏感信息的响应体。
 
 ## 禁止写法
 

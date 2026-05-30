@@ -49,107 +49,107 @@ func WithCauseTrace(traceID string) Option {
 }
 
 // BadRequest 创建统一的请求参数错误。
-func BadRequest(message string, opts ...Option) *apperrors.AppError {
+func BadRequest(message string, opts ...Option) error {
 	return apperrors.New(apperrors.CodeBadRequest, message, opts...)
 }
 
 // Unauthorized 创建统一的未授权错误。
-func Unauthorized(message string, opts ...Option) *apperrors.AppError {
+func Unauthorized(message string, opts ...Option) error {
 	return apperrors.New(apperrors.CodeUnauthorized, message, opts...)
 }
 
 // Internal 创建统一的服务端内部错误。
-func Internal(message string, opts ...Option) *apperrors.AppError {
+func Internal(message string, opts ...Option) error {
 	return apperrors.New(apperrors.CodeInternalError, message, opts...)
 }
 
 // WrapBadRequest 将底层错误封装为请求参数错误。
-func WrapBadRequest(err error, message string, opts ...Option) *apperrors.AppError {
+func WrapBadRequest(err error, message string, opts ...Option) error {
 	return apperrors.Wrap(err, apperrors.CodeBadRequest, message, opts...)
 }
 
 // WrapBadRequestContext 将底层错误封装为请求参数错误，并自动写入 trace 元数据。
-func WrapBadRequestContext(ctx context.Context, err error, message string, opts ...Option) *apperrors.AppError {
+func WrapBadRequestContext(ctx context.Context, err error, message string, opts ...Option) error {
 	return apperrors.WrapContext(ctx, err, apperrors.CodeBadRequest, message, opts...)
 }
 
 // WrapNotFound 将底层错误封装为资源不存在错误。
-func WrapNotFound(err error, message string, opts ...Option) *apperrors.AppError {
+func WrapNotFound(err error, message string, opts ...Option) error {
 	return apperrors.Wrap(err, apperrors.CodeNotFound, message, opts...)
 }
 
 // WrapNotFoundContext 将底层错误封装为资源不存在错误，并自动写入 trace 元数据。
-func WrapNotFoundContext(ctx context.Context, err error, message string, opts ...Option) *apperrors.AppError {
+func WrapNotFoundContext(ctx context.Context, err error, message string, opts ...Option) error {
 	return apperrors.WrapContext(ctx, err, apperrors.CodeNotFound, message, opts...)
 }
 
 // WrapInternal 将底层错误封装为服务端内部错误。
-func WrapInternal(err error, message string, opts ...Option) *apperrors.AppError {
+func WrapInternal(err error, message string, opts ...Option) error {
 	return apperrors.Wrap(err, apperrors.CodeInternalError, message, opts...)
 }
 
 // WrapInternalContext 将底层错误封装为服务端内部错误，并自动写入 trace 元数据。
-func WrapInternalContext(ctx context.Context, err error, message string, opts ...Option) *apperrors.AppError {
+func WrapInternalContext(ctx context.Context, err error, message string, opts ...Option) error {
 	return apperrors.WrapContext(ctx, err, apperrors.CodeInternalError, message, opts...)
 }
 
 // WrapDB 将底层错误封装为数据库错误。
-func WrapDB(err error, message string, opts ...Option) *apperrors.AppError {
+func WrapDB(err error, message string, opts ...Option) error {
 	return apperrors.Wrap(err, apperrors.CodeDBError, message, withDefaults(dbDefaults(), opts)...)
 }
 
 // WrapDBContext 将底层错误封装为数据库错误，并自动写入 trace 元数据。
-func WrapDBContext(ctx context.Context, err error, message string, opts ...Option) *apperrors.AppError {
+func WrapDBContext(ctx context.Context, err error, message string, opts ...Option) error {
 	return apperrors.WrapContext(ctx, err, apperrors.CodeDBError, message, withDefaults(dbDefaults(), opts)...)
 }
 
 // WrapCache 将底层错误封装为缓存错误。
-func WrapCache(err error, message string, opts ...Option) *apperrors.AppError {
+func WrapCache(err error, message string, opts ...Option) error {
 	return apperrors.Wrap(err, apperrors.CodeCacheError, message, withDefaults(cacheDefaults(), opts)...)
 }
 
 // WrapCacheContext 将底层错误封装为缓存错误，并自动写入 trace 元数据。
-func WrapCacheContext(ctx context.Context, err error, message string, opts ...Option) *apperrors.AppError {
+func WrapCacheContext(ctx context.Context, err error, message string, opts ...Option) error {
 	return apperrors.WrapContext(ctx, err, apperrors.CodeCacheError, message, withDefaults(cacheDefaults(), opts)...)
 }
 
 // WrapStorage 将底层错误封装为对象存储错误。
-func WrapStorage(err error, message string, opts ...Option) *apperrors.AppError {
+func WrapStorage(err error, message string, opts ...Option) error {
 	return apperrors.Wrap(err, apperrors.CodeInternalError, message, withDefaults(storageDefaults(), opts)...)
 }
 
 // WrapStorageContext 将底层错误封装为对象存储错误，并自动写入 trace 元数据。
-func WrapStorageContext(ctx context.Context, err error, message string, opts ...Option) *apperrors.AppError {
+func WrapStorageContext(ctx context.Context, err error, message string, opts ...Option) error {
 	return apperrors.WrapContext(ctx, err, apperrors.CodeInternalError, message, withDefaults(storageDefaults(), opts)...)
 }
 
 // WrapHTTPClient 将底层错误封装为下游 HTTP 调用错误。
-func WrapHTTPClient(err error, message string, opts ...Option) *apperrors.AppError {
+func WrapHTTPClient(err error, message string, opts ...Option) error {
 	return apperrors.Wrap(err, apperrors.CodeInternalError, message, withDefaults(httpClientDefaults(), opts)...)
 }
 
 // WrapHTTPClientContext 将底层错误封装为下游 HTTP 调用错误，并自动写入 trace 元数据。
-func WrapHTTPClientContext(ctx context.Context, err error, message string, opts ...Option) *apperrors.AppError {
+func WrapHTTPClientContext(ctx context.Context, err error, message string, opts ...Option) error {
 	return apperrors.WrapContext(ctx, err, apperrors.CodeInternalError, message, withDefaults(httpClientDefaults(), opts)...)
 }
 
 // WrapTask 将底层错误封装为任务队列错误。
-func WrapTask(err error, message string, opts ...Option) *apperrors.AppError {
+func WrapTask(err error, message string, opts ...Option) error {
 	return apperrors.Wrap(err, apperrors.CodeInternalError, message, withDefaults(taskDefaults(), opts)...)
 }
 
 // WrapTaskContext 将底层错误封装为任务队列错误，并自动写入 trace 元数据。
-func WrapTaskContext(ctx context.Context, err error, message string, opts ...Option) *apperrors.AppError {
+func WrapTaskContext(ctx context.Context, err error, message string, opts ...Option) error {
 	return apperrors.WrapContext(ctx, err, apperrors.CodeInternalError, message, withDefaults(taskDefaults(), opts)...)
 }
 
 // LoginFailed 创建统一的登录失败错误。
-func LoginFailed() *apperrors.AppError {
+func LoginFailed() error {
 	return apperrors.New(CodeLoginFailed, "login failed", apperrors.WithStatus(http.StatusUnauthorized))
 }
 
 // UserNotFound 创建统一的用户不存在错误。
-func UserNotFound(userID idgen.ID) *apperrors.AppError {
+func UserNotFound(userID idgen.ID) error {
 	return apperrors.New(
 		CodeUserNotFound,
 		"user not found",

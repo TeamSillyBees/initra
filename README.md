@@ -13,8 +13,8 @@
 - 数据库迁移：Atlas
 - 认证与授权：JWT + Casbin
 - 配置与依赖注入：Viper + samber/do
-- 错误处理：AppError 统一业务错误码与 HTTP 响应，oops 仅作为底层 cause 增强器
-- 日志与观测：zap + health/ready/version
+- 错误处理：基于 oops 统一错误链、业务错误码与 HTTP 响应映射
+- 日志与观测：logx/zap + health/ready/version
 - 业务 ID：`pkg/idgen.ID` + snowflake，REST/OpenAPI 对外使用 JSON string
 - Redis 客户端：go-redis
 - 二级缓存：jetcache-go
@@ -46,7 +46,7 @@ docs/               架构与工程规范文档
 ## 可复用 Go package
 
 - `pkg/config`：泛型配置加载，不绑定业务项目配置结构。
-- `pkg/logging`、`pkg/cache`、`pkg/idgen`、`pkg/database`：基础设施封装，其中 `pkg/idgen.ID` 是业务 ID 专用类型，底层为 int64、JSON/OpenAPI 为 string；`pkg/database` 提供 SQL 连接池注册与启动 Ping 检查。
+- `pkg/logx`、`pkg/cache`、`pkg/idgen`、`pkg/database`：基础设施封装；`pkg/logx` 统一封装 zap 初始化、console/jsonl 双输出、oops 错误字段提取和脱敏策略。其中 `pkg/idgen.ID` 是业务 ID 专用类型，底层为 int64、JSON/OpenAPI 为 string；`pkg/database` 提供 SQL 连接池注册与启动 Ping 检查。
 - `pkg/redisx`：Redis 基础能力封装，支持 standalone/sentinel client、Ping/readiness、Key Builder、JSON/Msgpack 缓存、TTL jitter、空值缓存、singleflight、SCAN+UNLINK、Lua script registry、基于 `github.com/bsm/redislock` 的短时间分布式锁，以及 OpenTelemetry/zap hook；不支持 cluster，不封装 KEYS。
 - `pkg/entx`：Ent 通用 Hook、上下文工具和可复用 schema mixin，不依赖具体项目生成的 `internal/data/ent`。
 - `pkg/errors`、`pkg/response`、`pkg/requestctx`：统一错误、响应、trace/request id。

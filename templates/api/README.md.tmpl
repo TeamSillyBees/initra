@@ -65,7 +65,7 @@ go run ./cmd/server
 
 业务 ID 统一使用 `github.com/teamsillybees/initra/pkg/idgen.ID`。Ent 主键、外键、auth user ID、REST path params、service/repo 入参和 JSON VO 不使用 `int64` 或 `string` 表达业务 ID；REST/OpenAPI 对外暴露为 JSON string，示例形如 `"1771234567890123456"`。只有对接雪花 ID 生成器、第三方库、手写 SQL 参数或底层基础设施时才调用 `Int64()`。
 
-配置打印前会走脱敏逻辑。密码、Token、Secret、Access Key、Authorization 和带密码的 DSN 不应明文进入日志。
+配置打印前会走 `pkg/logx` 脱敏逻辑。密码、Token、Secret、Access Key、Authorization、Cookie、完整请求体、完整响应体和带密码的 DSN 不应明文进入日志。HTTP 与任务队列边界统一记录错误日志，业务层只返回错误并通过业务错误门面补充上下文。
 
 ## 数据库与迁移
 

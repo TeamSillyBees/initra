@@ -149,9 +149,9 @@ capabilities:
       - 使用 sentinel error 表达业务语义
       - handler 手写错误 JSON
 
-  - id: logging
+  - id: logx
     title: 结构化日志与脱敏
-    package: github.com/teamsillybees/initra/pkg/logging
+    package: github.com/teamsillybees/initra/pkg/logx
     reference: references/logging.md
     triggers:
       - logger
@@ -160,8 +160,8 @@ capabilities:
       - trace id
       - request id
     entrypoints:
-      - "logging.Register(injector, cfg.Log)"
-      - "do.MustInvoke[*zap.Logger](injector)"
+      - "logx.Register(injector, cfg.Log)"
+      - "do.MustInvoke[*logx.Logger](injector)"
       - "cfg.SafeForLog()"
     forbidden_patterns:
       - 业务代码中 zap.NewProduction

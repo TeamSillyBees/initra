@@ -24,11 +24,11 @@ import (
 	usermodule "github.com/teamsillybees/initra/examples/internal/modules/user"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/idgen"
+	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/observability"
 	"github.com/teamsillybees/initra/pkg/server"
 	"github.com/teamsillybees/initra/pkg/storage"
 	"github.com/teamsillybees/initra/pkg/storage/local"
-	"go.uber.org/zap"
 )
 
 func newMockEntClient(t *testing.T) (*sql.DB, sqlmock.Sqlmock, *appent.Client) {
@@ -61,7 +61,7 @@ func (noopUserCache) Delete(context.Context, idgen.ID) error      { return nil }
 
 // TestServer_LoginMeAndUserDetail 覆盖登录、当前用户、用户详情和健康检查的完整 HTTP 流程。
 func TestServer_LoginMeAndUserDetail(t *testing.T) {
-	logger := zap.NewNop()
+	logger := logx.NewNop()
 	passwords := platformauth.NewBcryptPasswordManager(4)
 	passwordHash, err := passwords.Hash("secret-123")
 	require.NoError(t, err)

@@ -8,21 +8,21 @@ import (
 
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
+	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/task"
-	"go.uber.org/zap"
 )
 
 // Worker 是基于 Asynq Server 的任务消费端。
 type Worker struct {
 	server   *asynq.Server
 	registry task.Registry
-	logger   *zap.Logger
+	logger   *logx.Logger
 	once     sync.Once
 	done     chan struct{}
 }
 
 // NewWorker 使用 task.Config 自建 Redis 连接并创建 Worker。
-func NewWorker(cfg task.Config, registry task.Registry, logger *zap.Logger) (task.Worker, error) {
+func NewWorker(cfg task.Config, registry task.Registry, logger *logx.Logger) (task.Worker, error) {
 	cfg = cfg.Normalize()
 	if !cfg.Enabled || !cfg.Worker.Enabled {
 		return task.NewDisabledWorker(), nil
@@ -43,7 +43,7 @@ func NewWorker(cfg task.Config, registry task.Registry, logger *zap.Logger) (tas
 }
 
 // NewWorkerFromRedisClient 使用外部 Redis 连接创建 Worker。
-func NewWorkerFromRedisClient(client redis.UniversalClient, cfg task.Config, registry task.Registry, logger *zap.Logger) (task.Worker, error) {
+func NewWorkerFromRedisClient(client redis.UniversalClient, cfg task.Config, registry task.Registry, logger *logx.Logger) (task.Worker, error) {
 	cfg = cfg.Normalize()
 	if !cfg.Enabled || !cfg.Worker.Enabled {
 		return task.NewDisabledWorker(), nil
@@ -110,7 +110,10 @@ func (w *Worker) Shutdown(ctx context.Context) error {
 	}
 }
 
-func serverConfig(cfg task.Config, logger *zap.Logger) asynq.Config {
+func serverConfig(cfg task.Config, logger *logx.Logger) asynq.Config {
+	if logger == nil {
+		logger = logx.NewNop()
+	}
 	worker := cfg.Worker
 	asynqCfg := asynq.Config{
 		Concurrency:              worker.Concurrency,
@@ -120,22 +123,18 @@ func serverConfig(cfg task.Config, logger *zap.Logger) asynq.Config {
 		HealthCheckInterval:      worker.HealthCheckInterval,
 		DelayedTaskCheckInterval: worker.DelayedTaskCheckInterval,
 		TaskCheckInterval:        worker.TaskCheckInterval,
-		Logger:                   newZapLogger(logger),
+		Logger:                   newAsynqLogger(logger),
 		ErrorHandler: asynq.ErrorHandlerFunc(func(ctx context.Context, raw *asynq.Task, err error) {
-			if logger == nil {
-				return
-			}
 			retryCount, _ := asynq.GetRetryCount(ctx)
 			maxRetry, _ := asynq.GetMaxRetry(ctx)
 			queue, _ := asynq.GetQueueName(ctx)
 			taskID, _ := asynq.GetTaskID(ctx)
-			logger.Error("task handler failed",
-				zap.String("task_id", taskID),
-				zap.String("task_type", raw.Type()),
-				zap.String("queue", queue),
-				zap.Int("retry_count", retryCount),
-				zap.Int("max_retry", maxRetry),
-				zap.Error(err),
+			logger.Error(ctx, "task handler failed", err,
+				logx.String("task_id", taskID),
+				logx.String("task_type", raw.Type()),
+				logx.String("queue", queue),
+				logx.Int("retry_count", retryCount),
+				logx.Int("max_retry", maxRetry),
 			)
 		}),
 	}
@@ -153,5 +152,5 @@ func (w *Worker) logRegisteredTasks() {
 	for _, entry := range w.registry.Registrations() {
 		types = append(types, entry.TaskType)
 	}
-	w.logger.Info("task worker registered handlers", zap.String("task_types", strings.Join(types, ",")))
+	w.logger.Info(context.Background(), "task worker registered handlers", logx.String("task_types", strings.Join(types, ",")))
 }

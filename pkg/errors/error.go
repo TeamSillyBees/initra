@@ -3,177 +3,370 @@ package apperrors
 import (
 	"context"
 	"errors"
+	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/samber/oops"
 	"github.com/teamsillybees/initra/pkg/requestctx"
 )
 
-// AppError 是平台统一业务错误模型，负责承接业务错误码、HTTP 状态码、对外消息和对外细节。
-// 底层 cause 通过 oops 增强后保留在 Cause 中，仅供日志、排障和 errors.Is/errors.As 使用。
-type AppError struct {
-	Code    Code
-	Message string
-	Status  int
-	Details map[string]any
-	Cause   error
+const (
+	contextKeyHTTPStatus    = "initra.http_status"
+	contextKeyPublicDetails = "initra.public_details"
+)
 
-	causeDomain string
-	causeHint   string
-	causeTrace  string
-	causeAttrs  map[string]any
+func init() {
+	oops.SourceFragmentsHidden = true
 }
 
-// Error 让 AppError 满足 error 接口。
-func (e *AppError) Error() string {
-	if e == nil {
-		return ""
+// Option 调整 oops 错误的公开信息、HTTP 状态或内部排障上下文。
+type Option func(*options)
+
+type options struct {
+	public string
+	status int
+	domain string
+	hint   string
+	trace  string
+	tags   []string
+	attrs  map[string]any
+	detail map[string]any
+}
+
+// WithPublic 设置可直接返回给用户的公开错误消息。
+func WithPublic(message string) Option {
+	return func(opts *options) {
+		opts.public = strings.TrimSpace(message)
 	}
-	return e.Message
 }
 
-// Unwrap 暴露底层错误，便于 errors.Is / errors.As 继续工作。
-func (e *AppError) Unwrap() error {
-	if e == nil {
-		return nil
-	}
-	return e.Cause
-}
-
-// Option 用于以较小的成本扩展错误细节或底层 cause 调试元数据。
-type Option func(*AppError)
-
-// WithDetail 为错误响应补充单个细节字段。
+// WithDetail 为错误响应补充单个公开详情字段。
 func WithDetail(key string, value any) Option {
-	return func(err *AppError) {
-		if err.Details == nil {
-			err.Details = map[string]any{}
-		}
-		err.Details[key] = value
-	}
-}
-
-// WithDetails 为错误响应补充一组细节字段。
-func WithDetails(details map[string]any) Option {
-	return func(err *AppError) {
-		if err.Details == nil {
-			err.Details = map[string]any{}
-		}
-		for key, value := range details {
-			err.Details[key] = value
-		}
-	}
-}
-
-// WithCauseDomain 为底层 cause 补充内部错误域，仅进入日志，不进入 HTTP 响应。
-func WithCauseDomain(domain string) Option {
-	return func(err *AppError) {
-		err.causeDomain = strings.TrimSpace(domain)
-	}
-}
-
-// WithCauseHint 为底层 cause 补充排障提示，仅进入日志，不进入 HTTP 响应。
-func WithCauseHint(hint string) Option {
-	return func(err *AppError) {
-		err.causeHint = strings.TrimSpace(hint)
-	}
-}
-
-// WithCauseTrace 为底层 cause 补充 trace id，仅进入日志，不进入 HTTP 响应。
-func WithCauseTrace(traceID string) Option {
-	return func(err *AppError) {
-		err.causeTrace = strings.TrimSpace(traceID)
-	}
-}
-
-// WithCauseAttr 为底层 cause 补充单个内部调试字段，仅进入日志，不进入 HTTP 响应。
-func WithCauseAttr(key string, value any) Option {
-	return func(err *AppError) {
+	return func(opts *options) {
 		key = strings.TrimSpace(key)
 		if key == "" {
 			return
 		}
-		if err.causeAttrs == nil {
-			err.causeAttrs = map[string]any{}
+		if opts.detail == nil {
+			opts.detail = map[string]any{}
 		}
-		err.causeAttrs[key] = value
+		opts.detail[key] = value
 	}
 }
 
-// WithCauseAttrs 为底层 cause 补充一组内部调试字段，仅进入日志，不进入 HTTP 响应。
-func WithCauseAttrs(attrs map[string]any) Option {
-	return func(err *AppError) {
-		if len(attrs) == 0 {
+// WithDetails 为错误响应补充一组公开详情字段。
+func WithDetails(details map[string]any) Option {
+	return func(opts *options) {
+		if len(details) == 0 {
 			return
 		}
-		if err.causeAttrs == nil {
-			err.causeAttrs = map[string]any{}
+		if opts.detail == nil {
+			opts.detail = map[string]any{}
 		}
-		for key, value := range attrs {
+		for key, value := range details {
 			key = strings.TrimSpace(key)
-			if key == "" {
-				continue
+			if key != "" {
+				opts.detail[key] = value
 			}
-			err.causeAttrs[key] = value
 		}
 	}
 }
 
 // WithStatus 允许调用方覆盖默认 HTTP 状态码。
 func WithStatus(status int) Option {
-	return func(err *AppError) {
-		err.Status = status
+	return func(opts *options) {
+		opts.status = status
 	}
 }
 
-// New 创建一个新的平台错误。
-func New(code Code, message string, opts ...Option) *AppError {
-	appErr := &AppError{
-		Code:    code,
-		Message: message,
-		Status:  statusOf(code),
-		Details: map[string]any{},
+// WithCauseDomain 为 oops 错误补充内部错误域，仅进入日志，不进入 HTTP 响应。
+func WithCauseDomain(domain string) Option {
+	return func(opts *options) {
+		opts.domain = strings.TrimSpace(domain)
 	}
-	for _, opt := range opts {
-		opt(appErr)
-	}
-	return appErr
 }
 
-// Wrap 使用 oops 包装底层错误后，再转换成平台统一错误。
-func Wrap(err error, code Code, message string, opts ...Option) *AppError {
-	if err == nil {
-		return New(code, message, opts...)
+// WithCauseHint 为 oops 错误补充排障提示，仅进入日志，不进入 HTTP 响应。
+func WithCauseHint(hint string) Option {
+	return func(opts *options) {
+		opts.hint = strings.TrimSpace(hint)
 	}
-	appErr := New(code, message, opts...)
-	appErr.Cause = wrapCause(err, message, appErr)
-	return appErr
 }
 
-// WrapContext 使用 oops 包装底层错误，并自动从 context 中提取 trace id 写入 cause metadata。
-func WrapContext(ctx context.Context, err error, code Code, message string, opts ...Option) *AppError {
-	if err == nil {
-		return New(code, message, opts...)
+// WithCauseTrace 为 oops 错误补充 trace id，仅进入日志，不进入 HTTP 响应。
+func WithCauseTrace(traceID string) Option {
+	return func(opts *options) {
+		opts.trace = strings.TrimSpace(traceID)
 	}
-	appErr := New(code, message, opts...)
-	if appErr.causeTrace == "" {
-		if traceID, ok := requestctx.TraceIDFromContext(ctx); ok {
-			appErr.causeTrace = strings.TrimSpace(traceID)
+}
+
+// WithTags 为 oops 错误补充检索标签，仅进入日志。
+func WithTags(tags ...string) Option {
+	return func(opts *options) {
+		for _, tag := range tags {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				opts.tags = append(opts.tags, tag)
+			}
 		}
 	}
-	appErr.Cause = wrapCause(err, message, appErr)
-	return appErr
 }
 
-// From 尝试从任意错误链中提取 AppError。
-func From(err error) *AppError {
+// WithCauseAttr 为 oops 错误补充单个内部排障字段，仅进入日志，不进入 HTTP 响应。
+func WithCauseAttr(key string, value any) Option {
+	return func(opts *options) {
+		key = strings.TrimSpace(key)
+		if key == "" {
+			return
+		}
+		if opts.attrs == nil {
+			opts.attrs = map[string]any{}
+		}
+		opts.attrs[key] = value
+	}
+}
+
+// WithCauseAttrs 为 oops 错误补充一组内部排障字段，仅进入日志，不进入 HTTP 响应。
+func WithCauseAttrs(attrs map[string]any) Option {
+	return func(opts *options) {
+		if len(attrs) == 0 {
+			return
+		}
+		if opts.attrs == nil {
+			opts.attrs = map[string]any{}
+		}
+		for key, value := range attrs {
+			key = strings.TrimSpace(key)
+			if key != "" {
+				opts.attrs[key] = value
+			}
+		}
+	}
+}
+
+// New 创建带稳定业务码的 oops 源头错误。
+func New(code Code, message string, opts ...Option) error {
+	resolved := resolveOptions(code, message, opts...)
+	return applyOptions(oops.Code(code), resolved).New(message)
+}
+
+// Wrap 使用 oops 包装底层错误；底层错误已有业务码时只追加当前层语义。
+func Wrap(err error, code Code, message string, opts ...Option) error {
 	if err == nil {
+		return New(code, message, opts...)
+	}
+	hasCode := HasCode(err)
+	resolved := resolveOptionsWithDefaults(code, message, !hasCode, opts...)
+	return applyOptions(builderForCode(code, !hasCode), resolved).Wrapf(err, "%s", message)
+}
+
+// WrapContext 使用 oops 包装底层错误，并自动从 context 中提取 trace id。
+func WrapContext(ctx context.Context, err error, code Code, message string, opts ...Option) error {
+	opts = appendTraceOption(ctx, opts)
+	return Wrap(err, code, message, opts...)
+}
+
+// AsOops 尝试从错误链中提取 oops 错误。
+func AsOops(err error) (oops.OopsError, bool) {
+	return oops.AsOops(err)
+}
+
+// HasCode 判断错误链中是否已经包含稳定业务码。
+func HasCode(err error) bool {
+	oopsErr, ok := oops.AsOops(err)
+	return ok && oopsErr.Code() != nil && strings.TrimSpace(fmt.Sprint(oopsErr.Code())) != ""
+}
+
+// CodeOf 返回错误链中的业务码；缺失时返回 INTERNAL_ERROR。
+func CodeOf(err error) Code {
+	if oopsErr, ok := oops.AsOops(err); ok {
+		if code := codeFromAny(oopsErr.Code()); code != "" {
+			return code
+		}
+	}
+	return CodeInternalError
+}
+
+// StatusOf 返回错误对应的 HTTP 状态码。
+func StatusOf(err error) int {
+	if oopsErr, ok := oops.AsOops(err); ok {
+		if status, ok := statusFromContext(oopsErr.Context()); ok {
+			return status
+		}
+	}
+	return statusOf(CodeOf(err))
+}
+
+// PublicMessageOf 返回允许展示给用户的错误消息。
+func PublicMessageOf(err error) string {
+	status := StatusOf(err)
+	defaultMessage := "internal error"
+	if status < http.StatusInternalServerError {
+		defaultMessage = "request failed"
+	}
+	return oops.GetPublic(err, defaultMessage)
+}
+
+// PublicDetailsOf 返回允许进入 HTTP 响应的公开详情。
+func PublicDetailsOf(err error) map[string]any {
+	oopsErr, ok := oops.AsOops(err)
+	if !ok {
 		return nil
 	}
-	if appErr, ok := errors.AsType[*AppError](err); ok {
-		return appErr
+	details, ok := detailsFromContext(oopsErr.Context())
+	if !ok {
+		return nil
 	}
-	return nil
+	return SanitizeMap(details)
+}
+
+// PublicContext 返回过滤掉框架保留字段后的 oops context，供边界日志使用。
+func PublicContext(err error) map[string]any {
+	oopsErr, ok := oops.AsOops(err)
+	if !ok {
+		return nil
+	}
+	attrs := oopsErr.Context()
+	filtered := make(map[string]any, len(attrs))
+	for key, value := range attrs {
+		if key == contextKeyHTTPStatus || key == contextKeyPublicDetails {
+			continue
+		}
+		filtered[key] = value
+	}
+	if len(filtered) == 0 {
+		return nil
+	}
+	return SanitizeMap(filtered)
+}
+
+// Is 保留标准库 errors.Is 的包内便捷入口，便于调用方不直接依赖 oops 实现细节。
+func Is(err error, target error) bool {
+	return errors.Is(err, target)
+}
+
+func appendTraceOption(ctx context.Context, opts []Option) []Option {
+	if traceID, ok := requestctx.TraceIDFromContext(ctx); ok && strings.TrimSpace(traceID) != "" {
+		return append(opts, WithCauseTrace(traceID))
+	}
+	return opts
+}
+
+func resolveOptions(code Code, message string, opts ...Option) options {
+	return resolveOptionsWithDefaults(code, message, true, opts...)
+}
+
+func resolveOptionsWithDefaults(code Code, message string, defaults bool, opts ...Option) options {
+	resolved := options{}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&resolved)
+		}
+	}
+	if defaults && resolved.status == 0 {
+		resolved.status = statusOf(code)
+	}
+	if defaults && resolved.public == "" && resolved.status < http.StatusInternalServerError {
+		resolved.public = strings.TrimSpace(message)
+	}
+	return resolved
+}
+
+func builderForCode(code Code, useCode bool) oops.OopsErrorBuilder {
+	if useCode {
+		return oops.Code(code)
+	}
+	return oops.With()
+}
+
+func applyOptions(builder oops.OopsErrorBuilder, opts options) oops.OopsErrorBuilder {
+	if opts.domain != "" {
+		builder = builder.In(opts.domain)
+	}
+	if opts.hint != "" {
+		builder = builder.Hint(opts.hint)
+	}
+	if opts.trace != "" {
+		builder = builder.Trace(opts.trace)
+	}
+	if opts.public != "" {
+		builder = builder.Public(opts.public)
+	}
+	if len(opts.tags) > 0 {
+		builder = builder.Tags(opts.tags...)
+	}
+	attrs := make(map[string]any, len(opts.attrs)+2)
+	for key, value := range opts.attrs {
+		attrs[key] = value
+	}
+	if opts.status > 0 {
+		attrs[contextKeyHTTPStatus] = opts.status
+	}
+	if len(opts.detail) > 0 {
+		attrs[contextKeyPublicDetails] = opts.detail
+	}
+	if len(attrs) > 0 {
+		builder = builder.With(attrPairs(attrs)...)
+	}
+	return builder
+}
+
+func attrPairs(attrs map[string]any) []any {
+	pairs := make([]any, 0, len(attrs)*2)
+	for key, value := range attrs {
+		pairs = append(pairs, key, value)
+	}
+	return pairs
+}
+
+func codeFromAny(value any) Code {
+	switch typed := value.(type) {
+	case nil:
+		return ""
+	case Code:
+		return typed
+	case string:
+		return Code(strings.TrimSpace(typed))
+	default:
+		return Code(strings.TrimSpace(fmt.Sprint(typed)))
+	}
+}
+
+func statusFromContext(attrs map[string]any) (int, bool) {
+	value, ok := attrs[contextKeyHTTPStatus]
+	if !ok {
+		return 0, false
+	}
+	switch typed := value.(type) {
+	case int:
+		return typed, typed > 0
+	case int64:
+		return int(typed), typed > 0
+	case float64:
+		return int(typed), typed > 0
+	default:
+		return 0, false
+	}
+}
+
+func detailsFromContext(attrs map[string]any) (map[string]any, bool) {
+	value, ok := attrs[contextKeyPublicDetails]
+	if !ok {
+		return nil, false
+	}
+	switch typed := value.(type) {
+	case map[string]any:
+		return typed, true
+	case map[string]string:
+		result := make(map[string]any, len(typed))
+		for key, item := range typed {
+			result[key] = item
+		}
+		return result, true
+	default:
+		return nil, false
+	}
 }
 
 // statusOf 返回错误码对应的 HTTP 状态码，未知错误码默认视为服务端错误。
@@ -181,33 +374,5 @@ func statusOf(code Code) int {
 	if status, ok := defaultStatuses[code]; ok {
 		return status
 	}
-	return httpStatusInternalError
-}
-
-// httpStatusInternalError 避免在错误模型底层额外引入 net/http 依赖。
-const httpStatusInternalError = 500
-
-func wrapCause(err error, message string, appErr *AppError) error {
-	builder := oops.With()
-	if appErr.causeDomain != "" {
-		builder = builder.In(appErr.causeDomain)
-	}
-	if appErr.causeHint != "" {
-		builder = builder.Hint(appErr.causeHint)
-	}
-	if appErr.causeTrace != "" {
-		builder = builder.Trace(appErr.causeTrace)
-	}
-	if len(appErr.causeAttrs) > 0 {
-		builder = builder.With(causeAttrPairs(appErr.causeAttrs)...)
-	}
-	return builder.Wrapf(err, "%s", message)
-}
-
-func causeAttrPairs(attrs map[string]any) []any {
-	pairs := make([]any, 0, len(attrs)*2)
-	for key, value := range attrs {
-		pairs = append(pairs, key, value)
-	}
-	return pairs
+	return http.StatusInternalServerError
 }

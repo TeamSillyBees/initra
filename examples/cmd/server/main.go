@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/teamsillybees/initra/examples/internal/boot"
+	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/observability"
 )
 
@@ -35,10 +35,36 @@ func main() {
 		},
 	})
 	if err != nil {
-		log.Fatalf("bootstrap app failed: %v", err)
+		fatal(ctx, "bootstrap app failed", err, nil)
 	}
 
 	if err := app.Run(ctx); err != nil {
-		log.Fatalf("run app failed: %v", err)
+		fatal(ctx, "run app failed", err, app.Logger)
 	}
+}
+
+func fatal(ctx context.Context, msg string, err error, logger *logx.Logger) {
+	if logger == nil {
+		logger = fallbackLogger()
+	}
+	logger.Error(ctx, msg, err)
+	_ = logger.Sync()
+	os.Exit(1)
+}
+
+func fallbackLogger() *logx.Logger {
+	logger, err := logx.NewLogger(logx.Config{
+		Level: "error",
+		Console: logx.ConsoleConfig{
+			Enabled: true,
+			Level:   "error",
+			Stack:   logx.StackShort,
+			Output:  "stderr",
+		},
+		Redact: logx.RedactConfig{Enabled: true},
+	})
+	if err != nil {
+		return logx.NewNop()
+	}
+	return logger
 }

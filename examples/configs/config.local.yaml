@@ -17,3 +17,10 @@ auth:
 
 log:
   level: debug
+  console:
+    enabled: true
+    level: debug
+    stack: short
+  jsonl:
+    enabled: true
+    level: debug
