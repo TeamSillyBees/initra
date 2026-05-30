@@ -205,7 +205,7 @@ func configDefaults() map[string]any {
 		"log.jsonl.enabled":                                  true,
 		"log.jsonl.level":                                    "info",
 		"log.jsonl.stack":                                    string(logx.StackFull),
-		"log.jsonl.path":                                     "stdout",
+		"log.jsonl.path":                                     logx.DefaultJSONLPath,
 		"log.redact.enabled":                                 true,
 		"log.redact.fields":                                  []string{"password", "token", "secret", "authorization"},
 		"observability.metrics.enabled":                      true,

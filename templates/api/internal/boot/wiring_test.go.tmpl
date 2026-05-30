@@ -106,7 +106,7 @@ log:
   jsonl:
     enabled: true
     level: info
-    path: stdout
+    path: ./var/logs/app.jsonl
   redact:
     enabled: true
     fields: ["password", "token", "secret", "authorization"]

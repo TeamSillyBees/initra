@@ -2,44 +2,24 @@ package logx
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-// newConsoleLogger 创建面向人眼阅读的 console zap logger。
-func newConsoleLogger(cfg Config) (*zap.Logger, func(), error) {
-	level, err := parseLevel(cfg.Console.Level)
-	if err != nil {
-		return nil, nil, err
-	}
-	encoderConfig := zap.NewDevelopmentEncoderConfig()
-	encoderConfig.TimeKey = "ts"
-	encoderConfig.LevelKey = "level"
-	encoderConfig.NameKey = "logger"
-	encoderConfig.CallerKey = "caller"
-	encoderConfig.MessageKey = "msg"
-	encoderConfig.StacktraceKey = ""
-	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	if cfg.Console.Color {
-		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	} else {
-		encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
-	}
-
-	sink, closeSink, err := zap.Open(cfg.Console.Output)
-	if err != nil {
-		return nil, nil, err
-	}
-	core := zapcore.NewCore(zapcore.NewConsoleEncoder(encoderConfig), sink, level)
-	return zap.New(core, loggerOptions(cfg.Redact)...), closeSink, nil
-}
-
 // newJSONLLogger 创建面向机器检索的 JSON Lines zap logger。
 func newJSONLLogger(cfg Config) (*zap.Logger, func(), error) {
+	if err := validateJSONLPath(cfg.JSONL.Path); err != nil {
+		return nil, nil, err
+	}
 	level, err := parseLevel(cfg.JSONL.Level)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := ensureJSONLParent(cfg.JSONL.Path); err != nil {
 		return nil, nil, err
 	}
 	encoderConfig := zap.NewProductionEncoderConfig()
@@ -57,6 +37,26 @@ func newJSONLLogger(cfg Config) (*zap.Logger, func(), error) {
 	}
 	core := zapcore.NewCore(zapcore.NewJSONEncoder(encoderConfig), sink, level)
 	return zap.New(core, loggerOptions(cfg.Redact)...), closeSink, nil
+}
+
+// validateJSONLPath 确保 JSONL 只写入文件路径。
+func validateJSONLPath(path string) error {
+	normalized := strings.ToLower(strings.TrimSpace(path))
+	switch normalized {
+	case "", "stdout", "stderr":
+		return fmt.Errorf("log.jsonl.path 必须是文件路径，不能是 %q", path)
+	default:
+		return nil
+	}
+}
+
+// ensureJSONLParent 确保 JSONL 文件路径的父目录已存在。
+func ensureJSONLParent(path string) error {
+	dir := filepath.Dir(strings.TrimSpace(path))
+	if dir == "." || dir == "" {
+		return nil
+	}
+	return os.MkdirAll(dir, 0o755)
 }
 
 // loggerOptions 返回所有底层 zap logger 共用的选项。

@@ -156,6 +156,7 @@ func rootCause(err error) error {
 	return nil
 }
 
+// oopsObject 返回脱敏后的 oops 原始结构，并用已脱敏上下文覆盖内部 context。
 func oopsObject(payload map[string]any, context map[string]any) map[string]any {
 	object := redactMap(payload)
 	if len(context) == 0 {

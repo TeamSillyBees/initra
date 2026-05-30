@@ -1,4 +1,4 @@
-- 格式化日志，提供更好的日志输出体验，区别jsonl日志和console日志
+- logx 已区分 console 终端可读日志与 JSONL 文件日志。
 - 优化模板项目的 agents.md 和 readme
 
 - 明确ent事务机制及能力边界

@@ -186,8 +186,9 @@ func RequestLogxMiddleware(logger *logx.Logger) gin.HandlerFunc {
 
 		if err := ginLastError(c); err != nil {
 			logger.Error(c.Request.Context(), "http request failed", err, append(fields, ginErrorFields(c)...)...)
+		} else {
+			logger.Info(c.Request.Context(), "http request completed", fields...)
 		}
-		logger.Info(c.Request.Context(), "http request completed", fields...)
 	}
 }
 

@@ -11,7 +11,6 @@ require (
 	github.com/samber/do v1.6.0
 	github.com/stretchr/testify v1.11.1
 	github.com/teamsillybees/initra v0.0.0
-	go.uber.org/zap v1.27.1
 )
 
 require (
@@ -130,6 +129,7 @@ require (
 	go.opentelemetry.io/otel v1.29.0 // indirect
 	go.opentelemetry.io/otel/metric v1.29.0 // indirect
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
+	go.uber.org/zap v1.27.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect

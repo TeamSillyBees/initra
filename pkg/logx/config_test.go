@@ -18,22 +18,22 @@ func TestConfigNormalizeDefaults(t *testing.T) {
 	require.True(t, cfg.JSONL.Enabled)
 	require.Equal(t, "info", cfg.JSONL.Level)
 	require.Equal(t, StackFull, cfg.JSONL.Stack)
-	require.Equal(t, "stdout", cfg.JSONL.Path)
+	require.Equal(t, DefaultJSONLPath, cfg.JSONL.Path)
 	require.True(t, cfg.Redact.Enabled)
 }
 
-// TestConfigNormalizeExplicitJSONLOutput 验证显式 jsonl 配置会保留输出策略。
-func TestConfigNormalizeExplicitJSONLOutput(t *testing.T) {
+// TestConfigNormalizeExplicitJSONLPath 验证显式 jsonl 文件路径会被保留。
+func TestConfigNormalizeExplicitJSONLPath(t *testing.T) {
 	cfg := Config{
 		Level:  "debug",
-		JSONL:  JSONLConfig{Enabled: true, Path: "stderr"},
+		JSONL:  JSONLConfig{Enabled: true, Path: "./var/logs/custom.jsonl"},
 		Redact: RedactConfig{Fields: []string{"api_key"}},
 	}.Normalize()
 
 	require.False(t, cfg.Console.Enabled)
 	require.True(t, cfg.JSONL.Enabled)
 	require.Equal(t, "debug", cfg.JSONL.Level)
-	require.Equal(t, "stderr", cfg.JSONL.Path)
+	require.Equal(t, "./var/logs/custom.jsonl", cfg.JSONL.Path)
 	require.True(t, cfg.Redact.Enabled)
 	require.Equal(t, []string{"api_key"}, cfg.Redact.Fields)
 }

@@ -4,11 +4,12 @@ import (
 	"context"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // Logger 是项目统一日志入口，内部按 console/jsonl 策略分别渲染字段。
 type Logger struct {
-	console *zap.Logger
+	console *consoleLogger
 	jsonl   *zap.Logger
 	cfg     Config
 	closers []func()
@@ -33,9 +34,6 @@ func NewLogger(cfg Config) (*Logger, error) {
 		}
 		logger.jsonl = jsonl
 		logger.closers = append(logger.closers, closeJSONL)
-	}
-	if logger.console == nil && logger.jsonl == nil {
-		logger.console = zap.NewNop()
 	}
 	return logger, nil
 }
@@ -73,7 +71,7 @@ func (l *Logger) Error(ctx context.Context, msg string, err error, fields ...Fie
 		return
 	}
 	cfg := l.config()
-	info := ExtractError(err, cfg.JSONL.Stack, cfg.Redact)
+	info := ExtractError(err, StackFull, cfg.Redact)
 	if info.TraceID == "" {
 		for _, field := range baseFields(ctx, cfg.Fields) {
 			if field.Key == "trace_id" {
@@ -86,11 +84,13 @@ func (l *Logger) Error(ctx context.Context, msg string, err error, fields ...Fie
 		consoleInfo := info
 		consoleInfo.Stacktrace = renderStack(info.Stacktrace, cfg.Console.Stack)
 		allFields := append(baseFields(ctx, cfg.Fields), fields...)
-		l.console.Error(msg, ConsoleErrorFields(consoleInfo, allFields, cfg.Console.Stack, cfg.Redact)...)
+		l.console.write(zapcore.ErrorLevel, msg, ConsoleErrorFields(consoleInfo, allFields, cfg.Console.Stack, cfg.Redact)...)
 	}
-	if l.jsonl != nil && l.jsonl != l.console {
+	if l.jsonl != nil {
+		jsonlInfo := info
+		jsonlInfo.Stacktrace = renderStack(info.Stacktrace, cfg.JSONL.Stack)
 		allFields := append(baseFields(ctx, cfg.Fields), fields...)
-		l.jsonl.Error(msg, JSONLErrorFields(info, allFields, cfg.JSONL.Stack, cfg.Redact)...)
+		l.jsonl.Error(msg, JSONLErrorFields(jsonlInfo, allFields, cfg.JSONL.Stack, cfg.Redact)...)
 	}
 }
 
@@ -100,7 +100,7 @@ func (l *Logger) With(fields ...Field) *Logger {
 		return NewNop()
 	}
 	return &Logger{
-		console: withLoggerFields(l.console, fields),
+		console: withConsoleFields(l.console, fields),
 		jsonl:   withLoggerFields(l.jsonl, fields),
 		cfg:     l.cfg,
 		closers: l.closers,
@@ -113,7 +113,7 @@ func (l *Logger) Named(name string) *Logger {
 		return NewNop()
 	}
 	return &Logger{
-		console: namedLogger(l.console, name),
+		console: namedConsoleLogger(l.console, name),
 		jsonl:   namedLogger(l.jsonl, name),
 		cfg:     l.cfg,
 		closers: l.closers,
@@ -125,10 +125,8 @@ func (l *Logger) Sync() error {
 	if l == nil {
 		return nil
 	}
-	err := syncLogger(l.console)
-	if l.jsonl != l.console {
-		err = combineSyncErrors(err, syncLogger(l.jsonl))
-	}
+	err := syncConsoleLogger(l.console)
+	err = combineSyncErrors(err, syncLogger(l.jsonl))
 	for _, closer := range l.closers {
 		if closer != nil {
 			closer()
@@ -145,9 +143,9 @@ func (l *Logger) write(ctx context.Context, level writeLevel, msg string, fields
 	}
 	allFields := append(baseFields(ctx, l.config().Fields), fields...)
 	if l.console != nil {
-		writeZap(l.console, level, msg, allFields...)
+		l.console.write(zapLevel(level), msg, allFields...)
 	}
-	if l.jsonl != nil && l.jsonl != l.console {
+	if l.jsonl != nil {
 		writeZap(l.jsonl, level, msg, allFields...)
 	}
 }
@@ -158,6 +156,18 @@ func (l *Logger) config() Config {
 		return Config{Redact: RedactConfig{Enabled: true}}.Normalize()
 	}
 	return l.cfg.Normalize()
+}
+
+// zapLevel 将内部普通日志级别转换为 zapcore 级别。
+func zapLevel(level writeLevel) zapcore.Level {
+	switch level {
+	case debugLevel:
+		return zapcore.DebugLevel
+	case warnLevel:
+		return zapcore.WarnLevel
+	default:
+		return zapcore.InfoLevel
+	}
 }
 
 // writeZap 根据内部级别枚举调用 zap 对应方法。
@@ -173,6 +183,30 @@ func writeZap(logger *zap.Logger, level writeLevel, msg string, fields ...Field)
 	default:
 		logger.Info(msg, fields...)
 	}
+}
+
+// syncConsoleLogger 刷新非空 console logger。
+func syncConsoleLogger(logger *consoleLogger) error {
+	if logger == nil {
+		return nil
+	}
+	return logger.Sync()
+}
+
+// withConsoleFields 为非空 console logger 附加固定字段。
+func withConsoleFields(logger *consoleLogger, fields []Field) *consoleLogger {
+	if logger == nil {
+		return nil
+	}
+	return logger.With(fields...)
+}
+
+// namedConsoleLogger 为非空 console logger 附加 logger 名称。
+func namedConsoleLogger(logger *consoleLogger, name string) *consoleLogger {
+	if logger == nil {
+		return nil
+	}
+	return logger.Named(name)
 }
 
 // withLoggerFields 为非空 zap logger 附加固定字段。

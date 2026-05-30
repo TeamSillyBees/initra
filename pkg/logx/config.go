@@ -2,6 +2,9 @@ package logx
 
 import "strings"
 
+// DefaultJSONLPath 是 JSONL 文件日志的默认写入路径。
+const DefaultJSONLPath = "./var/logs/app.jsonl"
+
 // Config 描述统一日志配置，支持 console 与 jsonl 两套输出策略。
 type Config struct {
 	Level   string        `mapstructure:"level"`
@@ -70,7 +73,7 @@ func (c Config) Normalize() Config {
 		if c.JSONL.Stack == "" {
 			c.JSONL.Stack = StackFull
 		}
-		c.JSONL.Path = firstNonEmpty(c.JSONL.Path, "stdout")
+		c.JSONL.Path = firstNonEmpty(c.JSONL.Path, DefaultJSONLPath)
 	}
 	return c
 }

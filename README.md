@@ -46,7 +46,7 @@ docs/               架构与工程规范文档
 ## 可复用 Go package
 
 - `pkg/config`：泛型配置加载，不绑定业务项目配置结构。
-- `pkg/logx`、`pkg/cache`、`pkg/idgen`、`pkg/database`：基础设施封装；`pkg/logx` 统一封装 zap 初始化、console/jsonl 双输出、oops 错误字段提取和脱敏策略。其中 `pkg/idgen.ID` 是业务 ID 专用类型，底层为 int64、JSON/OpenAPI 为 string；`pkg/database` 提供 SQL 连接池注册与启动 Ping 检查。
+- `pkg/logx`、`pkg/cache`、`pkg/idgen`、`pkg/database`：基础设施封装；`pkg/logx` 统一封装 zap 初始化、console 终端可读输出、JSONL 文件日志、oops 错误字段提取和脱敏策略。其中 `pkg/idgen.ID` 是业务 ID 专用类型，底层为 int64、JSON/OpenAPI 为 string；`pkg/database` 提供 SQL 连接池注册与启动 Ping 检查。
 - `pkg/redisx`：Redis 基础能力封装，支持 standalone/sentinel client、Ping/readiness、Key Builder、JSON/Msgpack 缓存、TTL jitter、空值缓存、singleflight、SCAN+UNLINK、Lua script registry、基于 `github.com/bsm/redislock` 的短时间分布式锁，以及 OpenTelemetry/zap hook；不支持 cluster，不封装 KEYS。
 - `pkg/entx`：Ent 通用 Hook、上下文工具和可复用 schema mixin，不依赖具体项目生成的 `internal/data/ent`。
 - `pkg/errors`、`pkg/response`、`pkg/requestctx`：统一错误、响应、trace/request id。

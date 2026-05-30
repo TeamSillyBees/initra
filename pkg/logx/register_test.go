@@ -1,6 +1,7 @@
 package logx
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/samber/do"
@@ -10,7 +11,15 @@ import (
 // TestRegisterProvidesLogger 验证 DI 提供 logx Logger。
 func TestRegisterProvidesLogger(t *testing.T) {
 	injector := do.New()
-	Register(injector, Config{Level: "debug"})
+	Register(injector, Config{
+		Level:   "debug",
+		Console: ConsoleConfig{Enabled: false},
+		JSONL:   JSONLConfig{Enabled: true, Path: filepath.Join(t.TempDir(), "app.jsonl")},
+	})
 
-	require.NotNil(t, do.MustInvoke[*Logger](injector))
+	logger := do.MustInvoke[*Logger](injector)
+	t.Cleanup(func() {
+		require.NoError(t, logger.Sync())
+	})
+	require.NotNil(t, logger)
 }
