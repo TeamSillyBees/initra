@@ -28,129 +28,69 @@ func WithCauseAttr(key string, value any) Option {
 	return apperrors.WithCauseAttr(key, value)
 }
 
-// WithCauseAttrs 为底层 cause 补充一组内部排障字段，只进入日志，不进入 HTTP 响应。
-func WithCauseAttrs(attrs map[string]any) Option {
-	return apperrors.WithCauseAttrs(attrs)
-}
-
-// WithCauseDomain 为底层 cause 补充错误域，只进入日志，不进入 HTTP 响应。
-func WithCauseDomain(domain string) Option {
-	return apperrors.WithCauseDomain(domain)
-}
-
-// WithCauseHint 为底层 cause 补充排障提示，只进入日志，不进入 HTTP 响应。
-func WithCauseHint(hint string) Option {
-	return apperrors.WithCauseHint(hint)
-}
-
-// WithCauseTrace 为底层 cause 补充 trace id，只进入日志，不进入 HTTP 响应。
-func WithCauseTrace(traceID string) Option {
-	return apperrors.WithCauseTrace(traceID)
-}
-
 // BadRequest 创建统一的请求参数错误。
 func BadRequest(message string, opts ...Option) error {
-	return apperrors.New(apperrors.CodeBadRequest, message, opts...)
+	return newError(apperrors.CodeBadRequest, message, opts...)
 }
 
 // Unauthorized 创建统一的未授权错误。
 func Unauthorized(message string, opts ...Option) error {
-	return apperrors.New(apperrors.CodeUnauthorized, message, opts...)
+	return newError(apperrors.CodeUnauthorized, message, opts...)
 }
 
 // Internal 创建统一的服务端内部错误。
 func Internal(message string, opts ...Option) error {
-	return apperrors.New(apperrors.CodeInternalError, message, opts...)
-}
-
-// WrapBadRequest 将底层错误封装为请求参数错误。
-func WrapBadRequest(err error, message string, opts ...Option) error {
-	return apperrors.Wrap(err, apperrors.CodeBadRequest, message, opts...)
+	return newError(apperrors.CodeInternalError, message, opts...)
 }
 
 // WrapBadRequestContext 将底层错误封装为请求参数错误，并自动写入 trace 元数据。
 func WrapBadRequestContext(ctx context.Context, err error, message string, opts ...Option) error {
-	return apperrors.WrapContext(ctx, err, apperrors.CodeBadRequest, message, opts...)
-}
-
-// WrapNotFound 将底层错误封装为资源不存在错误。
-func WrapNotFound(err error, message string, opts ...Option) error {
-	return apperrors.Wrap(err, apperrors.CodeNotFound, message, opts...)
+	return wrapContext(ctx, err, apperrors.CodeBadRequest, message, nil, opts...)
 }
 
 // WrapNotFoundContext 将底层错误封装为资源不存在错误，并自动写入 trace 元数据。
 func WrapNotFoundContext(ctx context.Context, err error, message string, opts ...Option) error {
-	return apperrors.WrapContext(ctx, err, apperrors.CodeNotFound, message, opts...)
-}
-
-// WrapInternal 将底层错误封装为服务端内部错误。
-func WrapInternal(err error, message string, opts ...Option) error {
-	return apperrors.Wrap(err, apperrors.CodeInternalError, message, opts...)
+	return wrapContext(ctx, err, apperrors.CodeNotFound, message, nil, opts...)
 }
 
 // WrapInternalContext 将底层错误封装为服务端内部错误，并自动写入 trace 元数据。
 func WrapInternalContext(ctx context.Context, err error, message string, opts ...Option) error {
-	return apperrors.WrapContext(ctx, err, apperrors.CodeInternalError, message, opts...)
-}
-
-// WrapDB 将底层错误封装为数据库错误。
-func WrapDB(err error, message string, opts ...Option) error {
-	return apperrors.Wrap(err, apperrors.CodeDBError, message, withDefaults(dbDefaults(), opts)...)
+	return wrapContext(ctx, err, apperrors.CodeInternalError, message, nil, opts...)
 }
 
 // WrapDBContext 将底层错误封装为数据库错误，并自动写入 trace 元数据。
 func WrapDBContext(ctx context.Context, err error, message string, opts ...Option) error {
-	return apperrors.WrapContext(ctx, err, apperrors.CodeDBError, message, withDefaults(dbDefaults(), opts)...)
-}
-
-// WrapCache 将底层错误封装为缓存错误。
-func WrapCache(err error, message string, opts ...Option) error {
-	return apperrors.Wrap(err, apperrors.CodeCacheError, message, withDefaults(cacheDefaults(), opts)...)
+	return wrapContext(ctx, err, apperrors.CodeDBError, message, dbDefaults(), opts...)
 }
 
 // WrapCacheContext 将底层错误封装为缓存错误，并自动写入 trace 元数据。
 func WrapCacheContext(ctx context.Context, err error, message string, opts ...Option) error {
-	return apperrors.WrapContext(ctx, err, apperrors.CodeCacheError, message, withDefaults(cacheDefaults(), opts)...)
-}
-
-// WrapStorage 将底层错误封装为对象存储错误。
-func WrapStorage(err error, message string, opts ...Option) error {
-	return apperrors.Wrap(err, apperrors.CodeInternalError, message, withDefaults(storageDefaults(), opts)...)
+	return wrapContext(ctx, err, apperrors.CodeCacheError, message, cacheDefaults(), opts...)
 }
 
 // WrapStorageContext 将底层错误封装为对象存储错误，并自动写入 trace 元数据。
 func WrapStorageContext(ctx context.Context, err error, message string, opts ...Option) error {
-	return apperrors.WrapContext(ctx, err, apperrors.CodeInternalError, message, withDefaults(storageDefaults(), opts)...)
-}
-
-// WrapHTTPClient 将底层错误封装为下游 HTTP 调用错误。
-func WrapHTTPClient(err error, message string, opts ...Option) error {
-	return apperrors.Wrap(err, apperrors.CodeInternalError, message, withDefaults(httpClientDefaults(), opts)...)
+	return wrapContext(ctx, err, apperrors.CodeInternalError, message, storageDefaults(), opts...)
 }
 
 // WrapHTTPClientContext 将底层错误封装为下游 HTTP 调用错误，并自动写入 trace 元数据。
 func WrapHTTPClientContext(ctx context.Context, err error, message string, opts ...Option) error {
-	return apperrors.WrapContext(ctx, err, apperrors.CodeInternalError, message, withDefaults(httpClientDefaults(), opts)...)
-}
-
-// WrapTask 将底层错误封装为任务队列错误。
-func WrapTask(err error, message string, opts ...Option) error {
-	return apperrors.Wrap(err, apperrors.CodeInternalError, message, withDefaults(taskDefaults(), opts)...)
+	return wrapContext(ctx, err, apperrors.CodeInternalError, message, httpClientDefaults(), opts...)
 }
 
 // WrapTaskContext 将底层错误封装为任务队列错误，并自动写入 trace 元数据。
 func WrapTaskContext(ctx context.Context, err error, message string, opts ...Option) error {
-	return apperrors.WrapContext(ctx, err, apperrors.CodeInternalError, message, withDefaults(taskDefaults(), opts)...)
+	return wrapContext(ctx, err, apperrors.CodeInternalError, message, taskDefaults(), opts...)
 }
 
 // LoginFailed 创建统一的登录失败错误。
 func LoginFailed() error {
-	return apperrors.New(CodeLoginFailed, "login failed", apperrors.WithStatus(http.StatusUnauthorized))
+	return newError(CodeLoginFailed, "login failed", apperrors.WithStatus(http.StatusUnauthorized))
 }
 
 // UserNotFound 创建统一的用户不存在错误。
 func UserNotFound(userID idgen.ID) error {
-	return apperrors.New(
+	return newError(
 		CodeUserNotFound,
 		"user not found",
 		apperrors.WithStatus(http.StatusNotFound),
@@ -158,13 +98,26 @@ func UserNotFound(userID idgen.ID) error {
 	)
 }
 
+// newError 创建业务源头错误，并跳过 bizerrors 自身 helper。
+func newError(code apperrors.Code, message string, opts ...Option) error {
+	return apperrors.New(code, message, withDefaults(nil, opts)...)
+}
+
+// wrapContext 包装底层错误并写入 trace 元数据，统一应用领域默认元数据和调用帧跳过策略。
+func wrapContext(ctx context.Context, err error, code apperrors.Code, message string, defaults []Option, opts ...Option) error {
+	return apperrors.WrapContext(ctx, err, code, message, withDefaults(defaults, opts)...)
+}
+
+// withDefaults 合并领域默认元数据和调用方选项，并跳过当前业务错误 helper 与私有转发层。
 func withDefaults(defaults []Option, opts []Option) []Option {
-	merged := make([]Option, 0, len(defaults)+len(opts))
+	merged := make([]Option, 0, len(defaults)+len(opts)+1)
 	merged = append(merged, defaults...)
 	merged = append(merged, opts...)
+	merged = append(merged, apperrors.WithCallerSkip(2))
 	return merged
 }
 
+// dbDefaults 返回数据库错误的默认日志元数据。
 func dbDefaults() []Option {
 	return []Option{
 		apperrors.WithCauseDomain(apperrors.DomainDB),
@@ -172,6 +125,7 @@ func dbDefaults() []Option {
 	}
 }
 
+// cacheDefaults 返回缓存错误的默认日志元数据。
 func cacheDefaults() []Option {
 	return []Option{
 		apperrors.WithCauseDomain(apperrors.DomainCache),
@@ -179,6 +133,7 @@ func cacheDefaults() []Option {
 	}
 }
 
+// storageDefaults 返回对象存储错误的默认日志元数据。
 func storageDefaults() []Option {
 	return []Option{
 		apperrors.WithCauseDomain(apperrors.DomainStorage),
@@ -186,6 +141,7 @@ func storageDefaults() []Option {
 	}
 }
 
+// httpClientDefaults 返回下游 HTTP 调用错误的默认日志元数据。
 func httpClientDefaults() []Option {
 	return []Option{
 		apperrors.WithCauseDomain(apperrors.DomainHTTPClient),
@@ -193,6 +149,7 @@ func httpClientDefaults() []Option {
 	}
 }
 
+// taskDefaults 返回任务队列错误的默认日志元数据。
 func taskDefaults() []Option {
 	return []Option{
 		apperrors.WithCauseDomain(apperrors.DomainTask),

@@ -169,11 +169,7 @@ func RequestLogxMiddleware(logger *logx.Logger) gin.HandlerFunc {
 			return
 		}
 
-		traceID, _ := requestctx.TraceIDFromContext(c.Request.Context())
-		requestID, _ := requestctx.RequestIDFromContext(c.Request.Context())
 		fields := []logx.Field{
-			logx.String("trace_id", traceID),
-			logx.String("request_id", requestID),
 			logx.String("path", c.Request.URL.Path),
 			logx.String("method", c.Request.Method),
 			logx.Int("status", c.Writer.Status()),

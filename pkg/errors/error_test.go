@@ -83,3 +83,34 @@ func TestWrapExistingOopsDoesNotOverrideRootMetadata(t *testing.T) {
 	require.Contains(t, err.Error(), "service failed")
 	require.Contains(t, err.Error(), "invalid request")
 }
+
+// TestOopsStacktraceSkipsPackageHelpers 验证 pkg/errors 自身封装不会出现在 oops 栈顶。
+func TestOopsStacktraceSkipsPackageHelpers(t *testing.T) {
+	err := Wrap(errors.New("driver: duplicate key"), CodeDBError, "create user failed")
+	oopsErr, ok := oops.AsOops(err)
+	require.True(t, ok)
+
+	stack := oopsErr.Stacktrace()
+
+	require.Contains(t, stack, "error_test.go")
+	require.NotContains(t, stack, "error.go")
+	require.NotContains(t, stack, "Wrap()")
+}
+
+// TestWithCallerSkipSkipsOuterHelper 验证二次错误 helper 可以继续跳过自身栈帧。
+func TestWithCallerSkipSkipsOuterHelper(t *testing.T) {
+	err := wrapWithOuterHelper()
+	oopsErr, ok := oops.AsOops(err)
+	require.True(t, ok)
+
+	stack := oopsErr.Stacktrace()
+
+	require.Contains(t, stack, "TestWithCallerSkipSkipsOuterHelper")
+	require.NotContains(t, stack, "wrapWithOuterHelper")
+	require.NotContains(t, stack, "WrapContext")
+}
+
+// wrapWithOuterHelper 模拟业务侧再次封装 apperrors 的 helper。
+func wrapWithOuterHelper() error {
+	return WrapContext(context.Background(), errors.New("redis timeout"), CodeCacheError, "read cache failed", WithCallerSkip(1))
+}

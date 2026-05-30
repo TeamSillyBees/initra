@@ -31,11 +31,11 @@ func TestUserNotFound(t *testing.T) {
 	require.Equal(t, idgen.New(1001), apperrors.PublicDetailsOf(err)["userId"])
 }
 
-// TestWrapInternal 确认业务错误封装保留底层错误链和详情。
-func TestWrapInternal(t *testing.T) {
+// TestWrapInternalContext 确认业务错误封装保留底层错误链和详情。
+func TestWrapInternalContext(t *testing.T) {
 	cause := errors.New("network failed")
 
-	err := WrapInternal(cause, "call remote service failed", WithDetail("service", "httpbingo"))
+	err := WrapInternalContext(context.Background(), cause, "call remote service failed", WithDetail("service", "httpbingo"))
 
 	require.Equal(t, apperrors.CodeInternalError, apperrors.CodeOf(err))
 	require.True(t, errors.Is(err, cause))
@@ -55,4 +55,7 @@ func TestWrapDBContext(t *testing.T) {
 	require.Equal(t, "trace-1", info.TraceID)
 	require.Equal(t, "[REDACTED]", info.Context["sql"])
 	require.Empty(t, apperrors.PublicDetailsOf(err))
+	require.Contains(t, info.Stacktrace, "errors_test.go")
+	require.NotContains(t, info.Stacktrace, "bizerrors/errors.go")
+	require.NotContains(t, info.Stacktrace, "pkg/errors/error.go")
 }

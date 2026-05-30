@@ -14,10 +14,14 @@ import (
 const (
 	contextKeyHTTPStatus    = "initra.http_status"
 	contextKeyPublicDetails = "initra.public_details"
+	defaultOopsCallerSkip   = 1
 )
 
 func init() {
 	oops.SourceFragmentsHidden = true
+	oops.FrameSkip("", "github.com/teamsillybees/initra/pkg/errors.New")
+	oops.FrameSkip("", "github.com/teamsillybees/initra/pkg/errors.Wrap")
+	oops.FrameSkip("", "github.com/teamsillybees/initra/pkg/errors.WrapContext")
 }
 
 // Option 调整 oops 错误的公开信息、HTTP 状态或内部排障上下文。
@@ -32,6 +36,7 @@ type options struct {
 	tags   []string
 	attrs  map[string]any
 	detail map[string]any
+	skip   int
 }
 
 // WithPublic 设置可直接返回给用户的公开错误消息。
@@ -101,6 +106,15 @@ func WithCauseTrace(traceID string) Option {
 	}
 }
 
+// WithCallerSkip 额外跳过调用方自有错误 helper 的栈帧。
+func WithCallerSkip(skip int) Option {
+	return func(opts *options) {
+		if skip > 0 {
+			opts.skip += skip
+		}
+	}
+}
+
 // WithTags 为 oops 错误补充检索标签，仅进入日志。
 func WithTags(tags ...string) Option {
 	return func(opts *options) {
@@ -148,22 +162,23 @@ func WithCauseAttrs(attrs map[string]any) Option {
 // New 创建带稳定业务码的 oops 源头错误。
 func New(code Code, message string, opts ...Option) error {
 	resolved := resolveOptions(code, message, opts...)
-	return applyOptions(oops.Code(code), resolved).New(message)
+	return applyCallerSkip(applyOptions(oops.Code(code), resolved), resolved).New(message)
 }
 
 // Wrap 使用 oops 包装底层错误；底层错误已有业务码时只追加当前层语义。
 func Wrap(err error, code Code, message string, opts ...Option) error {
 	if err == nil {
-		return New(code, message, opts...)
+		return New(code, message, withCallerSkip(opts, 1)...)
 	}
 	hasCode := HasCode(err)
 	resolved := resolveOptionsWithDefaults(code, message, !hasCode, opts...)
-	return applyOptions(builderForCode(code, !hasCode), resolved).Wrapf(err, "%s", message)
+	return applyCallerSkip(applyOptions(builderForCode(code, !hasCode), resolved), resolved).Wrapf(err, "%s", message)
 }
 
 // WrapContext 使用 oops 包装底层错误，并自动从 context 中提取 trace id。
 func WrapContext(ctx context.Context, err error, code Code, message string, opts ...Option) error {
 	opts = appendTraceOption(ctx, opts)
+	opts = withCallerSkip(opts, 1)
 	return Wrap(err, code, message, opts...)
 }
 
@@ -253,6 +268,17 @@ func appendTraceOption(ctx context.Context, opts []Option) []Option {
 	return opts
 }
 
+// withCallerSkip 在保留原有选项的基础上追加调用帧跳过配置。
+func withCallerSkip(opts []Option, skip int) []Option {
+	if skip <= 0 {
+		return opts
+	}
+	next := make([]Option, 0, len(opts)+1)
+	next = append(next, opts...)
+	next = append(next, WithCallerSkip(skip))
+	return next
+}
+
 func resolveOptions(code Code, message string, opts ...Option) options {
 	return resolveOptionsWithDefaults(code, message, true, opts...)
 }
@@ -310,6 +336,11 @@ func applyOptions(builder oops.OopsErrorBuilder, opts options) oops.OopsErrorBui
 		builder = builder.With(attrPairs(attrs)...)
 	}
 	return builder
+}
+
+// applyCallerSkip 统一应用 oops 调用帧跳过策略，避免日志栈展示错误封装层。
+func applyCallerSkip(builder oops.OopsErrorBuilder, opts options) oops.OopsErrorBuilder {
+	return builder.CallerSkip(defaultOopsCallerSkip + opts.skip)
 }
 
 func attrPairs(attrs map[string]any) []any {

@@ -107,7 +107,7 @@ func ConsoleErrorFields(info ErrorInfo, fields []Field, stack StackMode, redact 
 // JSONLErrorFields 返回面向日志检索的完整错误字段。
 func JSONLErrorFields(info ErrorInfo, fields []Field, stack StackMode, redact RedactConfig) []Field {
 	result := make([]Field, 0, len(fields)+14)
-	result = append(result, RedactFields(fields, redact)...)
+	result = append(result, RedactFields(withoutReservedFields(fields, jsonLErrorReservedKeys(info, stack)), redact)...)
 	appendStringField := func(key string, value string) {
 		if strings.TrimSpace(value) != "" {
 			result = append(result, zap.String(key, strings.TrimSpace(value)))
@@ -142,6 +142,58 @@ func JSONLErrorFields(info ErrorInfo, fields []Field, stack StackMode, redact Re
 		appendStringField("error_stacktrace", info.Stacktrace)
 	}
 	return RedactFields(result, redact)
+}
+
+// jsonLErrorReservedKeys 返回 JSONL 错误模型会统一写入的字段，避免底层 zap 输出重复 key。
+func jsonLErrorReservedKeys(info ErrorInfo, stack StackMode) map[string]struct{} {
+	keys := make(map[string]struct{}, 14)
+	addStringKey := func(key string, value string) {
+		if strings.TrimSpace(value) != "" {
+			keys[key] = struct{}{}
+		}
+	}
+	addStringKey("trace_id", info.TraceID)
+	addStringKey("error_code", info.Code)
+	addStringKey("error_domain", info.Domain)
+	if len(info.Tags) > 0 {
+		keys["error_tags"] = struct{}{}
+	}
+	if info.Status > 0 {
+		keys["error_status"] = struct{}{}
+	}
+	addStringKey("error_message", info.Message)
+	addStringKey("error_public", info.Public)
+	addStringKey("error_type", info.Type)
+	addStringKey("error_hint", info.Hint)
+	addStringKey("error_cause", info.Cause)
+	if len(info.Details) > 0 {
+		keys["error_details"] = struct{}{}
+	}
+	if len(info.Context) > 0 {
+		keys["error_context"] = struct{}{}
+	}
+	if len(info.Object) > 0 || strings.TrimSpace(info.Message) != "" {
+		keys["error"] = struct{}{}
+	}
+	if stack != StackNone && strings.TrimSpace(info.Stacktrace) != "" {
+		keys["error_stacktrace"] = struct{}{}
+	}
+	return keys
+}
+
+// withoutReservedFields 删除会由错误模型统一写入的调用方字段。
+func withoutReservedFields(fields []Field, reserved map[string]struct{}) []Field {
+	if len(fields) == 0 || len(reserved) == 0 {
+		return fields
+	}
+	filtered := make([]Field, 0, len(fields))
+	for _, field := range fields {
+		if _, ok := reserved[field.Key]; ok {
+			continue
+		}
+		filtered = append(filtered, field)
+	}
+	return filtered
 }
 
 // rootCause 返回 errors.Unwrap 链末端的根错误。

@@ -2,6 +2,7 @@ package logx
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -66,6 +67,7 @@ func TestLoggerErrorSplitsConsoleAndJSONLFields(t *testing.T) {
 	require.NotContains(t, consoleBody, "plain-password")
 	require.Contains(t, jsonlBody, `"error_code":"DB_ERROR"`)
 	require.Contains(t, jsonlBody, `"trace_id":"trace-1"`)
+	require.Equal(t, 1, strings.Count(jsonlBody, `"trace_id"`))
 	require.Contains(t, jsonlBody, `"error_context"`)
 	require.NotContains(t, jsonlBody, "secret-password")
 	require.NotContains(t, jsonlBody, "plain-password")
@@ -88,6 +90,31 @@ func TestLoggerInfoRedactsFields(t *testing.T) {
 	body := readFile(t, jsonlPath)
 	require.Contains(t, body, `"authorization":"`+RedactedValue+`"`)
 	require.NotContains(t, body, "secret-token")
+}
+
+// TestLoggerJSONLCallerSkipsLogxWrappers 验证 JSONL caller 指向业务调用点而不是 logx 包装层。
+func TestLoggerJSONLCallerSkipsLogxWrappers(t *testing.T) {
+	jsonlPath := filepath.Join(t.TempDir(), "app.jsonl")
+	logger, err := NewLogger(Config{
+		Console: ConsoleConfig{Enabled: false},
+		JSONL:   JSONLConfig{Enabled: true, Level: "debug", Path: jsonlPath},
+		Redact:  RedactConfig{Enabled: true},
+	}.Normalize())
+	require.NoError(t, err)
+
+	logger.Info(context.Background(), "caller probe")
+	logger.Error(context.Background(), "error caller probe", errors.New("boom"))
+	require.NoError(t, logger.Sync())
+
+	lines := strings.Split(strings.TrimSpace(readFile(t, jsonlPath)), "\n")
+	require.Len(t, lines, 2)
+	for _, line := range lines {
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal([]byte(line), &payload))
+		caller, _ := payload["caller"].(string)
+		require.Contains(t, caller, "logger_test.go")
+		require.NotContains(t, caller, "logger.go")
+	}
 }
 
 // TestNewLoggerRejectsJSONLStdIOPath 验证 JSONL 不允许写入标准输出流。

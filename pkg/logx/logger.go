@@ -175,6 +175,7 @@ func writeZap(logger *zap.Logger, level writeLevel, msg string, fields ...Field)
 	if logger == nil {
 		return
 	}
+	logger = logger.WithOptions(zap.AddCallerSkip(2))
 	switch level {
 	case debugLevel:
 		logger.Debug(msg, fields...)

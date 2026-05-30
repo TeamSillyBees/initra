@@ -79,7 +79,11 @@ func TestNewAppLogsUnauthorizedRequests(t *testing.T) {
 
 	require.Equal(t, http.StatusUnauthorized, rec.Code)
 	require.NoError(t, logger.Sync())
-	require.Contains(t, readTextFile(t, logPath), "http request completed")
+	body := readTextFile(t, logPath)
+	require.Contains(t, body, "http request failed")
+	require.Contains(t, body, `"error_code":"UNAUTHORIZED"`)
+	require.Equal(t, 1, strings.Count(body, `"request_id"`))
+	require.Equal(t, 1, strings.Count(body, `"trace_id"`))
 }
 
 // TestNewAppLogsHumaHandlerServerError 验证 Huma handler 返回的 5xx 错误会记录内部错误链。
