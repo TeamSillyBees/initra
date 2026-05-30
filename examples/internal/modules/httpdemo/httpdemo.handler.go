@@ -24,7 +24,7 @@ func (h *Handler) get(ctx context.Context, input *getHTTPBingoRequest) (*getHTTP
 		return nil, err
 	}
 	return &getHTTPBingoResponse{
-		Body: response.OK(traceID, vo),
+		Body: response.OK(ctx, vo),
 	}, nil
 }
 
@@ -35,7 +35,7 @@ func (h *Handler) formPage(ctx context.Context, input *getHTTPBingoFormPageReque
 		return nil, err
 	}
 	return &getHTTPBingoFormPageResponse{
-		Body: response.OK(traceID, vo),
+		Body: response.OK(ctx, vo),
 	}, nil
 }
 

@@ -67,7 +67,7 @@ func (s *Service) PublishEmail(ctx context.Context, body PublishEmailBody, trace
 		},
 	}, task.WithQueue(task.QueueDefault), task.WithMaxRetry(3), task.WithBizKey(bizKey))
 	if err != nil {
-		return PublishedTaskVO{}, bizerrors.WrapInternal(err, "publish demo email task failed")
+		return PublishedTaskVO{}, bizerrors.WrapTaskContext(ctx, err, "publish demo email task failed")
 	}
 	return PublishedTaskVO{
 		TaskID: result.TaskID,

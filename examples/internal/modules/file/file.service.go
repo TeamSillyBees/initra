@@ -65,7 +65,7 @@ func (s *Service) UploadLocal(ctx context.Context, fileName string, contentType 
 		ContentType: strings.TrimSpace(contentType),
 	})
 	if err != nil {
-		return LocalFileVO{}, mapStorageError(err, "upload local file failed")
+		return LocalFileVO{}, mapStorageError(ctx, err, "upload local file failed")
 	}
 	return toLocalFileVOFromObject(object), nil
 }
@@ -82,11 +82,11 @@ func (s *Service) DownloadLocal(ctx context.Context, key string) (DownloadLocalR
 
 	object, err := s.storage.Stat(ctx, storage.ObjectInput{Key: key})
 	if err != nil {
-		return DownloadLocalResult{}, mapStorageError(err, "load local file metadata failed")
+		return DownloadLocalResult{}, mapStorageError(ctx, err, "load local file metadata failed")
 	}
 	body, err := s.storage.DownloadBytes(ctx, storage.DownloadInput{Key: key})
 	if err != nil {
-		return DownloadLocalResult{}, mapStorageError(err, "download local file failed")
+		return DownloadLocalResult{}, mapStorageError(ctx, err, "download local file failed")
 	}
 	return DownloadLocalResult{
 		Info: toLocalFileVOFromObject(object),
@@ -106,7 +106,7 @@ func (s *Service) StatLocal(ctx context.Context, key string) (LocalFileVO, error
 
 	object, err := s.storage.Stat(ctx, storage.ObjectInput{Key: key})
 	if err != nil {
-		return LocalFileVO{}, mapStorageError(err, "load local file metadata failed")
+		return LocalFileVO{}, mapStorageError(ctx, err, "load local file metadata failed")
 	}
 	return toLocalFileVOFromObject(object), nil
 }
@@ -121,7 +121,7 @@ func (s *Service) DeleteLocal(ctx context.Context, key string) error {
 		return bizerrors.BadRequest("key is required")
 	}
 	if err := s.storage.Delete(ctx, storage.DeleteInput{Key: key}); err != nil {
-		return mapStorageError(err, "delete local file failed")
+		return mapStorageError(ctx, err, "delete local file failed")
 	}
 	return nil
 }
@@ -155,17 +155,17 @@ func toLocalFileVOFromObject(object *storage.Object) LocalFileVO {
 	}
 }
 
-func mapStorageError(err error, message string) error {
+func mapStorageError(ctx context.Context, err error, message string) error {
 	switch {
 	case err == nil:
 		return nil
 	case storage.IsNotFound(err):
-		return bizerrors.WrapNotFound(err, "file not found")
+		return bizerrors.WrapNotFoundContext(ctx, err, "file not found")
 	case errors.Is(err, storage.ErrInvalidKey),
 		errors.Is(err, storage.ErrInvalidConfig),
 		errors.Is(err, storage.ErrObjectExists):
-		return bizerrors.WrapBadRequest(err, message)
+		return bizerrors.WrapBadRequestContext(ctx, err, message)
 	default:
-		return bizerrors.WrapInternal(err, message)
+		return bizerrors.WrapStorageContext(ctx, err, message)
 	}
 }

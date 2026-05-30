@@ -108,6 +108,7 @@ func TestNewAppLogsHumaHandlerServerError(t *testing.T) {
 	app.Engine.ServeHTTP(rec, req)
 
 	require.Equal(t, http.StatusInternalServerError, rec.Code)
+	require.NotContains(t, rec.Body.String(), "duplicate key")
 	entries := logs.FilterMessage("http request failed").All()
 	require.Len(t, entries, 1)
 	fields := entries[0].ContextMap()

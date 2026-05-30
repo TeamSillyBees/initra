@@ -59,7 +59,7 @@ func (s *Service) Create(ctx context.Context, body CreateUserBody) (UserVO, erro
 
 	passwordHash, err := s.passwords.Hash(body.Password)
 	if err != nil {
-		return UserVO{}, bizerrors.WrapInternal(err, "hash password failed")
+		return UserVO{}, bizerrors.WrapInternalContext(ctx, err, "hash password failed")
 	}
 
 	isEnable := true
@@ -90,7 +90,7 @@ func (s *Service) Create(ctx context.Context, body CreateUserBody) (UserVO, erro
 // Get 获取用户详情，缓存未命中时自动回填。
 func (s *Service) Get(ctx context.Context, id idgen.ID) (UserVO, error) {
 	if cached, found, err := s.cache.Get(ctx, id); err != nil {
-		return UserVO{}, bizerrors.WrapCache(err, "load user from cache failed")
+		return UserVO{}, bizerrors.WrapCacheContext(ctx, err, "load user from cache failed")
 	} else if found {
 		return userToVO(cached), nil
 	}
@@ -104,7 +104,7 @@ func (s *Service) Get(ctx context.Context, id idgen.ID) (UserVO, error) {
 	}
 
 	if err := s.cache.Set(ctx, user); err != nil {
-		return UserVO{}, bizerrors.WrapCache(err, "set user cache failed")
+		return UserVO{}, bizerrors.WrapCacheContext(ctx, err, "set user cache failed")
 	}
 
 	return userToVO(user), nil
@@ -164,7 +164,7 @@ func (s *Service) Update(ctx context.Context, id idgen.ID, body UpdateUserBody) 
 		return UserVO{}, err
 	}
 	if err := s.cache.Delete(ctx, user.ID); err != nil {
-		return UserVO{}, bizerrors.WrapCache(err, "delete user cache failed")
+		return UserVO{}, bizerrors.WrapCacheContext(ctx, err, "delete user cache failed")
 	}
 
 	return userToVO(user), nil
@@ -176,7 +176,7 @@ func (s *Service) Delete(ctx context.Context, id idgen.ID) error {
 		return err
 	}
 	if err := s.cache.Delete(ctx, id); err != nil {
-		return bizerrors.WrapCache(err, "delete user cache failed")
+		return bizerrors.WrapCacheContext(ctx, err, "delete user cache failed")
 	}
 	return nil
 }
@@ -202,7 +202,7 @@ func (s *Service) createEnt(ctx context.Context, user *User) error {
 			SetSortID(user.SortID).
 			Save(txCtx)
 		if err != nil {
-			return mapEntWriteError(err, "create user failed")
+			return mapEntWriteError(txCtx, err, "create user failed")
 		}
 
 		fillDomainFromEnt(user, record)
@@ -229,7 +229,7 @@ func (s *Service) findByIDWithClient(ctx context.Context, client *appent.Client,
 		return nil, nil
 	}
 	if err != nil {
-		return nil, bizerrors.WrapDB(err, "query user failed")
+		return nil, bizerrors.WrapDBContext(ctx, err, "query user failed")
 	}
 	return s.toDomainWithClient(ctx, client, record)
 }
@@ -247,7 +247,7 @@ func (s *Service) page(ctx context.Context, input PageUsersQuery) ([]*User, int3
 
 	total, err := query.Clone().Count(ctx)
 	if err != nil {
-		return nil, 0, bizerrors.WrapDB(err, "count users failed")
+		return nil, 0, bizerrors.WrapDBContext(ctx, err, "count users failed")
 	}
 
 	offset := int(input.Offset())
@@ -258,7 +258,7 @@ func (s *Service) page(ctx context.Context, input PageUsersQuery) ([]*User, int3
 		Offset(offset).
 		All(ctx)
 	if err != nil {
-		return nil, 0, bizerrors.WrapDB(err, "list users failed")
+		return nil, 0, bizerrors.WrapDBContext(ctx, err, "list users failed")
 	}
 
 	userIDs := make([]idgen.ID, 0, len(records))
@@ -297,7 +297,7 @@ func (s *Service) updateEnt(ctx context.Context, user *User) error {
 			return nil
 		}
 		if err != nil {
-			return mapEntWriteError(err, "update user failed")
+			return mapEntWriteError(txCtx, err, "update user failed")
 		}
 
 		roleIDs, err := s.resolveRoleIDs(txCtx, txClient, user.RoleCodes)
@@ -328,7 +328,7 @@ func (s *Service) deleteEnt(ctx context.Context, id idgen.ID) error {
 			).
 			SetDeletedAt(time.Now()).
 			Save(txCtx); err != nil {
-			return mapEntWriteError(err, "delete user failed")
+			return mapEntWriteError(txCtx, err, "delete user failed")
 		}
 
 		if _, err := txClient.SysUserRole.Update().
@@ -338,7 +338,7 @@ func (s *Service) deleteEnt(ctx context.Context, id idgen.ID) error {
 			).
 			SetDeletedAt(time.Now()).
 			Save(txCtx); err != nil {
-			return mapEntWriteError(err, "delete user roles failed")
+			return mapEntWriteError(txCtx, err, "delete user roles failed")
 		}
 		return nil
 	})
@@ -374,7 +374,7 @@ func (s *Service) resolveRoleIDs(ctx context.Context, client *appent.Client, rol
 		Select(sysrole.FieldID, sysrole.FieldCode).
 		Scan(ctx, &rows)
 	if err != nil {
-		return nil, bizerrors.WrapDB(err, "query roles failed")
+		return nil, bizerrors.WrapDBContext(ctx, err, "query roles failed")
 	}
 
 	roleIDsByCode := make(map[string]idgen.ID, len(rows))
@@ -409,7 +409,7 @@ func (s *Service) replaceUserRoles(ctx context.Context, client *appent.Client, u
 		).
 		SetDeletedAt(time.Now()).
 		Save(ctx); err != nil {
-		return mapEntWriteError(err, "replace user roles failed")
+		return mapEntWriteError(ctx, err, "replace user roles failed")
 	}
 
 	for _, roleID := range roleIDs {
@@ -425,15 +425,15 @@ func (s *Service) replaceUserRoles(ctx context.Context, client *appent.Client, u
 				SetUserID(userID).
 				SetRoleID(roleID).
 				Save(ctx); err != nil {
-				return mapEntWriteError(err, "insert user roles failed")
+				return mapEntWriteError(ctx, err, "insert user roles failed")
 			}
 		case err != nil:
-			return bizerrors.WrapDB(err, "query user role relation failed")
+			return bizerrors.WrapDBContext(ctx, err, "query user role relation failed")
 		default:
 			if _, err := client.SysUserRole.UpdateOne(relation).
 				ClearDeletedAt().
 				Save(ctx); err != nil {
-				return mapEntWriteError(err, "restore user role relation failed")
+				return mapEntWriteError(ctx, err, "restore user role relation failed")
 			}
 		}
 	}
@@ -457,7 +457,7 @@ func (s *Service) loadRoleCodes(ctx context.Context, client *appent.Client, user
 		Select(sysrole.FieldCode).
 		Scan(ctx, &rows)
 	if err != nil {
-		return nil, bizerrors.WrapDB(err, "query user roles failed")
+		return nil, bizerrors.WrapDBContext(ctx, err, "query user roles failed")
 	}
 
 	roleCodes := make([]string, 0, len(rows))
@@ -491,7 +491,7 @@ func (s *Service) loadRoleCodesByUserIDs(ctx context.Context, userIDs []idgen.ID
 		Order(appent.Asc(sysrole.FieldSortID), appent.Asc(sysrole.FieldID)).
 		All(ctx)
 	if err != nil {
-		return nil, bizerrors.WrapDB(err, "query users roles failed")
+		return nil, bizerrors.WrapDBContext(ctx, err, "query users roles failed")
 	}
 
 	for _, role := range roles {
@@ -633,9 +633,9 @@ func cloneTimePtr(value *time.Time) *time.Time {
 	return &cloned
 }
 
-func mapEntWriteError(err error, message string) error {
+func mapEntWriteError(ctx context.Context, err error, message string) error {
 	if appent.IsConstraintError(err) {
-		return bizerrors.WrapBadRequest(err, message)
+		return bizerrors.WrapBadRequestContext(ctx, err, message)
 	}
-	return bizerrors.WrapDB(err, message)
+	return bizerrors.WrapDBContext(ctx, err, message)
 }

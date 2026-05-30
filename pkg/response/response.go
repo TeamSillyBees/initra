@@ -1,5 +1,11 @@
 package response
 
+import (
+	"context"
+
+	"github.com/teamsillybees/initra/pkg/requestctx"
+)
+
 // SuccessVO 是脚手架统一成功响应 JSON DTO。
 type SuccessVO[T any] struct {
 	Code    string `json:"code"`
@@ -9,7 +15,8 @@ type SuccessVO[T any] struct {
 }
 
 // OK 创建标准成功响应。
-func OK[T any](traceID string, data T) SuccessVO[T] {
+func OK[T any](ctx context.Context, data T) SuccessVO[T] {
+	traceID, _ := requestctx.TraceIDFromContext(ctx)
 	return SuccessVO[T]{
 		Code:    "OK",
 		Message: "success",

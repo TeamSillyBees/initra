@@ -5,7 +5,6 @@ import (
 	"mime"
 
 	"github.com/teamsillybees/initra/examples/internal/modules/bizerrors"
-	"github.com/teamsillybees/initra/pkg/requestctx"
 	"github.com/teamsillybees/initra/pkg/response"
 )
 
@@ -34,7 +33,7 @@ func (h *Handler) upload(ctx context.Context, input *uploadLocalFileRequest) (*u
 		return nil, err
 	}
 	return &uploadLocalFileResponse{
-		Body: response.OK(traceIDFromContext(ctx), vo),
+		Body: response.OK(ctx, vo),
 	}, nil
 }
 
@@ -56,7 +55,7 @@ func (h *Handler) stat(ctx context.Context, input *statLocalFileRequest) (*statL
 		return nil, err
 	}
 	return &statLocalFileResponse{
-		Body: response.OK(traceIDFromContext(ctx), vo),
+		Body: response.OK(ctx, vo),
 	}, nil
 }
 
@@ -65,13 +64,8 @@ func (h *Handler) delete(ctx context.Context, input *deleteLocalFileRequest) (*d
 		return nil, err
 	}
 	return &deleteLocalFileResponse{
-		Body: response.OK(traceIDFromContext(ctx), map[string]any{}),
+		Body: response.OK(ctx, map[string]any{}),
 	}, nil
-}
-
-func traceIDFromContext(ctx context.Context) string {
-	traceID, _ := requestctx.TraceIDFromContext(ctx)
-	return traceID
 }
 
 func attachmentDisposition(fileName string) string {

@@ -80,7 +80,10 @@ func JWTMiddleware(manager *JWTManager, lookup RouteSecurityLookup, logger *zap.
 		claims, err := manager.ParseAccessToken(c.Request.Context(), token)
 		if err != nil {
 			if errors.Is(err, ErrTokenStoreFailure) {
-				writeError(c, apperrors.Wrap(err, apperrors.CodeInternalError, "validate authorization token failed"))
+				writeError(c, apperrors.WrapContext(c.Request.Context(), err, apperrors.CodeInternalError, "validate authorization token failed",
+					apperrors.WithCauseDomain(apperrors.DomainAuth),
+					apperrors.WithCauseHint(apperrors.HintJWTValidation),
+				))
 				return
 			}
 			writeError(c, apperrors.New(apperrors.CodeUnauthorized, "authorization token is invalid"))
@@ -141,7 +144,9 @@ func AuthorizationMiddleware(enforcer *casbin.Enforcer, lookup RouteSecurityLook
 		for _, role := range roles {
 			allowed, err := enforcer.Enforce(role, security.Resource, security.Action)
 			if err != nil {
-				writeError(c, apperrors.Wrap(err, apperrors.CodeInternalError, "authorize request failed"))
+				writeError(c, apperrors.WrapContext(c.Request.Context(), err, apperrors.CodeInternalError, "authorize request failed",
+					apperrors.WithCauseDomain(apperrors.DomainAuth),
+				))
 				return
 			}
 			if allowed {

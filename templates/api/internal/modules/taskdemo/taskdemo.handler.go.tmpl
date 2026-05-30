@@ -24,7 +24,7 @@ func (h *Handler) publishEmail(ctx context.Context, input *publishEmailRequest) 
 		return nil, err
 	}
 	return &publishEmailResponse{
-		Body: response.OK(traceID, vo),
+		Body: response.OK(ctx, vo),
 	}, nil
 }
 

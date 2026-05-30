@@ -6,7 +6,6 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
-	"github.com/teamsillybees/initra/pkg/requestctx"
 	"github.com/teamsillybees/initra/pkg/response"
 	"github.com/teamsillybees/initra/pkg/server"
 )
@@ -54,7 +53,7 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Tags:        []string{"系统观测"},
 	}, func(ctx context.Context, _ *emptyRequest) (*healthResponse, error) {
 		return &healthResponse{
-			Body: response.OK(traceIDFromContext(ctx), healthVO{Status: "ok"}),
+			Body: response.OK(ctx, healthVO{Status: "ok"}),
 		}, nil
 	})
 	registerPublic(http.MethodGet, "/health")
@@ -68,7 +67,7 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Tags:        []string{"系统观测"},
 	}, func(ctx context.Context, _ *emptyRequest) (*healthResponse, error) {
 		return &healthResponse{
-			Body: response.OK(traceIDFromContext(ctx), healthVO{Status: "ready"}),
+			Body: response.OK(ctx, healthVO{Status: "ready"}),
 		}, nil
 	})
 	registerPublic(http.MethodGet, "/ready")
@@ -82,13 +81,8 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Tags:        []string{"系统观测"},
 	}, func(ctx context.Context, _ *emptyRequest) (*versionResponse, error) {
 		return &versionResponse{
-			Body: response.OK(traceIDFromContext(ctx), m.info),
+			Body: response.OK(ctx, m.info),
 		}, nil
 	})
 	registerPublic(http.MethodGet, "/version")
-}
-
-func traceIDFromContext(ctx context.Context) string {
-	traceID, _ := requestctx.TraceIDFromContext(ctx)
-	return traceID
 }

@@ -42,7 +42,7 @@ func (s *Service) GetHTTPBingo(ctx context.Context, message string, traceID stri
 		httpclient.WithResult(&payload),
 	)
 	if err != nil {
-		return HTTPBingoGetVO{}, mapHTTPClientError(err, "call httpbingo get failed")
+		return HTTPBingoGetVO{}, mapHTTPClientError(ctx, err, "call httpbingo get failed")
 	}
 	return httpBingoGetVOFromPayload(payload), nil
 }
@@ -56,7 +56,7 @@ func (s *Service) GetHTTPBingoFormPage(ctx context.Context, traceID string) (HTT
 		httpclient.WithHeader("X-Trace-ID", strings.TrimSpace(traceID)),
 	)
 	if err != nil {
-		return HTTPBingoFormPageVO{}, mapHTTPClientError(err, "call httpbingo form page failed")
+		return HTTPBingoFormPageVO{}, mapHTTPClientError(ctx, err, "call httpbingo form page failed")
 	}
 	return HTTPBingoFormPageVO{
 		ContentType: resp.Header.Get("Content-Type"),
@@ -82,16 +82,16 @@ func httpBingoGetVOFromPayload(payload httpBingoGetPayload) HTTPBingoGetVO {
 	}
 }
 
-func mapHTTPClientError(err error, message string) error {
+func mapHTTPClientError(ctx context.Context, err error, message string) error {
 	if err == nil {
 		return nil
 	}
 	if clientErr, ok := errors.AsType[*httpclient.Error](err); ok {
-		return bizerrors.WrapInternal(err, message,
-			bizerrors.WithDetail("service", clientErr.Service),
-			bizerrors.WithDetail("kind", string(clientErr.Kind)),
-			bizerrors.WithDetail("status_code", clientErr.StatusCode),
+		return bizerrors.WrapHTTPClientContext(ctx, err, message,
+			bizerrors.WithCauseAttr("service", clientErr.Service),
+			bizerrors.WithCauseAttr("kind", string(clientErr.Kind)),
+			bizerrors.WithCauseAttr("status_code", clientErr.StatusCode),
 		)
 	}
-	return bizerrors.WrapInternal(err, message)
+	return bizerrors.WrapHTTPClientContext(ctx, err, message)
 }

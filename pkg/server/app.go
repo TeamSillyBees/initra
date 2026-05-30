@@ -210,7 +210,7 @@ func newHumaError(status int, traceID string, message string, errs ...error) hum
 	}
 
 	details := map[string]any{}
-	if len(errs) > 0 {
+	if len(errs) > 0 && status < http.StatusInternalServerError {
 		messages := make([]string, 0, len(errs))
 		for _, err := range errs {
 			messages = append(messages, err.Error())

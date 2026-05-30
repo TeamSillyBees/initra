@@ -3,7 +3,6 @@ package user
 import (
 	"context"
 
-	"github.com/teamsillybees/initra/pkg/requestctx"
 	"github.com/teamsillybees/initra/pkg/response"
 )
 
@@ -23,7 +22,7 @@ func (h *Handler) get(ctx context.Context, input *getUserRequest) (*getUserRespo
 		return nil, err
 	}
 	return &getUserResponse{
-		Body: response.OK(traceIDFromContext(ctx), vo),
+		Body: response.OK(ctx, vo),
 	}, nil
 }
 
@@ -33,7 +32,7 @@ func (h *Handler) page(ctx context.Context, input *pageUsersRequest) (*pageUsers
 		return nil, err
 	}
 	return &pageUsersResponse{
-		Body: response.OK(traceIDFromContext(ctx), pageVO),
+		Body: response.OK(ctx, pageVO),
 	}, nil
 }
 
@@ -43,7 +42,7 @@ func (h *Handler) create(ctx context.Context, input *createUserRequest) (*create
 		return nil, err
 	}
 	return &createUserResponse{
-		Body: response.OK(traceIDFromContext(ctx), vo),
+		Body: response.OK(ctx, vo),
 	}, nil
 }
 
@@ -53,7 +52,7 @@ func (h *Handler) update(ctx context.Context, input *updateUserRequest) (*update
 		return nil, err
 	}
 	return &updateUserResponse{
-		Body: response.OK(traceIDFromContext(ctx), vo),
+		Body: response.OK(ctx, vo),
 	}, nil
 }
 
@@ -62,11 +61,6 @@ func (h *Handler) delete(ctx context.Context, input *deleteUserRequest) (*delete
 		return nil, err
 	}
 	return &deleteUserResponse{
-		Body: response.OK(traceIDFromContext(ctx), map[string]any{}),
+		Body: response.OK(ctx, map[string]any{}),
 	}, nil
-}
-
-func traceIDFromContext(ctx context.Context) string {
-	traceID, _ := requestctx.TraceIDFromContext(ctx)
-	return traceID
 }

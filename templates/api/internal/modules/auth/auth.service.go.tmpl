@@ -74,7 +74,7 @@ func (s *Service) Login(ctx context.Context, body LoginBody) (LoginVO, error) {
 		Roles:  append([]string(nil), identity.RoleCodes...),
 	})
 	if err != nil {
-		return LoginVO{}, bizerrors.WrapInternal(err, "issue token failed")
+		return LoginVO{}, bizerrors.WrapInternalContext(ctx, err, "issue token failed")
 	}
 
 	return LoginVO{
@@ -93,7 +93,7 @@ func (s *Service) Refresh(ctx context.Context, body RefreshBody) (RefreshVO, err
 	record, err := s.tokens.ConsumeRefreshToken(ctx, body.RefreshToken)
 	if err != nil {
 		if errors.Is(err, platformauth.ErrTokenStoreFailure) {
-			return RefreshVO{}, bizerrors.WrapInternal(err, "consume refresh token failed")
+			return RefreshVO{}, bizerrors.WrapInternalContext(ctx, err, "consume refresh token failed")
 		}
 		return RefreshVO{}, bizerrors.Unauthorized("refresh token is invalid")
 	}
@@ -111,7 +111,7 @@ func (s *Service) Refresh(ctx context.Context, body RefreshBody) (RefreshVO, err
 		Roles:  append([]string(nil), identity.RoleCodes...),
 	})
 	if err != nil {
-		return RefreshVO{}, bizerrors.WrapInternal(err, "issue token failed")
+		return RefreshVO{}, bizerrors.WrapInternalContext(ctx, err, "issue token failed")
 	}
 
 	return RefreshVO{
@@ -145,7 +145,7 @@ func (s *Service) findByUsername(ctx context.Context, username string) (*Identit
 		return nil, nil
 	}
 	if err != nil {
-		return nil, bizerrors.WrapDB(err, "query identity failed")
+		return nil, bizerrors.WrapDBContext(ctx, err, "query identity failed")
 	}
 	return s.toIdentity(ctx, record)
 }
@@ -161,7 +161,7 @@ func (s *Service) findByID(ctx context.Context, id idgen.ID) (*Identity, error) 
 		return nil, nil
 	}
 	if err != nil {
-		return nil, bizerrors.WrapDB(err, "query identity failed")
+		return nil, bizerrors.WrapDBContext(ctx, err, "query identity failed")
 	}
 	return s.toIdentity(ctx, record)
 }
@@ -199,7 +199,7 @@ func (s *Service) loadRoleCodes(ctx context.Context, userID idgen.ID) ([]string,
 		Select(sysrole.FieldCode).
 		Scan(ctx, &rows)
 	if err != nil {
-		return nil, bizerrors.WrapDB(err, "query identity roles failed")
+		return nil, bizerrors.WrapDBContext(ctx, err, "query identity roles failed")
 	}
 
 	roleCodes := make([]string, 0, len(rows))

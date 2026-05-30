@@ -65,6 +65,25 @@ func TestExampleUsesAPIFoundationLayout(t *testing.T) {
 	require.True(t, errors.Is(err, os.ErrNotExist), "示例项目不应继续保留 internal/app 业务目录")
 }
 
+// TestBusinessModulesUseBizerrorsFacade 固定业务模块只能通过 bizerrors 使用统一错误门面。
+func TestBusinessModulesUseBizerrorsFacade(t *testing.T) {
+	moduleRoot := filepath.Join(repoRoot(t), "internal", "modules")
+	require.NoError(t, filepath.WalkDir(moduleRoot, func(path string, entry os.DirEntry, err error) error {
+		require.NoError(t, err)
+		if entry.IsDir() || !strings.HasSuffix(path, ".go") {
+			return nil
+		}
+		content, readErr := os.ReadFile(path)
+		require.NoError(t, readErr)
+		text := string(content)
+		require.NotContainsf(t, text, "github.com/samber/oops", "%s must not import oops directly", path)
+		if !isBizerrorsPath(path) {
+			require.NotContainsf(t, text, "github.com/teamsillybees/initra/pkg/errors", "%s must use internal/modules/bizerrors", path)
+		}
+		return nil
+	}))
+}
+
 // requireNoTransportTypes 确认 handler 文件只承载 HTTP 适配逻辑，不再混放类型定义。
 func requireNoTransportTypes(t *testing.T, path string) {
 	t.Helper()
@@ -106,6 +125,12 @@ func requireNoEntImportOutsideRepositories(t *testing.T, root string) {
 		require.NotContainsf(t, string(content), "/internal/data/ent", "%s should not import internal/data/ent", path)
 		return nil
 	}))
+}
+
+func isBizerrorsPath(path string) bool {
+	clean := filepath.Clean(path)
+	segment := string(filepath.Separator) + "bizerrors" + string(filepath.Separator)
+	return strings.Contains(clean, segment)
 }
 
 // goList 调用 go list 并解析指定包模式的依赖元信息。

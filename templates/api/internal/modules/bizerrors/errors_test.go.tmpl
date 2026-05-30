@@ -1,6 +1,7 @@
 package bizerrors
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"testing"
@@ -8,6 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
 	"github.com/teamsillybees/initra/pkg/idgen"
+	logfields "github.com/teamsillybees/initra/pkg/logging"
+	"github.com/teamsillybees/initra/pkg/requestctx"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest/observer"
 )
 
 // TestLoginFailed 使用独立业务码表达统一的登录失败语义。
@@ -37,4 +43,25 @@ func TestWrapInternal(t *testing.T) {
 	require.Equal(t, apperrors.CodeInternalError, err.Code)
 	require.True(t, errors.Is(err, cause))
 	require.Equal(t, "httpbingo", err.Details["service"])
+}
+
+// TestWrapDBContext 确认数据库错误会写入 trace、domain 和 hint 等内部 cause metadata。
+func TestWrapDBContext(t *testing.T) {
+	ctx := requestctx.WithTraceID(context.Background(), "trace-1")
+	cause := errors.New("driver: duplicate key")
+
+	err := WrapDBContext(ctx, cause, "query user failed", WithCauseAttr("sql", "select * from users"))
+	core, logs := observer.New(zapcore.ErrorLevel)
+	logger := zap.New(core)
+
+	logger.Error("query failed", logfields.ErrorFields(err)...)
+
+	entries := logs.FilterMessage("query failed").All()
+	require.Len(t, entries, 1)
+	fields := entries[0].ContextMap()
+	require.Equal(t, apperrors.DomainDB, fields["error_domain"])
+	require.Equal(t, apperrors.HintDBConnection, fields["error_hint"])
+	require.Equal(t, "trace-1", fields["error_trace"])
+	require.Equal(t, "[REDACTED]", fields["error_attrs"].(map[string]any)["sql"])
+	require.Empty(t, err.Details)
 }

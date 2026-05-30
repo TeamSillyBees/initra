@@ -92,6 +92,33 @@ func TestRedisConstructionGoesThroughRedisx(t *testing.T) {
 	}
 }
 
+// TestBusinessModulesDoNotImportOopsDirectly 固定业务模块只能通过 bizerrors 使用统一错误门面。
+func TestBusinessModulesDoNotImportOopsDirectly(t *testing.T) {
+	root := repoRoot(t)
+	moduleRoots := []string{
+		filepath.Join(root, "examples", "internal", "modules"),
+		filepath.Join(root, "templates", "api", "internal", "modules"),
+	}
+
+	for _, moduleRoot := range moduleRoots {
+		err := filepath.WalkDir(moduleRoot, func(path string, entry fs.DirEntry, err error) error {
+			require.NoError(t, err)
+			if entry.IsDir() || !(strings.HasSuffix(path, ".go") || strings.HasSuffix(path, ".go.tmpl")) {
+				return nil
+			}
+			content, readErr := os.ReadFile(path)
+			require.NoError(t, readErr)
+			text := string(content)
+			require.NotContainsf(t, text, "github.com/samber/oops", "%s must not import oops directly", path)
+			if !isBizerrorsPath(path) {
+				require.NotContainsf(t, text, "github.com/teamsillybees/initra/pkg/errors", "%s must use internal/modules/bizerrors", path)
+			}
+			return nil
+		})
+		require.NoError(t, err)
+	}
+}
+
 func goList(t *testing.T, pattern string) []goPackage {
 	t.Helper()
 
@@ -123,6 +150,12 @@ func isPathUnderAny(path string, prefixes []string) bool {
 		}
 	}
 	return false
+}
+
+func isBizerrorsPath(path string) bool {
+	clean := filepath.Clean(path)
+	segment := string(filepath.Separator) + "bizerrors" + string(filepath.Separator)
+	return strings.Contains(clean, segment)
 }
 
 func repoRoot(t *testing.T) string {

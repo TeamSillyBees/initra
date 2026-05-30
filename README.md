@@ -13,7 +13,7 @@
 - 数据库迁移：Atlas
 - 认证与授权：JWT + Casbin
 - 配置与依赖注入：Viper + samber/do
-- 错误处理：oops + 统一错误码
+- 错误处理：AppError 统一业务错误码与 HTTP 响应，oops 仅作为底层 cause 增强器
 - 日志与观测：zap + health/ready/version
 - 业务 ID：`pkg/idgen.ID` + snowflake，REST/OpenAPI 对外使用 JSON string
 - Redis 客户端：go-redis

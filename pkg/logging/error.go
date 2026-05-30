@@ -27,12 +27,12 @@ func ErrorFields(err error) []zap.Field {
 			zap.Int("error_status", appErr.Status),
 		)
 		if len(appErr.Details) > 0 {
-			fields = append(fields, zap.Any("error_details", appErr.Details))
+			fields = append(fields, zap.Any("error_details", apperrors.SanitizeMap(appErr.Details)))
 		}
 	}
 
 	if cause := rootCause(err); cause != nil && cause != err {
-		fields = append(fields, zap.String("error_cause", cause.Error()))
+		fields = append(fields, zap.String("error_cause", apperrors.SanitizeText(cause.Error())))
 	}
 
 	if oopsErr, ok := oops.AsOops(err); ok {
@@ -41,6 +41,12 @@ func ErrorFields(err error) []zap.Field {
 		}
 		if hint := oopsErr.Hint(); hint != "" {
 			fields = append(fields, zap.String("error_hint", hint))
+		}
+		if trace := oopsErr.Trace(); trace != "" {
+			fields = append(fields, zap.String("error_trace", trace))
+		}
+		if attrs := oopsErr.Context(); len(attrs) > 0 {
+			fields = append(fields, zap.Any("error_attrs", apperrors.SanitizeMap(attrs)))
 		}
 		if stacktrace := oopsErr.Stacktrace(); stacktrace != "" {
 			fields = append(fields, zap.String("error_stacktrace", stacktrace))

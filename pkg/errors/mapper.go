@@ -19,10 +19,14 @@ func ToHTTP(err error, traceID string) (int, ErrorVO) {
 		}
 	}
 
+	var details map[string]any
+	if len(appErr.Details) > 0 {
+		details = SanitizeMap(appErr.Details)
+	}
 	return appErr.Status, ErrorVO{
 		Code:    string(appErr.Code),
 		Message: appErr.Message,
-		Details: appErr.Details,
+		Details: details,
 		TraceID: traceID,
 	}
 }

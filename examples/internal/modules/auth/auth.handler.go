@@ -25,7 +25,7 @@ func (h *Handler) login(ctx context.Context, input *loginRequest) (*loginRespons
 		return nil, err
 	}
 	return &loginResponse{
-		Body: response.OK(traceIDFromContext(ctx), vo),
+		Body: response.OK(ctx, vo),
 	}, nil
 }
 
@@ -35,7 +35,7 @@ func (h *Handler) refresh(ctx context.Context, input *refreshRequest) (*refreshR
 		return nil, err
 	}
 	return &refreshResponse{
-		Body: response.OK(traceIDFromContext(ctx), vo),
+		Body: response.OK(ctx, vo),
 	}, nil
 }
 
@@ -54,11 +54,6 @@ func (h *Handler) me(ctx context.Context, _ *meRequest) (*meResponse, error) {
 		return nil, err
 	}
 	return &meResponse{
-		Body: response.OK(traceIDFromContext(ctx), vo),
+		Body: response.OK(ctx, vo),
 	}, nil
-}
-
-func traceIDFromContext(ctx context.Context) string {
-	traceID, _ := requestctx.TraceIDFromContext(ctx)
-	return traceID
 }
