@@ -27,7 +27,7 @@ log:
     enabled: true
     level: info
     stack: full
-    path: ./var/logs/app.jsonl
+    path: stdout
 
 cache:
   local_ttl: 30s

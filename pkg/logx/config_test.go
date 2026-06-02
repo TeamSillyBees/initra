@@ -50,3 +50,31 @@ func TestConfigNormalizeExplicitConsoleOutput(t *testing.T) {
 	require.Equal(t, "stdout", cfg.Console.Output)
 	require.False(t, cfg.JSONL.Enabled)
 }
+
+// TestConfigNormalizeJSONLStdoutDisablesConsole 验证 JSONL 写入 stdout 时会关闭 console 输出。
+func TestConfigNormalizeJSONLStdoutDisablesConsole(t *testing.T) {
+	cfg := Config{
+		Console: ConsoleConfig{Enabled: true, Output: "stderr"},
+		JSONL:   JSONLConfig{Enabled: true, Path: "stdout"},
+	}.Normalize()
+
+	require.True(t, cfg.JSONL.Enabled)
+	require.Equal(t, "stdout", cfg.JSONL.Path)
+	require.False(t, cfg.Console.Enabled)
+}
+
+// TestConfigNormalizeRotationDefaults 验证启用滚动输出时会补齐日期格式。
+func TestConfigNormalizeRotationDefaults(t *testing.T) {
+	cfg := Config{
+		JSONL: JSONLConfig{
+			Enabled: true,
+			Path:    "./var/logs/app.jsonl",
+			Rotation: RotationConfig{
+				Enabled: true,
+			},
+		},
+	}.Normalize()
+
+	require.Equal(t, DefaultRotationDateFormat, cfg.JSONL.Rotation.DateFormat)
+	require.Equal(t, 0, cfg.JSONL.Rotation.MaxSizeMB)
+}

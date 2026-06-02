@@ -1,13 +1,16 @@
 package logx
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
@@ -117,19 +120,38 @@ func TestLoggerJSONLCallerSkipsLogxWrappers(t *testing.T) {
 	}
 }
 
-// TestNewLoggerRejectsJSONLStdIOPath 验证 JSONL 不允许写入标准输出流。
-func TestNewLoggerRejectsJSONLStdIOPath(t *testing.T) {
-	for _, path := range []string{"stdout", "stderr"} {
-		t.Run(path, func(t *testing.T) {
-			_, err := NewLogger(Config{
-				Console: ConsoleConfig{Enabled: false},
-				JSONL:   JSONLConfig{Enabled: true, Path: path},
-			}.Normalize())
+// TestNewLoggerWritesJSONLToStdout 验证 JSONL 可以写入 stdout，且不会额外输出 console 文本。
+func TestNewLoggerWritesJSONLToStdout(t *testing.T) {
+	output := captureStdout(t, func() {
+		logger, err := NewLogger(Config{
+			Console: ConsoleConfig{Enabled: true, Output: "stdout"},
+			JSONL:   JSONLConfig{Enabled: true, Level: "debug", Path: "stdout"},
+			Redact:  RedactConfig{Enabled: true},
+		}.Normalize())
+		require.NoError(t, err)
 
-			require.Error(t, err)
-			require.Contains(t, err.Error(), "log.jsonl.path")
-		})
-	}
+		logger.Info(context.Background(), "stdout jsonl", String("operation", "StdoutProbe"))
+		require.NoError(t, logger.Sync())
+	})
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	require.Len(t, lines, 1)
+	var payload map[string]any
+	require.NoError(t, json.Unmarshal([]byte(lines[0]), &payload))
+	require.Equal(t, "stdout jsonl", payload["msg"])
+	require.Equal(t, "StdoutProbe", payload["operation"])
+	require.NotContains(t, output, "ctx:")
+}
+
+// TestNewLoggerRejectsJSONLStderrPath 验证 JSONL 不允许写入 stderr。
+func TestNewLoggerRejectsJSONLStderrPath(t *testing.T) {
+	_, err := NewLogger(Config{
+		Console: ConsoleConfig{Enabled: false},
+		JSONL:   JSONLConfig{Enabled: true, Path: "stderr"},
+	}.Normalize())
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "log.jsonl.path")
 }
 
 // TestNewLoggerCreatesJSONLParentDirectory 验证 JSONL 文件父目录会被自动创建。
@@ -149,12 +171,95 @@ func TestNewLoggerCreatesJSONLParentDirectory(t *testing.T) {
 	require.Contains(t, readFile(t, jsonlPath), `"msg":"jsonl ready"`)
 }
 
+// TestNewLoggerWritesJSONLDateRotatedFile 验证启用滚动后 JSONL 会写入带日期的文件。
+func TestNewLoggerWritesJSONLDateRotatedFile(t *testing.T) {
+	dir := t.TempDir()
+	basePath := filepath.Join(dir, "app.jsonl")
+	logger, err := NewLogger(Config{
+		Console: ConsoleConfig{Enabled: false},
+		JSONL: JSONLConfig{
+			Enabled: true,
+			Level:   "debug",
+			Path:    basePath,
+			Rotation: RotationConfig{
+				Enabled:    true,
+				DateFormat: DefaultRotationDateFormat,
+			},
+		},
+		Redact: RedactConfig{Enabled: true},
+	}.Normalize())
+	require.NoError(t, err)
+
+	logger.Info(context.Background(), "rotated by date")
+	require.NoError(t, logger.Sync())
+
+	datedPath := filepath.Join(dir, "app-"+time.Now().Format(DefaultRotationDateFormat)+".jsonl")
+	require.NoFileExists(t, basePath)
+	require.FileExists(t, datedPath)
+	require.Contains(t, readFile(t, datedPath), `"msg":"rotated by date"`)
+}
+
+// TestNewLoggerSplitsJSONLBySize 验证启用大小滚动后同一天内会追加序号文件。
+func TestNewLoggerSplitsJSONLBySize(t *testing.T) {
+	dir := t.TempDir()
+	basePath := filepath.Join(dir, "app.jsonl")
+	logger, err := NewLogger(Config{
+		Console: ConsoleConfig{Enabled: false},
+		JSONL: JSONLConfig{
+			Enabled: true,
+			Level:   "debug",
+			Path:    basePath,
+			Rotation: RotationConfig{
+				Enabled:    true,
+				DateFormat: DefaultRotationDateFormat,
+				MaxSizeMB:  1,
+			},
+		},
+		Redact: RedactConfig{Enabled: true},
+	}.Normalize())
+	require.NoError(t, err)
+
+	payload := strings.Repeat("x", 700*1024)
+	logger.Info(context.Background(), "large one", String("payload", payload))
+	logger.Info(context.Background(), "large two", String("payload", payload))
+	require.NoError(t, logger.Sync())
+
+	date := time.Now().Format(DefaultRotationDateFormat)
+	firstPath := filepath.Join(dir, "app-"+date+".jsonl")
+	secondPath := filepath.Join(dir, "app-"+date+".1.jsonl")
+	require.FileExists(t, firstPath)
+	require.FileExists(t, secondPath)
+	require.Contains(t, readFile(t, firstPath), `"msg":"large one"`)
+	require.Contains(t, readFile(t, secondPath), `"msg":"large two"`)
+}
+
 // readFile 读取测试日志文件内容。
 func readFile(t *testing.T, path string) string {
 	t.Helper()
 	content, err := os.ReadFile(path)
 	require.NoError(t, err)
 	return string(content)
+}
+
+// captureStdout 捕获函数执行期间写入标准输出的内容。
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+	oldStdout := os.Stdout
+	reader, writer, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stdout = writer
+	defer func() {
+		os.Stdout = oldStdout
+	}()
+
+	fn()
+	require.NoError(t, writer.Close())
+
+	var output bytes.Buffer
+	_, err = io.Copy(&output, reader)
+	require.NoError(t, err)
+	require.NoError(t, reader.Close())
+	return output.String()
 }
 
 // consoleStackLines 提取 console 输出中的短栈行。

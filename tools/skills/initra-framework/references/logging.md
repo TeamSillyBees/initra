@@ -5,8 +5,10 @@ zap logger 构造、console/jsonl 双输出、oops 错误字段提取和敏感�
 ## 输出策略
 
 - `console` 是面向终端阅读的多行文本格式，默认写入 `stderr`，用于本地开发和容器标准错误流。
-- `jsonl` 是面向机器检索的 JSON Lines 文件日志，默认写入 `./var/logs/app.jsonl`。
-- 不要把 `jsonl.path` 配置为 `stdout` 或 `stderr`；这两个值会被视为无效配置。
+- `jsonl` 是面向机器检索的 JSON Lines 日志，可写入 `stdout` 供日志采集系统采集，也可写入文件。
+- `jsonl.path: stdout` 时会忽略并关闭 `console` 输出，避免同一标准输出流混入人眼格式日志。
+- 文件 JSONL 支持可选 `rotation`，启用后按日期生成文件，并可配置单文件大小阈值。
+- 不要把 `jsonl.path` 配置为 `stderr`；JSONL 只支持 stdout 或文件路径。
 
 ## 标准装配
 
@@ -38,6 +40,22 @@ log:
     enabled: true
     stack: full
     path: ./var/logs/app.jsonl
+    rotation:
+      enabled: true
+      date_format: "2006-01-02"
+      max_size_mb: 100
+```
+
+生产环境可直接输出 JSON Lines 到 stdout：
+
+```yaml
+log:
+  console:
+    enabled: false
+  jsonl:
+    enabled: true
+    stack: full
+    path: stdout
 ```
 
 默认脱敏字段包含 password、token、secret、authorization、cookie、body、DSN 和 access key 风格字段。项目特有敏感字段放入 `log.redact.fields`。
@@ -66,7 +84,7 @@ logger.Info(ctx, "短信发送成功",
 ## 禁止写法
 
 - 不要在业务代码中调用 `zap.NewProduction`、`zap.NewDevelopment` 或构建第二套全局 logger。
-- 不要把 `log.jsonl.path` 配置为 `stdout` 或 `stderr`，JSONL 只作为文件日志使用。
+- 不要把 `log.jsonl.path` 配置为 `stderr`；stdout 仅用于 JSON Lines 采集模式。
 - 不要记录密码、token、验证码、session value、Authorization header、access key 或带密码 DSN。
 - 不要记录原始 request/response body，除非内容已明确脱敏且体积很小。
 - 不要把日志脱敏当成唯一防线；更好的方式是不把 secret 放入日志字段。

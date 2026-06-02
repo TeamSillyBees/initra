@@ -165,7 +165,7 @@ capabilities:
       - "cfg.SafeForLog()"
     forbidden_patterns:
       - 业务代码中 zap.NewProduction
-      - log.jsonl.path 配置为 stdout 或 stderr
+      - log.jsonl.path 配置为 stderr
       - 记录 secret 或 token
 
   - id: config

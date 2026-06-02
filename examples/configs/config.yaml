@@ -50,6 +50,10 @@ log:
     level: info
     stack: full
     path: ./var/logs/app.jsonl
+    rotation:
+      enabled: false
+      date_format: "2006-01-02"
+      max_size_mb: 0
   redact:
     enabled: true
     fields: [ "password", "token", "secret", "authorization" ]

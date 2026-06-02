@@ -2,8 +2,12 @@ package logx
 
 import "strings"
 
-// DefaultJSONLPath 是 JSONL 文件日志的默认写入路径。
-const DefaultJSONLPath = "./var/logs/app.jsonl"
+const (
+	// DefaultJSONLPath 是 JSONL 文件日志的默认写入路径。
+	DefaultJSONLPath = "./var/logs/app.jsonl"
+	// DefaultRotationDateFormat 是 JSONL 日期滚动文件名使用的默认日期格式。
+	DefaultRotationDateFormat = "2006-01-02"
+)
 
 // Config 描述统一日志配置，支持 console 与 jsonl 两套输出策略。
 type Config struct {
@@ -25,10 +29,18 @@ type ConsoleConfig struct {
 
 // JSONLConfig 描述面向机器检索的 JSON Lines 日志输出。
 type JSONLConfig struct {
-	Enabled bool      `mapstructure:"enabled"`
-	Level   string    `mapstructure:"level"`
-	Stack   StackMode `mapstructure:"stack"`
-	Path    string    `mapstructure:"path"`
+	Enabled  bool           `mapstructure:"enabled"`
+	Level    string         `mapstructure:"level"`
+	Stack    StackMode      `mapstructure:"stack"`
+	Path     string         `mapstructure:"path"`
+	Rotation RotationConfig `mapstructure:"rotation"`
+}
+
+// RotationConfig 描述 JSONL 文件日志的日期和大小滚动策略。
+type RotationConfig struct {
+	Enabled    bool   `mapstructure:"enabled"`
+	DateFormat string `mapstructure:"date_format"`
+	MaxSizeMB  int    `mapstructure:"max_size_mb"`
 }
 
 // FieldsConfig 描述所有日志默认携带的服务字段。
@@ -74,6 +86,12 @@ func (c Config) Normalize() Config {
 			c.JSONL.Stack = StackFull
 		}
 		c.JSONL.Path = firstNonEmpty(c.JSONL.Path, DefaultJSONLPath)
+		if c.JSONL.Rotation.Enabled {
+			c.JSONL.Rotation.DateFormat = firstNonEmpty(c.JSONL.Rotation.DateFormat, DefaultRotationDateFormat)
+		}
+		if isJSONLStdout(c.JSONL.Path) {
+			c.Console.Enabled = false
+		}
 	}
 	return c
 }
