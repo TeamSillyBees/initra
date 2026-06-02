@@ -4,6 +4,8 @@
 
 `httpclient` 支持通过配置设置全局代理或服务级代理，例如 `http://127.0.0.1:7890`。
 
+每个 service 可通过 `properties` 配置 appid 等自定义属性，并在代码中使用 `client.GetProperty("app_id")` 读取。
+
 ## 标准装配
 
 在配置中添加 `http_client.services.<name>`，并在 boot 层注册一次：
@@ -17,20 +19,17 @@ httpclient.Register(injector, cfg.HTTPClient)
 
 ## Provider 模式
 
-在模块 `providers.go` 中解析命名 client：
+在模块 `providers.go` 中优先使用 `ProvideConsumer` 将远程服务 client 注入业务组件：
 
 ```go
-do.ProvideNamed(injector, smsSenderServiceName, func(i *do.Injector) (*SMSSender, error) {
-	client := do.MustInvokeNamed[*httpclient.Client](i, httpclient.ClientName("sms"))
-	return NewSMSSender(client), nil
-})
+httpclient.ProvideConsumer(injector, smsSenderServiceName, "sms", NewSMSSender)
 ```
 
-Service 依赖模块内窄接口：
+Service 依赖 `httpclient` 提供的窄接口，避免每个模块重复声明远程调用接口：
 
 ```go
-type remoteHTTPClient interface {
-	Post(ctx context.Context, path string, body any, opts ...httpclient.RequestOption) (*httpclient.Response, error)
+type SMSSender struct {
+	client httpclient.JSONPoster
 }
 ```
 
@@ -40,9 +39,8 @@ type remoteHTTPClient interface {
 
 ```go
 var payload smsResponse
-_, err := c.client.Post(ctx, "/messages", body,
+err := c.client.PostJSON(ctx, "/messages", body, &payload,
 	httpclient.WithHeader("X-Trace-ID", traceID),
-	httpclient.WithResult(&payload),
 )
 ```
 
@@ -59,6 +57,6 @@ _, err := c.client.Post(ctx, "/messages", body,
 
 - 远程服务是否已在配置中声明？
 - 是否调用了 `httpclient.Register(injector, cfg.HTTPClient)`？
-- 是否在 `providers.go` 中解析命名 client？
-- Service 是否依赖窄接口？
+- 是否在 `providers.go` 中优先使用 `httpclient.ProvideConsumer`？
+- Service 是否依赖 `httpclient.JSONGetter`、`JSONPoster`、`ReadCaller` 或 `Caller` 等窄接口？
 - 出站错误是否映射为统一 `apperrors`？

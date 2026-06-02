@@ -239,6 +239,7 @@ func configDefaults() map[string]any {
 		"http_client.services.httpbingo.base_url":            "https://httpbingo.org",
 		"http_client.services.httpbingo.timeout":             "10s",
 		"http_client.services.httpbingo.proxy":               "",
+		"http_client.services.httpbingo.properties.app_id":   "initra-httpdemo",
 		"http_client.services.httpbingo.headers.X-App-Id":    "initra",
 		"http_client.services.httpbingo.retry.enabled":       true,
 		"http_client.services.httpbingo.retry.count":         2,

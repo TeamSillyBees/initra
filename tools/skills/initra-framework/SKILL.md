@@ -70,7 +70,7 @@ internal/modules/<module>/
 - 配置作为参数直接传入 `Register`；不要先 `do.ProvideValue` 暂存配置，再调用无参注册函数。
 - Boot 代码负责应用级 providers。模块 `providers.go` 负责模块内构造函数和命名依赖。
 - 业务 service 和 handler 不应调用 `do.Invoke` 或 `do.MustInvoke`。
-- 优先依赖 package 接口（如 `storage.Service`、`httpclient.Factory`）或模块内小接口，不依赖具体云厂商 SDK。
+- 优先依赖 package 接口（如 `storage.Service`、`httpclient.ReadCaller`、`httpclient.Caller`）或模块内小接口，不依赖具体云厂商 SDK。
 
 ## 默认禁止
 

@@ -65,6 +65,58 @@ func TestClientPostJSONBody(t *testing.T) {
 	require.Equal(t, "alice", got.Name)
 }
 
+func TestClientGetJSONMethod(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/users/7", r.URL.Path)
+		writeJSON(t, w, userVO{ID: "7", Name: "bob"})
+	}))
+	defer server.Close()
+
+	client := newTestClient(t, server.URL, ServiceConfig{})
+	var got userVO
+
+	err := client.GetJSON(context.Background(), "/users/7", &got)
+
+	require.NoError(t, err)
+	require.Equal(t, userVO{ID: "7", Name: "bob"}, got)
+}
+
+func TestClientGetBytes(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/page", r.URL.Path)
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = w.Write([]byte("<html>ok</html>"))
+	}))
+	defer server.Close()
+
+	client := newTestClient(t, server.URL, ServiceConfig{})
+
+	body, resp, err := client.GetBytes(context.Background(), "/page")
+
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, "text/html", resp.Header.Get("Content-Type"))
+	require.Equal(t, []byte("<html>ok</html>"), body)
+}
+
+func TestClientProperties(t *testing.T) {
+	client := newTestClient(t, "http://example.test", ServiceConfig{
+		Properties: map[string]string{
+			"app_id": "initra",
+		},
+	})
+
+	appID, ok := client.GetProperty("app_id")
+	properties := client.Properties()
+	properties["app_id"] = "changed"
+	unchangedAppID, _ := client.GetProperty("app_id")
+
+	require.True(t, ok)
+	require.Equal(t, "initra", appID)
+	require.Equal(t, "initra", unchangedAppID)
+	require.Equal(t, map[string]string{"app_id": "initra"}, client.Properties())
+}
+
 func TestClientMethods(t *testing.T) {
 	var methods []string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -47,7 +47,7 @@ func TestFactoryGetRejectsDisabledConfig(t *testing.T) {
 	require.True(t, errors.Is(err, ErrDisabled))
 }
 
-func newTestFactory(t *testing.T, baseURL string, override ServiceConfig) Factory {
+func newTestFactory(t *testing.T, baseURL string, override ServiceConfig) *Factory {
 	t.Helper()
 	service := ServiceConfig{
 		BaseURL: baseURL,
@@ -66,6 +66,9 @@ func newTestFactory(t *testing.T, baseURL string, override ServiceConfig) Factor
 	}
 	if override.Proxy != "" {
 		service.Proxy = override.Proxy
+	}
+	if override.Properties != nil {
+		service.Properties = override.Properties
 	}
 	factory, err := NewFactory(Config{
 		Enabled: true,

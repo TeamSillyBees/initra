@@ -74,6 +74,7 @@ type ServiceConfig struct {
 	Response            ResponseConfig    `mapstructure:"response"`
 	MaxResponseBodySize int64             `mapstructure:"max_response_body_size"`
 	Proxy               string            `mapstructure:"proxy"`
+	Properties          map[string]string `mapstructure:"properties"`
 }
 
 // AuthConfig 描述远程服务认证配置。
@@ -355,6 +356,7 @@ func sanitizeServiceConfig(cfg ServiceConfig) map[string]any {
 		"response":               cfg.Response,
 		"max_response_body_size": cfg.MaxResponseBodySize,
 		"proxy":                  sanitizeProxyURL(cfg.Proxy),
+		"properties":             sanitizeHeaderMap(cfg.Properties),
 	}
 }
 

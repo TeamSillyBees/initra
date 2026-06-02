@@ -19,6 +19,10 @@ func TestConfigValidateAndSafeForLog(t *testing.T) {
 					"X-App-Id":  "initra",
 					"X-API-Key": "secret-key",
 				},
+				Properties: map[string]string{
+					"app_id":        "initra",
+					"client_secret": "secret-value",
+				},
 				Auth: AuthConfig{
 					Type:  AuthTypeBearer,
 					Token: "token-value",
@@ -36,10 +40,13 @@ func TestConfigValidateAndSafeForLog(t *testing.T) {
 	services := safe["services"].(map[string]any)
 	service := services["user_center"].(map[string]any)
 	headers := service["headers"].(map[string]string)
+	properties := service["properties"].(map[string]string)
 	auth := service["auth"].(map[string]any)
 	require.Equal(t, maskedValue, headers["X-API-Key"])
+	require.Equal(t, maskedValue, properties["client_secret"])
 	require.Equal(t, maskedValue, auth["token"])
 	require.Equal(t, "initra", headers["X-App-Id"])
+	require.Equal(t, "initra", properties["app_id"])
 	require.Equal(t, "http://proxy-user:"+maskedValue+"@127.0.0.1:7890", safe["proxy"])
 	require.Equal(t, "http://service-user:"+maskedValue+"@127.0.0.1:7891", service["proxy"])
 }

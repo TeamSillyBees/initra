@@ -62,9 +62,12 @@ capabilities:
       - 内部服务调用
     entrypoints:
       - "httpclient.Register(injector, cfg.HTTPClient)"
-      - "httpclient.ClientName(\"service\")"
+      - "httpclient.ProvideConsumer(injector, providerName, serviceName, NewService)"
+      - "httpclient.ReadCaller"
+      - "httpclient.JSONPoster"
+      - "client.GetJSON(ctx, path, &result, ...)"
+      - "client.GetBytes(ctx, path, ...)"
       - "httpclient.WithQuery(\"key\", \"value\")"
-      - "httpclient.WithResult(&result)"
     forbidden_patterns:
       - service 代码中使用 http.Client{}
       - http.DefaultClient

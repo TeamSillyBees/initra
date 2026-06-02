@@ -13,13 +13,7 @@ import (
 )
 
 // Factory 按服务名创建并缓存 HTTP Client。
-type Factory interface {
-	Get(serviceName string) (*Client, error)
-	Clear(serviceName string)
-	ClearAll()
-}
-
-type factory struct {
+type Factory struct {
 	cfg     Config
 	logger  *logx.Logger
 	mu      sync.Mutex
@@ -27,7 +21,7 @@ type factory struct {
 }
 
 // NewFactory 根据配置创建 HTTP Client 工厂。
-func NewFactory(cfg Config, logger *logx.Logger) (Factory, error) {
+func NewFactory(cfg Config, logger *logx.Logger) (*Factory, error) {
 	if logger == nil {
 		logger = logx.NewNop()
 	}
@@ -35,14 +29,14 @@ func NewFactory(cfg Config, logger *logx.Logger) (Factory, error) {
 	if err := normalized.Validate(); err != nil {
 		return nil, err
 	}
-	return &factory{
+	return &Factory{
 		cfg:     normalized,
 		logger:  logger,
 		clients: make(map[string]*Client),
 	}, nil
 }
 
-func (f *factory) Get(serviceName string) (*Client, error) {
+func (f *Factory) Get(serviceName string) (*Client, error) {
 	if !f.cfg.Enabled {
 		return nil, fmt.Errorf("%w: http_client.enabled=false", ErrDisabled)
 	}
@@ -65,7 +59,7 @@ func (f *factory) Get(serviceName string) (*Client, error) {
 	return client, nil
 }
 
-func (f *factory) Clear(serviceName string) {
+func (f *Factory) Clear(serviceName string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if client, ok := f.clients[serviceName]; ok {
@@ -74,7 +68,7 @@ func (f *factory) Clear(serviceName string) {
 	}
 }
 
-func (f *factory) ClearAll() {
+func (f *Factory) ClearAll() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	for name, client := range f.clients {

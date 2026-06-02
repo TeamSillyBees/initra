@@ -11,17 +11,13 @@ import (
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
 )
 
-type remoteHTTPClient interface {
-	Post(ctx context.Context, path string, body any, opts ...httpclient.RequestOption) (*httpclient.Response, error)
-}
-
 // Sender 封装短信服务远程调用。
 type Sender struct {
-	client remoteHTTPClient
+	client httpclient.JSONPoster
 }
 
 // NewSender 创建短信发送器。
-func NewSender(client remoteHTTPClient) *Sender {
+func NewSender(client httpclient.JSONPoster) *Sender {
 	return &Sender{client: client}
 }
 
@@ -34,9 +30,8 @@ func (s *Sender) Send(ctx context.Context, mobile string, code string, traceID s
 	var payload struct {
 		RequestID string `json:"requestId"`
 	}
-	_, err := s.client.Post(ctx, "/messages", body,
+	err := s.client.PostJSON(ctx, "/messages", body, &payload,
 		httpclient.WithHeader("X-Trace-ID", traceID),
-		httpclient.WithResult(&payload),
 	)
 	if err != nil {
 		return mapHTTPClientError(err, "发送短信失败")

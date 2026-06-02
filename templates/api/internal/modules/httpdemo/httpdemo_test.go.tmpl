@@ -70,7 +70,7 @@ type fakeHTTPClient struct {
 	err     error
 }
 
-func (f *fakeHTTPClient) Get(_ context.Context, path string, opts ...httpclient.RequestOption) (*httpclient.Response, error) {
+func (f *fakeHTTPClient) GetJSON(_ context.Context, path string, result any, opts ...httpclient.RequestOption) error {
 	f.path = path
 	f.options = httpclient.RequestOptions{
 		Headers:     map[string]string{},
@@ -81,28 +81,43 @@ func (f *fakeHTTPClient) Get(_ context.Context, path string, opts ...httpclient.
 		opt(&f.options)
 	}
 	if f.err != nil {
-		return nil, f.err
+		return f.err
 	}
-	if f.options.Result != nil {
-		payload := f.options.Result.(*httpBingoGetPayload)
-		*payload = httpBingoGetPayload{
-			Args: map[string][]string{
-				"message": {f.options.QueryParams["message"]},
-			},
-			Headers: map[string][]string{
-				"X-Trace-ID": {f.options.Headers["X-Trace-ID"]},
-			},
-			Method: "GET",
-			Origin: "127.0.0.1",
-			URL:    "https://httpbingo.org/get",
-		}
-		return &httpclient.Response{StatusCode: http.StatusOK}, nil
+	payload := result.(*httpBingoGetPayload)
+	*payload = httpBingoGetPayload{
+		Args: map[string][]string{
+			"message": {f.options.QueryParams["message"]},
+		},
+		Headers: map[string][]string{
+			"X-Trace-ID": {f.options.Headers["X-Trace-ID"]},
+		},
+		Method: "GET",
+		Origin: "127.0.0.1",
+		URL:    "https://httpbingo.org/get",
 	}
-	return &httpclient.Response{
+	return nil
+}
+
+func (f *fakeHTTPClient) GetBytes(_ context.Context, path string, opts ...httpclient.RequestOption) ([]byte, *httpclient.Response, error) {
+	f.path = path
+	f.options = httpclient.RequestOptions{
+		Headers:     map[string]string{},
+		QueryParams: map[string]string{},
+		PathParams:  map[string]string{},
+	}
+	for _, opt := range opts {
+		opt(&f.options)
+	}
+	if f.err != nil {
+		return nil, nil, f.err
+	}
+	body := []byte("<form>demo</form>")
+	resp := &httpclient.Response{
 		StatusCode: http.StatusOK,
 		Header: http.Header{
 			"Content-Type": {"text/html; charset=utf-8"},
 		},
-		Body: []byte("<form>demo</form>"),
-	}, nil
+		Body: body,
+	}
+	return body, resp, nil
 }

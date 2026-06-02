@@ -11,18 +11,13 @@ import (
 
 const defaultMessage = "hello from initra"
 
-// remoteHTTPClient 定义 httpdemo 示例模块依赖的最小远程调用能力。
-type remoteHTTPClient interface {
-	Get(ctx context.Context, path string, opts ...httpclient.RequestOption) (*httpclient.Response, error)
-}
-
 // Service 是 httpdemo 示例模块的应用服务。
 type Service struct {
-	client remoteHTTPClient
+	client httpclient.ReadCaller
 }
 
 // NewService 构造 httpdemo 示例模块应用服务。
-func NewService(client remoteHTTPClient) *Service {
+func NewService(client httpclient.ReadCaller) *Service {
 	return &Service{client: client}
 }
 
@@ -36,10 +31,9 @@ func (s *Service) GetHTTPBingo(ctx context.Context, message string, traceID stri
 		message = defaultMessage
 	}
 	payload := httpBingoGetPayload{}
-	_, err := s.client.Get(ctx, "/get",
+	err := s.client.GetJSON(ctx, "/get", &payload,
 		httpclient.WithQuery("message", message),
 		httpclient.WithHeader("X-Trace-ID", strings.TrimSpace(traceID)),
-		httpclient.WithResult(&payload),
 	)
 	if err != nil {
 		return HTTPBingoGetVO{}, mapHTTPClientError(ctx, err, "call httpbingo get failed")
@@ -52,7 +46,7 @@ func (s *Service) GetHTTPBingoFormPage(ctx context.Context, traceID string) (HTT
 	if err := s.ensureClient(); err != nil {
 		return HTTPBingoFormPageVO{}, err
 	}
-	resp, err := s.client.Get(ctx, "/forms/post",
+	body, resp, err := s.client.GetBytes(ctx, "/forms/post",
 		httpclient.WithHeader("X-Trace-ID", strings.TrimSpace(traceID)),
 	)
 	if err != nil {
@@ -60,8 +54,8 @@ func (s *Service) GetHTTPBingoFormPage(ctx context.Context, traceID string) (HTT
 	}
 	return HTTPBingoFormPageVO{
 		ContentType: resp.Header.Get("Content-Type"),
-		Size:        int32(len(resp.Body)),
-		Body:        string(resp.Body),
+		Size:        int32(len(body)),
+		Body:        string(body),
 	}, nil
 }
 
