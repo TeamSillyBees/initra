@@ -909,8 +909,8 @@ func runDoctorChecks(stdout io.Writer) error {
 	reportTool(stdout, "Atlas", "atlas", "version")
 	reportTool(stdout, "Ent", "go", "run", "entgo.io/ent/cmd/ent", "--help")
 	reportTool(stdout, "golangci-lint", "golangci-lint", "version")
-	reportFile(stdout, "config.yaml", filepath.Join("configs", "config.yaml"))
-	reportFile(stdout, "config.dev.yaml", filepath.Join("configs", "config.dev.yaml"))
+	reportOptionalFile(stdout, "config.yaml", filepath.Join("configs", "config.yaml"))
+	reportOptionalFile(stdout, "config.dev.yaml", filepath.Join("configs", "config.dev.yaml"))
 	reportFile(stdout, "Atlas config", filepath.Join("db", "atlas.hcl"))
 	return nil
 }
@@ -1047,6 +1047,15 @@ func reportTool(stdout io.Writer, label string, command string, args ...string) 
 func reportFile(stdout io.Writer, label string, path string) {
 	if _, err := os.Stat(path); err != nil {
 		_, _ = fmt.Fprintf(stdout, "%s: MISSING %s\n", label, path)
+		return
+	}
+	_, _ = fmt.Fprintf(stdout, "%s: OK %s\n", label, path)
+}
+
+// reportOptionalFile 输出可选文件状态，缺失时不表达为硬性环境问题。
+func reportOptionalFile(stdout io.Writer, label string, path string) {
+	if _, err := os.Stat(path); err != nil {
+		_, _ = fmt.Fprintf(stdout, "%s: OPTIONAL MISSING %s\n", label, path)
 		return
 	}
 	_, _ = fmt.Fprintf(stdout, "%s: OK %s\n", label, path)

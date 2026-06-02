@@ -48,7 +48,7 @@ if err := c.HTTPClient.Validate(); err != nil {
 
 - 运行环境来自显式 CLI/env 输入、`APP_ENV` 或默认值 `dev`。
 - 其他环境变量默认使用 `INITRA_` 前缀。
-- 配置加载顺序为 defaults、`configs/config.yaml`、`configs/config.<env>.yaml`、环境变量。
+- 配置加载顺序为 defaults、可选 `configs/config.yaml`、可选 `configs/config.<env>.yaml`、环境变量；两个 YAML 文件都不存在时也允许完全依赖环境变量。
 
 ## 安全日志
 

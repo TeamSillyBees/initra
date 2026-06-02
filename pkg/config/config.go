@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -28,7 +29,7 @@ type Validator interface {
 	Validate() error
 }
 
-// LoadInto 从默认值、基础 YAML、环境 YAML 和环境变量中加载业务自定义配置结构。
+// LoadInto 从默认值、可选基础 YAML、可选环境 YAML 和环境变量中加载业务自定义配置结构。
 func LoadInto[T any](opts LoaderOptions) (*T, error) {
 	normalized := normalizeOptions(opts)
 
@@ -44,18 +45,22 @@ func LoadInto[T any](opts LoaderOptions) (*T, error) {
 	}
 	v.Set("app.env", normalized.Env)
 
+	var cfg T
+	if err := bindConfigEnvKeys(v, reflect.TypeOf(cfg), ""); err != nil {
+		return nil, err
+	}
+
 	v.SetConfigName(normalized.ConfigName)
-	if err := v.ReadInConfig(); err != nil {
+	if err := readOptionalConfig(v); err != nil {
 		return nil, fmt.Errorf("读取基础配置文件 %s.yaml 失败: %w", normalized.ConfigName, err)
 	}
 
 	envConfigName := fmt.Sprintf("%s.%s", normalized.ConfigName, normalized.Env)
 	v.SetConfigName(envConfigName)
-	if err := v.MergeInConfig(); err != nil {
+	if err := mergeOptionalConfig(v); err != nil {
 		return nil, fmt.Errorf("读取环境配置文件 %s.yaml 失败: %w", envConfigName, err)
 	}
 
-	var cfg T
 	if err := v.Unmarshal(&cfg, viper.DecodeHook(mapstructure.StringToTimeDurationHookFunc())); err != nil {
 		return nil, fmt.Errorf("反序列化配置失败: %w", err)
 	}
@@ -101,6 +106,81 @@ func normalizeOptions(opts LoaderOptions) LoaderOptions {
 		opts.Defaults = map[string]any{}
 	}
 	return opts
+}
+
+// readOptionalConfig 读取当前 Viper 配置文件，缺失文件时跳过。
+func readOptionalConfig(v *viper.Viper) error {
+	if err := v.ReadInConfig(); err != nil {
+		if isConfigFileNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+// mergeOptionalConfig 合并当前 Viper 配置文件，缺失文件时跳过。
+func mergeOptionalConfig(v *viper.Viper) error {
+	if err := v.MergeInConfig(); err != nil {
+		if isConfigFileNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+// isConfigFileNotFound 判断错误是否表示配置文件不存在。
+func isConfigFileNotFound(err error) bool {
+	var notFound viper.ConfigFileNotFoundError
+	return errors.As(err, &notFound)
+}
+
+// bindConfigEnvKeys 递归绑定配置结构字段，确保纯环境变量配置也能被反序列化。
+func bindConfigEnvKeys(v *viper.Viper, valueType reflect.Type, prefix string) error {
+	if valueType == nil {
+		return nil
+	}
+	for valueType.Kind() == reflect.Pointer {
+		valueType = valueType.Elem()
+	}
+	if valueType.Kind() != reflect.Struct {
+		return nil
+	}
+
+	for i := 0; i < valueType.NumField(); i++ {
+		field := valueType.Field(i)
+		if field.PkgPath != "" {
+			continue
+		}
+		name, ok := configFieldName(field)
+		if !ok {
+			continue
+		}
+		key := joinConfigKey(prefix, name)
+		fieldType := field.Type
+		for fieldType.Kind() == reflect.Pointer {
+			fieldType = fieldType.Elem()
+		}
+		if fieldType.Kind() == reflect.Struct {
+			if err := bindConfigEnvKeys(v, fieldType, key); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := v.BindEnv(key); err != nil {
+			return fmt.Errorf("绑定环境变量 %s 失败: %w", key, err)
+		}
+	}
+	return nil
+}
+
+// joinConfigKey 拼接 Viper 使用的点分隔配置键。
+func joinConfigKey(prefix string, name string) string {
+	if prefix == "" {
+		return name
+	}
+	return prefix + "." + name
 }
 
 func sanitizeValue(value reflect.Value, key string, sensitiveFields map[string]struct{}) any {

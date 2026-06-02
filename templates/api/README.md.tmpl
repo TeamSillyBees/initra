@@ -49,11 +49,13 @@ go run ./cmd/server
 
 ## 配置
 
-配置加载顺序：
+配置加载优先级：
 
-1. `configs/config.yaml`
-2. `configs/config.<env>.yaml`
-3. 环境变量覆盖
+1. 环境变量
+2. `configs/config.<env>.yaml`（存在时）
+3. `configs/config.yaml`（存在时）
+
+只使用环境变量、只使用 `configs/config.yaml`、同时使用两个配置文件都支持；存在的配置文件会按 `configs/config.yaml` 到 `configs/config.<env>.yaml` 的顺序加载，最后由环境变量覆盖。
 
 运行环境由 `--env`、`APP_ENV` 或默认值 `dev` 决定；其他环境变量默认使用 `INITRA_` 前缀，例如 `INITRA_AUTH_JWT_SECRET`、`INITRA_DATABASE_DSN`。
 

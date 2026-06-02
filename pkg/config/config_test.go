@@ -64,6 +64,76 @@ app:
 	require.Equal(t, 5*time.Second, cfg.HTTP.ReadTimeout)
 }
 
+// TestLoadIntoSupportsEnvironmentOnlyConfig 验证没有配置文件时仍可完全依赖环境变量加载。
+func TestLoadIntoSupportsEnvironmentOnlyConfig(t *testing.T) {
+	t.Setenv("APP_ENV", "prod")
+	t.Setenv("INITRA_APP_NAME", "initra-env")
+	t.Setenv("INITRA_APP_PORT", "9092")
+	t.Setenv("INITRA_HTTP_READ_TIMEOUT", "3s")
+
+	cfg, err := LoadInto[testConfig](LoaderOptions{
+		ConfigDir: t.TempDir(),
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, "initra-env", cfg.App.Name)
+	require.Equal(t, "prod", cfg.App.Env)
+	require.Equal(t, 9092, cfg.App.Port)
+	require.Equal(t, 3*time.Second, cfg.HTTP.ReadTimeout)
+}
+
+// TestLoadIntoAllowsBaseConfigWithoutEnvironmentConfig 验证只提供基础配置文件时不会强制要求环境配置文件。
+func TestLoadIntoAllowsBaseConfigWithoutEnvironmentConfig(t *testing.T) {
+	configDir := t.TempDir()
+	writeConfigYAML(t, configDir, "config.yaml", `
+app:
+  name: initra
+  port: 8080
+`)
+
+	cfg, err := LoadInto[testConfig](LoaderOptions{
+		Env:       "local",
+		ConfigDir: configDir,
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, "local", cfg.App.Env)
+	require.Equal(t, 8080, cfg.App.Port)
+}
+
+// TestLoadIntoAllowsEnvironmentConfigWithoutBaseConfig 验证只提供环境配置文件时不会强制要求基础配置文件。
+func TestLoadIntoAllowsEnvironmentConfigWithoutBaseConfig(t *testing.T) {
+	configDir := t.TempDir()
+	writeConfigYAML(t, configDir, "config.local.yaml", `
+app:
+  name: initra-local
+  port: 18080
+`)
+
+	cfg, err := LoadInto[testConfig](LoaderOptions{
+		Env:       "local",
+		ConfigDir: configDir,
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, "local", cfg.App.Env)
+	require.Equal(t, "initra-local", cfg.App.Name)
+	require.Equal(t, 18080, cfg.App.Port)
+}
+
+// TestLoadIntoRejectsInvalidExistingConfig 验证存在但格式错误的配置文件仍会 fail fast。
+func TestLoadIntoRejectsInvalidExistingConfig(t *testing.T) {
+	configDir := t.TempDir()
+	writeConfigYAML(t, configDir, "config.yaml", "app:\n  name: initra\n  port: [broken\n")
+
+	_, err := LoadInto[testConfig](LoaderOptions{
+		ConfigDir: configDir,
+	})
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "读取基础配置文件 config.yaml 失败")
+}
+
 // TestLoadIntoDefaultsToDevEnv 验证未指定运行环境时默认读取 dev 配置。
 func TestLoadIntoDefaultsToDevEnv(t *testing.T) {
 	t.Setenv("APP_ENV", "")
@@ -91,6 +161,7 @@ app:
 // TestLoadIntoUsesAPPENVToSelectEnvironment 验证运行环境由无前缀 APP_ENV 选择，且不接受 YAML 中的 app.env。
 func TestLoadIntoUsesAPPENVToSelectEnvironment(t *testing.T) {
 	t.Setenv("APP_ENV", "prod")
+	t.Setenv("INITRA_APP_PORT", "10080")
 
 	configDir := t.TempDir()
 	writeConfigYAML(t, configDir, "config.yaml", `
@@ -115,7 +186,7 @@ database:
 
 	require.NoError(t, err)
 	require.Equal(t, "prod", cfg.App.Env)
-	require.Equal(t, 9090, cfg.App.Port)
+	require.Equal(t, 10080, cfg.App.Port)
 	require.Empty(t, cfg.Database.Host)
 }
 

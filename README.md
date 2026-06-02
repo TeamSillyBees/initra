@@ -61,7 +61,7 @@ docs/               架构与工程规范文档
 ## 配置规范
 
 - 业务项目使用结构体定义配置，配置结构放在自己的 `internal/boot/config.go`。
-- 配置加载支持默认值、`configs/config.yaml` 初始值、`configs/config.<env>.yaml` 覆盖、环境变量覆盖和启动校验。
+- 配置加载支持默认值、可选 `configs/config.yaml` 初始值、可选 `configs/config.<env>.yaml` 覆盖、环境变量覆盖和启动校验；配置文件不存在时会跳过，环境变量可独立完成配置。
 - 运行环境由显式 `--env`、无前缀环境变量 `APP_ENV` 或默认值 `dev` 决定，不再从 YAML 的 `app.env` 读取；其他配置环境变量默认使用 `INITRA_` 前缀。
 - API 模板默认启用 `storage.provider: local`，文件落到 `./var/uploads`，可通过 `storage` 配置分组切换云厂商 provider。
 
