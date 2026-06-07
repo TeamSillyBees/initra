@@ -107,6 +107,7 @@ initra migrate new <name>
 initra migrate diff <name>
 initra migrate apply --env <env>
 initra migrate hash
+initra skill
 initra skill codex
 initra skill cc
 initra doctor
@@ -116,7 +117,7 @@ initra doctor
 
 `initra migrate diff <name>` 直接执行当前项目的 `go run ./internal/data/migratediff/main.go <name>`，可追加 `--env`、`--config-dir` 和 `--dev-url`。`initra migrate apply --env <env>` 会执行 `atlas -c file://db/atlas.hcl migrate apply --env <env>` 应用迁移。手动修改迁移文件后，可执行 `initra migrate hash` 重新计算 `atlas.sum`。
 
-在业务项目根目录执行 `initra skill codex` 会写入 `.agents/skills/initra-framework`，供 Codex 使用；执行 `initra skill cc` 会写入 `.claude/skills/initra-framework`，供 Claude Code 使用。
+在业务项目根目录执行 `initra skill` 或 `initra skill codex` 会写入 `.agents/skills/initra-framework`，供 Codex 使用；执行 `initra skill cc` 会写入 `.claude/skills/initra-framework`，供 Claude Code 使用。
 
 发布版 CLI 会用自身构建版本写入生成项目 `go.mod`。开发版 CLI 必须传 `--framework-version` 或 `--replace`，避免生成不可复现的 `initra` 依赖。
 

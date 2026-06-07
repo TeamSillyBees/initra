@@ -1,60 +1,38 @@
-# storage
+# 文件与对象存储
 
-当业务需要文件上传/下载、本地存储、对象存储、预签名 URL、STS、删除、元信息、列表、复制、移动或分片上传时，使用 `github.com/teamsillybees/initra/pkg/storage` 和 `github.com/teamsillybees/initra/pkg/storage/provider`。
-
-## 标准装配
-
-在业务 `Config` 中组合 storage 配置，并在 boot 层注册 provider：
+## 注册
 
 ```go
-Storage platformstorage.Config `mapstructure:"storage"`
-
 storageprovider.Register(injector, cfg.Storage)
 ```
 
-provider 根据 `storage.provider` 选择 local、Aliyun OSS、Tencent COS、AWS S3 或 S3 compatible 实现。
+业务模块依赖 `storage.Service`，不要 import 具体 provider。
 
-## 业务用法
-
-业务模块依赖 `storage.Service` 或更窄的模块内接口：
+## 使用
 
 ```go
-type fileStorage interface {
-	Upload(ctx context.Context, input storage.UploadInput) (*storage.Object, error)
-	DownloadBytes(ctx context.Context, input storage.DownloadInput) ([]byte, error)
-	Delete(ctx context.Context, input storage.DeleteInput) error
-	Stat(ctx context.Context, input storage.ObjectInput) (*storage.Object, error)
-}
+object, err := s.storage.Upload(ctx, storage.UploadInput{
+	Key:         key,
+	FileName:    filename,
+	Body:        body,
+	Size:        size,
+	ContentType: contentType,
+	Overwrite:   false,
+})
 ```
 
-在存储适配边界使用 `storage.UploadInput`、`DownloadInput`、`ObjectInput`、`PresignInput` 和 `STSTokenInput`。
+下载、删除、预签名 URL、公开 URL 和对象元信息都通过同一个 service 接口完成。
 
-## 错误映射
+## Provider
 
-将 storage 错误映射为应用错误：
+配置切换 provider：`local`、`aliyun_oss`、`tencent_cos`、`aws_s3`、`s3_compatible`。业务代码不应感知差异。
 
-```go
-switch {
-case storage.IsNotFound(err):
-	return apperrors.Wrap(err, apperrors.CodeNotFound, "文件不存在")
-case errors.Is(err, storage.ErrInvalidKey), errors.Is(err, storage.ErrInvalidConfig):
-	return apperrors.Wrap(err, apperrors.CodeBadRequest, "文件请求无效")
-default:
-	return apperrors.Wrap(err, apperrors.CodeInternalError, "存储操作失败")
-}
-```
+## 高级能力
 
-## 禁止写法
+- 分片上传：在需要时判断实现是否满足 `storage.MultipartService`。
+- STS：在需要临时授权时判断实现是否满足 `storage.STSService`。
 
-- 不要在业务模块中 import 云厂商 SDK。
-- 不要在业务模块中 import `pkg/storage/aliyunoss`、`awss3`、`tencentcos`、`s3compat` 或 `local`。
-- 不要把本地文件系统路径暴露为稳定业务 ID。
-- 不要记录凭证、带敏感 query 的签名 URL 或原始文件内容。
+## 禁止
 
-## 检查清单
-
-- storage 是否通过 `storage.Config` 配置？
-- boot 是否只调用一次 `storageprovider.Register`？
-- 业务代码是否依赖 `storage.Service` 或窄接口？
-- provider-specific 细节是否仅存在于配置中？
-- storage 错误是否映射为统一应用错误？
+- 不要在业务模块直接使用 OSS/COS/S3 SDK。
+- 不要把 access key、secret、STS token 写入日志或错误详情。

@@ -1,7 +1,0 @@
-{
-  "skill": "initra-framework",
-  "schema": "initra.skill.version/v1",
-  "framework_module": "github.com/teamsillybees/initra",
-  "framework_version": "dev",
-  "source": "tools/skills/initra-framework"
-}

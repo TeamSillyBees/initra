@@ -1,111 +1,126 @@
 ---
 name: initra-framework
-description: 当 Codex 在基于 initra 的 Go 业务项目中开发、修改、审查或验证代码时使用，尤其适用于 Redis、缓存、分布式锁、HTTP Client、文件与对象存储、任务队列、统一错误与响应、日志、配置、认证、JWT、Casbin、路由安全、依赖注入、boot providers、业务模块结构或 Agent 操作流程相关任务。该 skill 指导 Codex 在业务模块新增基础设施代码前，优先复用 initra 框架能力。
+description: Use when working in a Go codebase that depends on github.com/teamsillybees/initra, especially when adding or reviewing business modules, boot providers, route security, idgen.ID, Ent schema, config, logx, auth, redisx, cache, httpclient, storage, task queues, migrations, or code that might reimplement initra pkg capabilities.
 ---
 
 # initra-framework
 
-## 核心规则
+## 目的
 
-将 initra 视为业务项目的框架能力源。编写 Redis、缓存、HTTP Client、存储、任务队列、错误处理、日志、配置、认证、路由安全或依赖注入代码前，先确认 `github.com/teamsillybees/initra/pkg/*` 是否已经提供对应能力。
+这个 skill 只解决一个问题：在使用 initra 的 Go 业务项目中，避免 agent 绕开框架、复制框架、重新发明框架。
 
-每个任务先读取 `assets/capabilities.yaml`，再只加载匹配的 `references/` 文件。
+initra 的业务项目不是普通 Go Web 项目。它的正确性来自几个边界：业务模块是 flat package；基础设施只在 `internal/boot` 装配；业务 ID 是 `idgen.ID`；`/api/` 路由必须登记安全元信息；Redis、HTTP Client、对象存储、任务队列、日志、配置、错误响应都优先使用 `github.com/teamsillybees/initra/pkg/*`。
 
-## Agent 操作流程
+## 先做判断
 
-1. 确认项目引入了 `github.com/teamsillybees/initra`，并查看 `AGENTS.md`、`go.mod`、`internal/boot` 和目标业务模块。
-2. 使用下方能力路由表，将需求映射到一个或多个 initra 能力。
-3. 修改代码前读取对应的 `references/*.md`。
-4. 按现有 boot/provider 与 flat module 模式实现。
-5. 业务 service 只依赖模块内小接口；框架组件只在 boot/provider 层初始化。
-6. 修改 Go 文件后运行 `gofmt`，并执行匹配风险范围的 `go test` / `go vet`。
-7. 如果 initra 未提供该能力，明确说明缺口，再添加最小的项目内抽象。
+只有在当前项目满足至少一个条件时使用本 skill：
 
-## 能力路由
+- `go.mod` 依赖 `github.com/teamsillybees/initra`。
+- 代码位于 initra 生成的 API 项目结构中，例如 `internal/boot`、`internal/modules`、`configs`、`db/migrations`。
+- 用户明确要求按 initra 框架、initra CLI、initra pkg 最佳实践开发。
 
-- 业务 ID、Ent 主键/外键、Huma/OpenAPI ID、schema mixin：`references/id.md`
-- Redis、Key、TTL、验证码、token/session 存储、分布式锁、Redis 缓存：`references/redisx.md`
-- 远程 HTTP API、第三方服务、webhook、内部服务调用：`references/httpclient.md`
-- 上传、下载、对象存储、本地存储、OSS、COS、S3、预签名 URL、STS：`references/storage.md`
-- 异步任务、延迟任务、指定时间任务、Worker、任务处理器、周期任务、biz_key：`references/task.md`
-- 本地/远端业务缓存、用户/资料/详情缓存：`references/cache.md`
-- 错误码、业务错误、HTTP 错误响应、错误映射：`references/errors.md`
-- Logger、结构化日志、脱敏、trace/request id 日志：`references/logging.md`
-- 配置结构、默认值、环境变量覆盖、校验、安全日志输出：`references/config.md`
-- JWT、refresh token、密码管理、Casbin、路由安全：`references/auth.md`
-- `samber/do`、`Register`、boot providers、module providers、命名依赖：`references/di.md`
+## 工作协议
 
-## 业务编码规则
+1. 先读当前项目的 `AGENTS.md`、`go.mod`、`internal/boot` 和目标模块。
+2. 判断需求属于哪项框架能力，再读取对应 `references/*.md`。不要一次性读取所有 reference。
+3. 修改代码时保持边界：boot 装配框架能力；module 编写业务逻辑；handler 做 HTTP 适配；service 直接承载业务逻辑和 Ent 操作。
+4. 如果 initra 已经提供能力，业务项目不得新增平行基础设施。
+5. 如果 initra 没有提供能力，先说明缺口，再添加项目内最小实现。
+6. 修改 Go 文件后运行 `gofmt`，并执行与风险匹配的测试。
 
-使用标准 flat module 结构：
+## 架构不变量
+
+### 模块结构
+
+标准业务模块保持 flat package：
 
 ```text
 internal/modules/<module>/
   <module>.handler.go
   <module>.dto.go
   <module>.service.go
-  <module>.repo.go
-  <module>.model.go
   <module>.routes.go
   providers.go
   cache.go
   <module>_test.go
 ```
 
-- HTTP 边界类型放在 `*.dto.go`：Huma/Gin 包装类型使用非导出的 `request` / `response`；查询参数使用 `Query`；请求体使用 `Body`；对外 JSON DTO 使用 `VO`。
-- 业务 ID 统一使用 `idgen.ID`；Ent 主键、外键、auth user ID、REST path params、service/repo 入参和 JSON VO 不使用 `int64` 或 `string` 表达业务 ID。
-- 对外 REST/OpenAPI ID 是 JSON string，示例使用 `"1771234567890123456"`；只有雪花 ID 生成器、第三方库、手写 SQL 参数或底层基础设施场景才调用 `Int64()`。
-- Ent schema 复用 `pkg/entx/mixin` 的 ID、审计、软删除和乐观锁 mixin，不在业务项目内复制本地 schema mixin。
-- 领域模型和 service/repo 入参放在 `*.model.go`；service/repo 入参结构体使用 `DTO`，不要使用 `Params`。
-- Handler 只做传输层适配：转换请求数据、调用 service、包装响应。
-- Service 不做框架初始化。通过构造函数注入模块内小接口，并返回 oops 包装后的 `error`。
-- 每个 `/api/` 路由都必须注册到 `server.RouteRegistry`；公开路由必须设置 `AccessModePublic`，登录即可访问的接口必须设置 `AccessModeAuthenticated`。
-- 需要 RBAC 的后台管理、运营操作、审核、退款、风控、配置管理等接口必须设置 `AccessModePermission`，并确保 `Resource` 和 `Action` 与 Casbin policy 保持一致。
-- 生成项目和业务项目不得 import `github.com/teamsillybees/initra/internal/...`。
+- `*.dto.go` 只放 HTTP 边界类型：非导出 `request`/`response`、查询 `Query`、请求体 `Body`、对外 JSON `VO`。
+- `*.handler.go` 只做 path/query/body 适配、调用 service、包装成功响应。
+- `*.service.go` 直接写业务逻辑和 Ent 查询；不要恢复独立 repository 层或 service DTO 层。
+- 领域实体放在 `cache.go` 或 service 相关文件里；不要恢复废弃的 `*.model.go`。
 
-## 装配规则
+### 依赖边界
 
-- 框架 package 使用一步式注册，例如 `logx.Register(injector, cfg.Log)` 或 `httpclient.Register(injector, cfg.HTTPClient)`。
-- 任务队列使用 `asynqadapter.Register(injector, cfg.Task)` 注册，业务模块只注入 `task.Publisher` 或在 worker 侧注册 `task.Registry` handler。
-- 配置作为参数直接传入 `Register`；不要先 `do.ProvideValue` 暂存配置，再调用无参注册函数。
-- Boot 代码负责应用级 providers。模块 `providers.go` 负责模块内构造函数和命名依赖。
-- 业务 service 和 handler 不应调用 `do.Invoke` 或 `do.MustInvoke`。
-- 优先依赖 package 接口（如 `storage.Service`、`httpclient.ReadCaller`、`httpclient.Caller`）或模块内小接口，不依赖具体云厂商 SDK。
+- 框架 package 在 `internal/boot` 一步式注册，例如 `logx.Register(injector, cfg.Log)`、`httpclient.Register(injector, cfg.HTTPClient)`、`redisx.Register(injector, cfg.Redis)`。
+- 模块 `providers.go` 只负责把模块内构造函数连起来，并把框架依赖传给 service。
+- service 和 handler 不调用 `do.Invoke`、`do.MustInvoke`，不持有全局 injector。
+- 跨模块调用由调用方定义小接口，不 import 对方具体实现。
 
-## 默认禁止
+### ID 与 Schema
 
-除非 reference 明确允许，否则不要在业务模块中添加：
+- 业务 ID 统一使用 `idgen.ID`；REST path、service 入参、Ent 主键/外键、JSON VO 都不使用 `int64` 或 `string` 表达业务 ID。
+- Ent schema 复用 `pkg/entx/mixin`，不要在业务项目复制本地 mixin。
+- 对外 OpenAPI/JSON ID 是字符串；示例使用 `"1771234567890123456"`。
 
-- 新 Redis client 或 Redis cluster client。
-- 生产环境 `KEYS` 扫描。
-- 临时 `http.Client{}` 或 `http.DefaultClient` 远程服务调用。
-- 直接使用云厂商 SDK 的存储代码。
+### 路由安全
+
+- 所有 `/api/` 路由必须通过 `server.RouteRegistry` 登记 `RouteSecurity`。
+- 公开接口显式使用 `AccessModePublic`。
+- 只需登录态的接口使用 `AccessModeAuthenticated`。
+- 后台管理、运营、审核、退款、风控、配置管理等接口使用 `AccessModePermission`，并让 `Resource`/`Action` 匹配 Casbin policy。
+
+## 能力选择
+
+| 需求 | 使用 | 读取 |
+| --- | --- | --- |
+| 业务 ID、Ent 主键/外键、OpenAPI ID、schema mixin | `pkg/idgen`、`pkg/entx/mixin` | `references/id.md` |
+| 配置加载、默认值、环境变量、脱敏、校验 | `pkg/config` 和各 pkg `Config` | `references/config.md` |
+| boot/module providers、DI、`Register` | `samber/do` + initra 注册入口 | `references/di.md` |
+| JWT、密码、refresh token、Casbin、路由安全 | `pkg/auth`、`pkg/server` | `references/auth.md` |
+| 错误码、业务错误、HTTP 错误响应 | `pkg/errors`、`pkg/response` | `references/errors.md` |
+| 结构化日志、trace/request id、脱敏 | `pkg/logx`、`pkg/requestctx` | `references/logging.md` |
+| Redis client、key、SCAN、短锁、Redis 缓存 | `pkg/redisx` | `references/redisx.md` |
+| 多级业务缓存、详情缓存 | `pkg/cache` | `references/cache.md` |
+| 下游 HTTP、第三方服务、webhook | `pkg/httpclient` | `references/httpclient.md` |
+| 上传下载、对象存储、预签名、STS | `pkg/storage`、`pkg/storage/provider` | `references/storage.md` |
+| 异步任务、延迟任务、worker、scheduler | `pkg/task`、`pkg/task/asynqadapter` | `references/task.md` |
+
+## 禁止清单
+
+默认不要在业务项目中添加这些东西：
+
+- 新 Redis client、Redis cluster client、生产 `KEYS`。
+- 临时 `http.Client{}`、`http.DefaultClient`、硬编码远程 base URL。
+- 直接 import 云厂商 SDK 或 initra storage provider 具体实现。
 - 业务代码直接 import `github.com/hibiken/asynq`。
-- 把 Asynq `TaskID` 或 `Unique` 当作长期业务幂等机制。
-- 自定义全局错误响应结构。
-- 重复实现基于 Viper 的配置加载器。
-- 自定义 logger 初始化。
-- 在 handler 或 service 方法内初始化基础设施。
-- 输出密码、token、验证码、session value、Authorization header、access key 或带密码 DSN 的日志。
+- 把 Asynq `TaskID` 或 `Unique` 当作长期业务幂等。
+- 自定义全局错误响应结构，或在 handler 手写错误 JSON。
+- 重新实现 Viper 配置加载器、logger 初始化器、认证中间件。
+- 在日志中输出密码、token、验证码、session value、Authorization、access key、带密码 DSN。
+- import `github.com/teamsillybees/initra/internal/...`。
 
 ## 验证
 
-业务项目可先按使用的 Agent 工具写入本 skill 文档，再使用内置检查脚本做快速静态检查：
+业务项目初始化本 skill：
 
 ```powershell
-initra skill codex # 写入 .agents/skills/initra-framework
+initra skill       # 写入 .agents/skills/initra-framework
+initra skill codex # 同上
 initra skill cc    # 写入 .claude/skills/initra-framework
-go run .agents/skills/initra-framework/scripts/check_initra_usage.go --root .
-go run .claude/skills/initra-framework/scripts/check_initra_usage.go --root .
 ```
 
-涉及 initra 模板或生成项目改动时，还要运行项目匹配的 `go test`、`go vet`、CLI 构建和生成项目验证命令。
+快速检查常见违规：
 
-## 资源
+```powershell
+go run .agents/skills/initra-framework/scripts/check_initra_usage.go --root .
+```
 
-- `assets/capabilities.yaml`：机器可读的能力索引。
-- `assets/forbidden-patterns.yaml`：静态检查禁用模式。
-- `assets/version.json`：skill 与框架来源版本元数据。
-- `references/*.md`：每项能力的详细使用规则。
-- `examples/*.go`：boot provider、Redis 用法、HTTP Client adapter、任务队列发布的可改写示例。
-- `scripts/check_initra_usage.go`：无额外依赖的常见违规静态扫描脚本。
+常规验证按改动范围选择：
+
+```powershell
+go test ./...
+go vet ./...
+```
+
+如果修改的是 initra 框架仓库模板或 CLI，还要按仓库 `AGENTS.md` 运行根模块和 `examples` 的对应测试。

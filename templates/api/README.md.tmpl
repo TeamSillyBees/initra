@@ -1,34 +1,43 @@
 # {{ .AppName }}
 
-> 本 README 是业务项目说明占位。开始真实业务开发后，请把本文件替换为业务背景、领域模型、接口边界、部署方式和排障手册。
+本项目是基于 initra 生成的 Go RESTful API 服务。它提供一套可运行的内部系统起点：Huma/Gin Web 层、配置加载、认证鉴权、Ent/Atlas 迁移、日志、Redis、缓存、文件存储、HTTP Client、任务队列和测试骨架。
 
-## 业务概览
+当前代码包含 `auth`、`user`、`file`、`httpdemo`、`taskdemo` 示例模块，用来展示框架能力的正确接入方式。正式业务开发时应按业务域替换或裁剪示例模块，不要把示例接口、默认账号和本地密钥带入共享环境。
 
-`{{ .AppName }}` 是一个面向内部系统的 RESTful API 服务模板。当前代码提供认证、用户、文件上传和任务发布示例，用来占位展示常见业务能力的组织方式；真实项目应按业务域替换或裁剪这些示例模块。
-
-建议在正式开发前补充以下内容：
-
-- 服务负责的业务边界、上游系统和下游系统。
-- 核心用户角色、关键业务流程和主要接口清单。
-- 数据归属、权限模型、审计要求和合规要求。
-- 本地开发、测试、预发、生产环境的差异。
-
-## 当前模块
+## 目录结构
 
 ```text
-cmd/server                 服务启动入口
-configs/                   分环境配置
-db/migrations              Atlas 版本化迁移
-db/seeds                   初始化数据
-internal/boot              启动、配置、依赖装配和生命周期
-internal/data/schema       Ent schema，数据库结构主源
-internal/modules/auth       登录、刷新 token 和登出示例
-internal/modules/user       用户查询与当前用户信息示例
-internal/modules/file       local 文件上传、下载和删除示例
+cmd/server                  服务启动入口
+configs/                    分环境配置、Casbin model 和 policy
+db/migrations               Atlas 版本化迁移
+db/seeds                    初始化数据
+internal/boot               启动、配置、依赖装配和生命周期
+internal/data/schema        Ent schema，数据库结构主源
+internal/modules/auth       登录、刷新 token、当前用户示例
+internal/modules/user       用户查询与管理示例
+internal/modules/file       local 文件上传、下载、元信息和删除示例
+internal/modules/httpdemo   命名 HTTP Client 调用示例
 internal/modules/taskdemo   异步任务发布示例
+internal/modules/bizerrors  业务错误码和错误工厂
+test/                       架构、集成和 e2e 测试
 ```
 
-示例模块用于展示工程结构，不代表真实业务命名。新增业务时优先创建独立模块；不需要的示例模块应在替换业务后删除，并同步清理路由、权限策略、迁移和种子数据。
+业务代码只应依赖 `github.com/teamsillybees/initra/pkg/*` 提供的框架能力，禁止 import `github.com/teamsillybees/initra/internal/*`，也不要复制 initra 根仓库的 `pkg/*` 到本项目。
+
+## 首次处理
+
+```powershell
+initra skill
+```
+
+该命令会写入 `.agents/skills/initra-framework`，让 Codex 在本项目内按 initra 的框架边界、模块结构和 package 最佳实践工作。使用 Claude Code 时执行 `initra skill cc`。
+
+正式接入业务前，至少完成这些替换：
+
+- 修改服务名称、配置中的密钥、数据库连接、Redis 连接、对象存储配置和默认管理员密码。
+- 删除不需要的示例模块，并同步清理 `internal/boot/providers.go`、路由、Casbin policy、测试、迁移和种子数据。
+- 根据真实业务角色补齐 Casbin `Resource`、`Action` 和策略文件。
+- 把本 README 改成真实业务说明：业务边界、上游下游、接口清单、部署方式、告警和排障入口。
 
 ## 快速启动
 
@@ -45,7 +54,13 @@ go run ./cmd/server
 - 用户名：`admin`
 - 密码：`admin123`
 
-首次接入真实环境时，请替换默认密码、JWT 密钥、数据库连接、Redis 连接和对象存储配置。
+常用验证命令：
+
+```powershell
+go test ./... -count=1
+go vet ./...
+go build ./cmd/server
+```
 
 ## 配置
 
@@ -54,20 +69,42 @@ go run ./cmd/server
 1. 环境变量
 2. `configs/config.<env>.yaml`（存在时）
 3. `configs/config.yaml`（存在时）
+4. `internal/boot/config.go` 中的默认值
 
-只使用环境变量、只使用 `configs/config.yaml`、同时使用两个配置文件都支持；存在的配置文件会按 `configs/config.yaml` 到 `configs/config.<env>.yaml` 的顺序加载，最后由环境变量覆盖。
-
-运行环境由 `--env`、`APP_ENV` 或默认值 `dev` 决定；其他环境变量默认使用 `INITRA_` 前缀，例如 `INITRA_AUTH_JWT_SECRET`、`INITRA_DATABASE_DSN`。
+服务进程的运行环境由 `APP_ENV` 决定，未设置时使用默认值 `dev`；`initra migrate` 等 CLI 命令可通过 `--env` 显式指定环境。其他环境变量默认使用 `INITRA_` 前缀，例如 `INITRA_AUTH_JWT_SECRET`、`INITRA_DATABASE_DSN`。
 
 常用配置分组：
 
 - `app`、`server`、`database`、`redis`、`auth`、`log`、`observability`：基础运行配置。
 - `casbin`：权限模型和策略文件。
-- `cache`、`idgen`、`storage`、`task`：缓存、雪花 ID、文件存储和任务队列配置。
+- `cache`、`idgen`、`storage`、`task`、`http_client`：缓存、雪花 ID、文件存储、任务队列和命名 HTTP Client。
 
-业务 ID 统一使用 `github.com/teamsillybees/initra/pkg/idgen.ID`。Ent 主键、外键、auth user ID、REST path params、service/repo 入参和 JSON VO 不使用 `int64` 或 `string` 表达业务 ID；REST/OpenAPI 对外暴露为 JSON string，示例形如 `"1771234567890123456"`。只有对接雪花 ID 生成器、第三方库、手写 SQL 参数或底层基础设施时才调用 `Int64()`。
+配置打印前会走脱敏逻辑。密码、Token、Secret、Access Key、Authorization、Cookie、验证码、session value、完整请求体、完整响应体和带密码的 DSN 不应明文进入日志。
 
-配置打印前会走 `pkg/logx` 脱敏逻辑。密码、Token、Secret、Access Key、Authorization、Cookie、完整请求体、完整响应体和带密码的 DSN 不应明文进入日志。HTTP 与任务队列边界统一记录错误日志，业务层只返回错误并通过业务错误门面补充上下文。
+业务 ID 统一使用 `github.com/teamsillybees/initra/pkg/idgen.ID`。Ent 主键、外键、auth user ID、REST path params、service 入参和 JSON VO 不使用 `int64` 或 `string` 表达业务 ID；REST/OpenAPI 对外暴露为 JSON string，示例形如 `"1771234567890123456"`。只有对接雪花 ID 生成器、第三方库、手写 SQL 参数或底层基础设施时才调用 `Int64()`。
+
+## 模块开发
+
+业务代码按业务模块组织为单一 flat package，不拆 controller/service/repository 子目录。标准结构：
+
+```text
+internal/modules/<module>/
+  <module>.handler.go HTTP 适配方法，调用 service 并包装响应
+  <module>.dto.go     HTTP 边界类型：Request/Response、Query、Body、VO
+  <module>.service.go 业务逻辑 + Ent 数据库操作 + 必要的私有小接口
+  <module>.routes.go  路由注册 + Module 结构体
+  providers.go        samber/do 依赖注入
+  cache.go            可选，缓存适配器或少量领域实体
+  <module>_test.go    单元测试
+```
+
+开发约束：
+
+- Handler 不定义 DTO；只做参数转换、调用 service 和响应包装。
+- Service 直接接受 HTTP 边界 `Body`/`Query` 类型并返回 `VO`，不再定义 `CreateXxxDTO`、`UpdateXxxDTO` 这类 service DTO。
+- Service 直接通过 Ent Client 操作数据库，不默认拆 Repository 层；跨模块调用优先依赖调用方内部定义的小接口。
+- `*.dto.go` 中 Huma/Gin 包装类型用非导出的 `request`/`response` 后缀，查询参数用 `Query`，请求体用 `Body`，对外 JSON 类型用 `VO`。
+- 新增 `/api/` 路由必须通过 `registry.Register` 登记 `RouteSecurity`；公开接口用 `AccessModePublic`，登录即可访问接口用 `AccessModeAuthenticated`，后台或运营接口用 `AccessModePermission` 并同步 Casbin policy。
 
 ## 数据库与迁移
 
@@ -80,11 +117,20 @@ initra migrate apply --env local
 initra migrate hash
 ```
 
-修改 Ent schema 后先执行 `go generate ./internal/data`，再生成迁移。迁移 diff 必须使用 `initra migrate diff <name>` 或 `go run ./internal/data/migratediff/main.go <name>`；手动修改迁移文件后使用 `initra migrate hash` 重新计算 `atlas.sum`。
+修改 Ent schema 后先执行 `go generate ./internal/data`，再生成迁移。手动修改迁移文件后使用 `initra migrate hash` 重新计算 `atlas.sum`。
 
-`db/schema/*.sql` 仅作为历史参考或 DBA 阅读材料，不再作为 Atlas diff 的 schema source。
+## 框架能力
+
+- Redis：使用 `pkg/redisx` 的 client、Key Builder、Lua registry、SCAN+UNLINK 和 redislock；生产禁止使用 `KEYS`。
+- 缓存：使用 `pkg/cache`，明确 key 命名、TTL 和失效策略。
+- 文件存储：使用 `pkg/storage` 和 `pkg/storage/provider`，业务模块不要直接依赖云厂商 SDK。
+- HTTP Client：由 `httpclient.Register(injector, cfg.HTTPClient)` 统一装配，业务模块通过命名 client 或最小接口依赖。
+- 任务队列：使用 `pkg/task` 和 `pkg/task/asynqadapter` 的装配入口；业务代码不得直接 import `github.com/hibiken/asynq`。
+- 依赖装配：框架能力包在 `internal/boot/providers.go` 中通过 `Register(injector, cfg)` 显式注册一次；业务模块只在自己的 `providers.go` 注册本地 handler、service、module。
 
 ## 开发与验证
+
+窄改动至少运行相关包测试；影响配置、迁移、路由权限、依赖装配或共享模块时运行完整验证：
 
 ```powershell
 go test ./... -count=1
@@ -92,14 +138,4 @@ go vet ./...
 go build ./cmd/server
 ```
 
-新增业务模块时同步补充单元测试；涉及数据库读写时优先补充 repository 或集成测试；涉及路由权限时同步更新 Casbin policy 和路由安全声明。
-
-## 文档替换清单
-
-正式业务开发前，建议至少替换这些占位内容：
-
-- 本服务的业务名称、业务目标和接口范围。
-- 默认账号、示例模块说明和示例接口。
-- 本地依赖启动方式、外部服务依赖和环境变量清单。
-- 数据库初始化、迁移发布和回滚流程。
-- 告警、日志字段、排障入口和常见问题。
+新增业务模块应同步补充单元测试，使用 fake 验证 service 编排逻辑；涉及数据库读写时补充集成测试或 `go-sqlmock` 验证 SQL、事务和参数；涉及架构边界时保留或补充测试，确保项目不 import initra 根仓库的 `internal/*`。

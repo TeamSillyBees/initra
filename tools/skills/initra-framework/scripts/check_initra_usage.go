@@ -11,15 +11,18 @@ import (
 	"strings"
 )
 
+// rule 描述一条静态扫描规则。
 type rule struct {
-	id       string
-	severity string
-	message  string
-	patterns []string
-	regexps  []*regexp.Regexp
-	allowed  func(path string) bool
+	id               string
+	severity         string
+	message          string
+	patterns         []string
+	regexps          []*regexp.Regexp
+	filenameSuffixes []string
+	allowed          func(path string) bool
 }
 
+// finding 描述一次规则命中。
 type finding struct {
 	path     string
 	line     int
@@ -29,6 +32,7 @@ type finding struct {
 	text     string
 }
 
+// main 解析命令行参数并执行 initra 用法扫描。
 func main() {
 	root := flag.String("root", ".", "要扫描的项目根目录")
 	includeTests := flag.Bool("include-tests", false, "是否扫描 *_test.go 文件")
@@ -49,11 +53,14 @@ func main() {
 	for _, f := range findings {
 		rel, _ := filepath.Rel(absRoot, f.path)
 		fmt.Printf("%s:%d: [%s] %s: %s\n", rel, f.line, f.severity, f.ruleID, f.message)
-		fmt.Printf("  %s\n", strings.TrimSpace(f.text))
+		if strings.TrimSpace(f.text) != "" {
+			fmt.Printf("  %s\n", strings.TrimSpace(f.text))
+		}
 	}
 	os.Exit(1)
 }
 
+// scan 扫描项目中的 Go 文件并返回所有命中项。
 func scan(root string, includeTests bool) ([]finding, error) {
 	rules := defaultRules()
 	var findings []finding
@@ -83,6 +90,7 @@ func scan(root string, includeTests bool) ([]finding, error) {
 	return findings, err
 }
 
+// scanFile 扫描单个 Go 文件。
 func scanFile(path string, rules []rule) ([]finding, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -91,6 +99,8 @@ func scanFile(path string, rules []rule) ([]finding, error) {
 	defer file.Close()
 
 	var findings []finding
+	findings = append(findings, filenameFindings(path, rules)...)
+
 	scanner := bufio.NewScanner(file)
 	line := 0
 	for scanner.Scan() {
@@ -115,6 +125,32 @@ func scanFile(path string, rules []rule) ([]finding, error) {
 	return findings, scanner.Err()
 }
 
+// filenameFindings 根据文件名规则生成命中项。
+func filenameFindings(path string, rules []rule) []finding {
+	var findings []finding
+	for _, r := range rules {
+		if len(r.filenameSuffixes) == 0 {
+			continue
+		}
+		if r.allowed != nil && r.allowed(path) {
+			continue
+		}
+		for _, suffix := range r.filenameSuffixes {
+			if strings.HasSuffix(filepath.ToSlash(path), suffix) {
+				findings = append(findings, finding{
+					path:     path,
+					line:     1,
+					severity: r.severity,
+					ruleID:   r.id,
+					message:  r.message,
+				})
+			}
+		}
+	}
+	return findings
+}
+
+// defaultRules 返回内置 initra 用法扫描规则。
 func defaultRules() []rule {
 	return []rule{
 		{
@@ -127,7 +163,7 @@ func defaultRules() []rule {
 		{
 			id:       "redis-keys",
 			severity: "error",
-			message:  "生产 Redis 代码禁止使用 KEYS；优先使用 redisx scanner helper 或 SCAN 风格逻辑",
+			message:  "生产 Redis 代码禁止使用 KEYS；优先使用 redisx ScanPrefix/UnlinkByPrefix",
 			regexps:  mustRegexps(`\.Keys\s*\(`, `\bKEYS\b`),
 			allowed:  allowFrameworkOrBoot,
 		},
@@ -178,6 +214,7 @@ func defaultRules() []rule {
 			severity: "error",
 			message:  "业务项目和模板不得 import initra 根仓库 internal package",
 			patterns: []string{"github.com/teamsillybees/initra/internal/"},
+			allowed:  allowFrameworkOrBoot,
 		},
 		{
 			id:       "injector-in-business-logic",
@@ -193,9 +230,17 @@ func defaultRules() []rule {
 			patterns: []string{"do.ProvideValue"},
 			allowed:  allowFrameworkOrTests,
 		},
+		{
+			id:               "deprecated-module-layer",
+			severity:         "warning",
+			message:          "标准 API 模块不再新增 repo/model 层；service 直接承载 Ent 操作和业务逻辑",
+			filenameSuffixes: []string{".repo.go", ".model.go"},
+			allowed:          allowFrameworkOrGenerated,
+		},
 	}
 }
 
+// matchesRule 判断一行文本是否命中规则。
 func matchesRule(text string, r rule) bool {
 	for _, pattern := range r.patterns {
 		if strings.Contains(text, pattern) {
@@ -210,6 +255,7 @@ func matchesRule(text string, r rule) bool {
 	return false
 }
 
+// shouldSkipDir 判断扫描时应跳过的目录。
 func shouldSkipDir(name string) bool {
 	switch name {
 	case ".agents", ".claude", ".codex", ".git", ".idea", ".vscode", "node_modules", "vendor", "tmp", "var":
@@ -219,13 +265,17 @@ func shouldSkipDir(name string) bool {
 	}
 }
 
+// allowFrameworkOrBoot 放行框架源码、boot 装配层和 skill 自身。
 func allowFrameworkOrBoot(path string) bool {
 	normalized := filepath.ToSlash(path)
 	return strings.Contains(normalized, "/pkg/") ||
+		strings.Contains(normalized, "/cmd/initra/") ||
 		strings.Contains(normalized, "/internal/boot/") ||
+		strings.Contains(normalized, "/templates/") ||
 		strings.Contains(normalized, "/tools/skills/")
 }
 
+// allowProviderFile 放行 provider 文件中的依赖解析。
 func allowProviderFile(path string) bool {
 	normalized := filepath.ToSlash(path)
 	base := filepath.Base(path)
@@ -234,10 +284,20 @@ func allowProviderFile(path string) bool {
 		strings.HasSuffix(normalized, ".go.tmpl")
 }
 
+// allowFrameworkOrTests 放行框架源码和测试文件。
 func allowFrameworkOrTests(path string) bool {
 	return allowFrameworkOrBoot(path) || strings.HasSuffix(path, "_test.go")
 }
 
+// allowFrameworkOrGenerated 放行模板、生成代码和框架自身。
+func allowFrameworkOrGenerated(path string) bool {
+	normalized := filepath.ToSlash(path)
+	return allowFrameworkOrBoot(path) ||
+		strings.Contains(normalized, "/templates/") ||
+		strings.Contains(normalized, "/internal/data/ent/")
+}
+
+// mustRegexps 编译规则正则表达式。
 func mustRegexps(expressions ...string) []*regexp.Regexp {
 	result := make([]*regexp.Regexp, 0, len(expressions))
 	for _, expression := range expressions {
@@ -246,6 +306,7 @@ func mustRegexps(expressions ...string) []*regexp.Regexp {
 	return result
 }
 
+// exitWithError 输出错误并使用检查失败状态码退出。
 func exitWithError(err error) {
 	fmt.Fprintf(os.Stderr, "initra 用法检查失败: %v\n", err)
 	os.Exit(2)

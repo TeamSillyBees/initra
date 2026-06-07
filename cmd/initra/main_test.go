@@ -163,9 +163,29 @@ func TestSkillCodexCopiesInitraFrameworkSkill(t *testing.T) {
 	require.NoError(t, err)
 	skillDir := filepath.Join(target, ".agents", "skills", "initra-framework")
 	require.FileExists(t, filepath.Join(skillDir, "SKILL.md"))
-	require.FileExists(t, filepath.Join(skillDir, "assets", "capabilities.yaml"))
 	require.FileExists(t, filepath.Join(skillDir, "references", "redisx.md"))
 	require.FileExists(t, filepath.Join(skillDir, "scripts", "check_initra_usage.go"))
+	require.NoDirExists(t, filepath.Join(skillDir, "agents"))
+	require.NoDirExists(t, filepath.Join(skillDir, "assets"))
+	require.NoDirExists(t, filepath.Join(skillDir, "examples"))
+	require.Contains(t, stdout.String(), "created skill")
+}
+
+func TestSkillDefaultCopiesCodexInitraFrameworkSkill(t *testing.T) {
+	target := t.TempDir()
+	t.Chdir(target)
+
+	var stdout bytes.Buffer
+	err := run([]string{"skill"}, &stdout, "dev")
+
+	require.NoError(t, err)
+	skillDir := filepath.Join(target, ".agents", "skills", "initra-framework")
+	require.FileExists(t, filepath.Join(skillDir, "SKILL.md"))
+	require.FileExists(t, filepath.Join(skillDir, "references", "redisx.md"))
+	require.FileExists(t, filepath.Join(skillDir, "scripts", "check_initra_usage.go"))
+	require.NoDirExists(t, filepath.Join(skillDir, "agents"))
+	require.NoDirExists(t, filepath.Join(skillDir, "assets"))
+	require.NoDirExists(t, filepath.Join(skillDir, "examples"))
 	require.Contains(t, stdout.String(), "created skill")
 }
 
@@ -179,9 +199,11 @@ func TestSkillClaudeCodeCopiesInitraFrameworkSkill(t *testing.T) {
 	require.NoError(t, err)
 	skillDir := filepath.Join(target, ".claude", "skills", "initra-framework")
 	require.FileExists(t, filepath.Join(skillDir, "SKILL.md"))
-	require.FileExists(t, filepath.Join(skillDir, "assets", "capabilities.yaml"))
 	require.FileExists(t, filepath.Join(skillDir, "references", "redisx.md"))
 	require.FileExists(t, filepath.Join(skillDir, "scripts", "check_initra_usage.go"))
+	require.NoDirExists(t, filepath.Join(skillDir, "agents"))
+	require.NoDirExists(t, filepath.Join(skillDir, "assets"))
+	require.NoDirExists(t, filepath.Join(skillDir, "examples"))
 	require.Contains(t, stdout.String(), "created skill")
 }
 

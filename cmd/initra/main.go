@@ -499,14 +499,14 @@ func newMigrateHashCommand(stdout io.Writer) *cobra.Command {
 func newSkillCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "skill",
-		Short:         "管理 initra 相关 skill 文档",
-		Long:          "管理 initra 框架相关的 skill 文档，用于在 Codex 或 Claude Code 中复用 initra 的开发约束和辅助脚本。",
-		Example:       "  initra skill codex\n  initra skill cc",
+		Short:         "初始化 initra 框架 skill 文档",
+		Long:          "在当前项目初始化 initra 框架相关的 skill 文档，默认写入 Codex 的 .agents/skills/initra-framework，也可显式写入 Claude Code。",
+		Example:       "  initra skill\n  initra skill codex\n  initra skill cc",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Args:          requireNoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return showCommandHelp(cmd)
+			return initFrameworkSkill(filepath.Join(".agents", "skills", "initra-framework"), cmd.OutOrStdout())
 		},
 	}
 	configureCommand(cmd, stdout)
