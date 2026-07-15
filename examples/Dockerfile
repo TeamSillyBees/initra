@@ -1,21 +1,24 @@
-FROM golang:1.26 AS builder
+FROM golang:1.26.3-bookworm AS builder
 
-WORKDIR /app
+WORKDIR /src
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/initra ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/server ./cmd/server \
+    && mkdir -p /out/var/logs /out/var/uploads
 
-FROM gcr.io/distroless/base-debian12
+FROM gcr.io/distroless/static-debian12:nonroot
 
 WORKDIR /app
 
-COPY --from=builder /out/initra /app/initra
-COPY --from=builder /app/configs /app/configs
-COPY --from=builder /app/db /app/db
+COPY --from=builder --chown=65532:65532 /out/server /app/server
+COPY --from=builder --chown=65532:65532 /out/var /app/var
+COPY --from=builder --chown=65532:65532 /src/configs/rbac_model.conf /app/configs/rbac_model.conf
+COPY --from=builder --chown=65532:65532 /src/configs/rbac_policy.csv /app/configs/rbac_policy.csv
 
 EXPOSE 8080
 
-ENTRYPOINT ["/app/initra"]
+USER 65532:65532
+ENTRYPOINT ["/app/server"]

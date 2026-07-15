@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/redisx"
@@ -25,7 +26,8 @@ func TestRedisTokenStoreUsesRedisxKeyBuilderAndScripts(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 
-	store := NewRedisTokenStoreWithEnv("initra", "dev", client)
+	store, err := NewRedisTokenStoreWithEnv("initra", "dev", client)
+	require.NoError(t, err)
 	record := RefreshTokenRecord{
 		UserID:          idgen.New(1001),
 		AccessTokenID:   "access-1",
@@ -42,18 +44,62 @@ func TestRedisTokenStoreUsesRedisxKeyBuilderAndScripts(t *testing.T) {
 	require.Equal(t, record.UserID, got.UserID)
 	require.Equal(t, record.AccessTokenID, got.AccessTokenID)
 
-	got, ok, err = store.ConsumeRefreshToken(ctx, "refresh-1")
+	replacement := RefreshTokenRecord{
+		UserID:          idgen.New(1001),
+		AccessTokenID:   "access-2",
+		AccessExpiresAt: time.Now().Add(2 * time.Hour),
+	}
+	mismatch := record
+	mismatch.AccessTokenID = "other-access"
+	rotated, err := store.RotateRefreshToken(ctx, "refresh-1", mismatch, "refresh-2", replacement, 2*time.Hour, time.Hour)
+	require.NoError(t, err)
+	require.False(t, rotated)
+	_, ok, err = store.ValidateRefreshToken(ctx, "refresh-1")
 	require.NoError(t, err)
 	require.True(t, ok)
-	require.Equal(t, record.UserID, got.UserID)
+
+	rotated, err = store.RotateRefreshToken(ctx, "refresh-1", record, "refresh-2", replacement, 2*time.Hour, time.Hour)
+	require.NoError(t, err)
+	require.True(t, rotated)
 
 	_, ok, err = store.ValidateRefreshToken(ctx, "refresh-1")
 	require.NoError(t, err)
 	require.False(t, ok)
+	got, ok, err = store.ValidateRefreshToken(ctx, "refresh-2")
+	require.NoError(t, err)
+	require.True(t, ok)
+	require.Equal(t, replacement.UserID, got.UserID)
+	require.Equal(t, replacement.AccessTokenID, got.AccessTokenID)
+	require.True(t, replacement.AccessExpiresAt.Equal(got.AccessExpiresAt))
 
-	require.NoError(t, store.BlacklistAccessToken(ctx, "access-1", time.Hour))
+	rotated, err = store.RotateRefreshToken(ctx, "refresh-1", record, "refresh-3", replacement, time.Hour, time.Hour)
+	require.NoError(t, err)
+	require.False(t, rotated)
+
 	blacklisted, err := store.IsAccessTokenBlacklisted(ctx, "access-1")
 	require.NoError(t, err)
 	require.True(t, blacklisted)
 	require.True(t, server.Exists("initra:dev:auth:blacklist:access-1"))
+
+	canceledCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, _, err = store.ValidateRefreshToken(canceledCtx, "refresh-2")
+	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestRedisTokenStoreRejectsNilClient(t *testing.T) {
+	store, err := NewRedisTokenStore("initra", nil)
+	require.Nil(t, store)
+	require.ErrorContains(t, err, "client 不能为空")
+	var typedNil *redis.Client
+	store, err = NewRedisTokenStore("initra", typedNil)
+	require.Nil(t, store)
+	require.ErrorContains(t, err, "client 不能为空")
+
+	var missing *RedisTokenStore
+	require.Error(t, missing.StoreRefreshToken(context.Background(), "refresh", RefreshTokenRecord{}, time.Hour))
+	_, _, err = missing.ValidateRefreshToken(context.Background(), "refresh")
+	require.Error(t, err)
+	_, err = missing.IsAccessTokenBlacklisted(context.Background(), "access")
+	require.Error(t, err)
 }

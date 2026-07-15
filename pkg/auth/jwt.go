@@ -23,6 +23,8 @@ const TokenTypeAccess = "access"
 // opaqueRefreshTokenBytes 是 refresh token 的随机字节长度，编码后不携带任何用户信息。
 const opaqueRefreshTokenBytes = 32
 
+const minimumJWTSecretBytes = 32
+
 // JWTConfig 描述 JWT 服务的最小配置输入。
 type JWTConfig struct {
 	Issuer          string
@@ -89,8 +91,8 @@ func NewJWTManager(cfg JWTConfig) (*JWTManager, error) {
 	switch {
 	case cfg.Issuer == "":
 		return nil, errors.New("issuer 不能为空")
-	case cfg.Secret == "":
-		return nil, errors.New("secret 不能为空")
+	case len([]byte(strings.TrimSpace(cfg.Secret))) < minimumJWTSecretBytes:
+		return nil, fmt.Errorf("secret 长度不能少于 %d 字节", minimumJWTSecretBytes)
 	case cfg.AccessTokenTTL <= 0:
 		return nil, errors.New("access token ttl 必须大于 0")
 	case cfg.RefreshTokenTTL <= 0:
@@ -114,6 +116,22 @@ func NewJWTManager(cfg JWTConfig) (*JWTManager, error) {
 
 // IssueTokenPair 为指定身份生成 access JWT 与 opaque refresh token。
 func (m *JWTManager) IssueTokenPair(ctx context.Context, principal Principal) (TokenPair, error) {
+	pair, record, err := m.newTokenPair(principal)
+	if err != nil {
+		return TokenPair{}, err
+	}
+	if m.store != nil {
+		if err := m.store.StoreRefreshToken(ctx, refreshTokenFingerprint(pair.RefreshToken), record, m.refreshTokenTTL); err != nil {
+			return TokenPair{}, fmt.Errorf("%w: store refresh token: %v", ErrTokenStoreFailure, err)
+		}
+	}
+	return pair, nil
+}
+
+func (m *JWTManager) newTokenPair(principal Principal) (TokenPair, RefreshTokenRecord, error) {
+	if principal.UserID <= 0 {
+		return TokenPair{}, RefreshTokenRecord{}, fmt.Errorf("%w: user id is missing", ErrTokenInvalid)
+	}
 	now := m.now()
 
 	accessExpiresAt := now.Add(m.accessTokenTTL)
@@ -122,30 +140,26 @@ func (m *JWTManager) IssueTokenPair(ctx context.Context, principal Principal) (T
 	accessTokenID := uuid.NewString()
 	accessToken, err := m.issueWithID(principal, TokenTypeAccess, accessTokenID, accessExpiresAt, now)
 	if err != nil {
-		return TokenPair{}, err
+		return TokenPair{}, RefreshTokenRecord{}, err
 	}
 
 	refreshToken, err := newOpaqueRefreshToken()
 	if err != nil {
-		return TokenPair{}, err
-	}
-	if m.store != nil {
-		record := RefreshTokenRecord{
-			UserID:          principal.UserID,
-			AccessTokenID:   accessTokenID,
-			AccessExpiresAt: accessExpiresAt,
-		}
-		if err := m.store.StoreRefreshToken(ctx, refreshTokenFingerprint(refreshToken), record, refreshExpiresAt.Sub(now)); err != nil {
-			return TokenPair{}, fmt.Errorf("%w: store refresh token: %v", ErrTokenStoreFailure, err)
-		}
+		return TokenPair{}, RefreshTokenRecord{}, err
 	}
 
-	return TokenPair{
+	pair := TokenPair{
 		AccessToken:      accessToken,
 		RefreshToken:     refreshToken,
 		AccessExpiresAt:  accessExpiresAt,
 		RefreshExpiresAt: refreshExpiresAt,
-	}, nil
+	}
+	record := RefreshTokenRecord{
+		UserID:          principal.UserID,
+		AccessTokenID:   accessTokenID,
+		AccessExpiresAt: accessExpiresAt,
+	}
+	return pair, record, nil
 }
 
 // ParseAccessToken 解析并验证访问令牌。
@@ -187,7 +201,41 @@ func (m *JWTManager) ValidateRefreshToken(ctx context.Context, token string) (*R
 	return &record, nil
 }
 
-// ConsumeRefreshToken 原子校验并消费 opaque refresh token，用于 refresh token 轮转场景。
+// RotateRefreshToken 原子地以已校验旧记录替换 refresh token，并吊销配对的旧 access token。
+func (m *JWTManager) RotateRefreshToken(ctx context.Context, token string, expected RefreshTokenRecord, principal Principal) (TokenPair, error) {
+	if m.store == nil {
+		return TokenPair{}, fmt.Errorf("%w: refresh token store is not configured", ErrTokenStoreFailure)
+	}
+	if err := validateRefreshTokenRecord(expected); err != nil {
+		return TokenPair{}, err
+	}
+	if principal.UserID <= 0 || principal.UserID != expected.UserID {
+		return TokenPair{}, fmt.Errorf("%w: refresh token user mismatch", ErrTokenInvalid)
+	}
+
+	pair, replacement, err := m.newTokenPair(principal)
+	if err != nil {
+		return TokenPair{}, err
+	}
+	rotated, err := m.store.RotateRefreshToken(
+		ctx,
+		refreshTokenFingerprint(token),
+		expected,
+		refreshTokenFingerprint(pair.RefreshToken),
+		replacement,
+		m.refreshTokenTTL,
+		expected.AccessExpiresAt.Sub(m.now()),
+	)
+	if err != nil {
+		return TokenPair{}, fmt.Errorf("%w: rotate refresh token: %v", ErrTokenStoreFailure, err)
+	}
+	if !rotated {
+		return TokenPair{}, ErrTokenRevoked
+	}
+	return pair, nil
+}
+
+// ConsumeRefreshToken 原子消费 opaque refresh token；需要签发替代 token 时应使用 RotateRefreshToken。
 func (m *JWTManager) ConsumeRefreshToken(ctx context.Context, token string) (*RefreshTokenRecord, error) {
 	if m.store == nil {
 		return nil, fmt.Errorf("%w: refresh token store is not configured", ErrTokenStoreFailure)
@@ -256,6 +304,9 @@ func (m *JWTManager) issue(principal Principal, tokenType string, expiresAt, now
 
 // issueWithID 根据统一 Claims 结构签发指定类型 token，并使用调用方提供的 jti。
 func (m *JWTManager) issueWithID(principal Principal, tokenType string, tokenID string, expiresAt, now time.Time) (string, error) {
+	if principal.UserID <= 0 {
+		return "", fmt.Errorf("%w: user id is missing", ErrTokenInvalid)
+	}
 	claims := Claims{
 		UserID:    principal.UserID,
 		Roles:     append([]string(nil), principal.Roles...),
@@ -332,6 +383,9 @@ func (m *JWTManager) parse(token string, expectedType string) (*Claims, error) {
 	}
 	if claims.ID == "" {
 		return nil, fmt.Errorf("%w: token id is missing", ErrTokenInvalid)
+	}
+	if claims.UserID <= 0 {
+		return nil, fmt.Errorf("%w: user id is missing", ErrTokenInvalid)
 	}
 	if claims.Subject != claims.UserID.String() {
 		return nil, fmt.Errorf("%w: token subject mismatch", ErrTokenInvalid)

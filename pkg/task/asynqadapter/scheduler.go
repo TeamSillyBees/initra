@@ -151,6 +151,7 @@ func (p *staticConfigProvider) add(config *asynq.PeriodicTaskConfig) {
 	p.configs = append(p.configs, config)
 }
 
+// GetConfigs 返回当前周期任务配置的并发安全副本，供 Asynq 调度器读取。
 func (p *staticConfigProvider) GetConfigs() ([]*asynq.PeriodicTaskConfig, error) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()

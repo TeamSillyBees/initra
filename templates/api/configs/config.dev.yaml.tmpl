@@ -1,8 +1,11 @@
 app:
   instance_id: dev-1
 
+server:
+  addr: "127.0.0.1:8080"
+
 database:
-  dbname: "initra_dev"
+  dbname: "{{ .AppSlug }}_dev"
   max_open_conns: 30
 
 redis:
@@ -10,7 +13,7 @@ redis:
 
 auth:
   jwt:
-    secret: "change-me-dev"
+    secret: "{{ .DevJWTSecret }}"
 
 idgen:
   node: 1

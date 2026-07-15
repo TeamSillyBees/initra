@@ -33,7 +33,8 @@ type passwordVerifier interface {
 // tokenManager 定义 auth 模块依赖的令牌能力。
 type tokenManager interface {
 	IssueTokenPair(ctx context.Context, principal platformauth.Principal) (platformauth.TokenPair, error)
-	ConsumeRefreshToken(ctx context.Context, token string) (*platformauth.RefreshTokenRecord, error)
+	ValidateRefreshToken(ctx context.Context, token string) (*platformauth.RefreshTokenRecord, error)
+	RotateRefreshToken(ctx context.Context, token string, expected platformauth.RefreshTokenRecord, principal platformauth.Principal) (platformauth.TokenPair, error)
 }
 
 // Service 是 auth 模块的应用服务，直接通过 Ent Client 操作数据库。
@@ -90,10 +91,10 @@ func (s *Service) Refresh(ctx context.Context, body RefreshBody) (RefreshVO, err
 		return RefreshVO{}, bizerrors.BadRequest("refresh token is required")
 	}
 
-	record, err := s.tokens.ConsumeRefreshToken(ctx, body.RefreshToken)
+	record, err := s.tokens.ValidateRefreshToken(ctx, body.RefreshToken)
 	if err != nil {
 		if errors.Is(err, platformauth.ErrTokenStoreFailure) {
-			return RefreshVO{}, bizerrors.WrapInternalContext(ctx, err, "consume refresh token failed")
+			return RefreshVO{}, bizerrors.WrapInternalContext(ctx, err, "validate refresh token failed")
 		}
 		return RefreshVO{}, bizerrors.Unauthorized("refresh token is invalid")
 	}
@@ -106,12 +107,15 @@ func (s *Service) Refresh(ctx context.Context, body RefreshBody) (RefreshVO, err
 		return RefreshVO{}, bizerrors.Unauthorized("refresh token is invalid")
 	}
 
-	tokenPair, err := s.tokens.IssueTokenPair(ctx, platformauth.Principal{
+	tokenPair, err := s.tokens.RotateRefreshToken(ctx, body.RefreshToken, *record, platformauth.Principal{
 		UserID: identity.UserID,
 		Roles:  append([]string(nil), identity.RoleCodes...),
 	})
 	if err != nil {
-		return RefreshVO{}, bizerrors.WrapInternalContext(ctx, err, "issue token failed")
+		if errors.Is(err, platformauth.ErrTokenStoreFailure) {
+			return RefreshVO{}, bizerrors.WrapInternalContext(ctx, err, "rotate refresh token failed")
+		}
+		return RefreshVO{}, bizerrors.Unauthorized("refresh token is invalid")
 	}
 
 	return RefreshVO{

@@ -96,11 +96,13 @@ type RetryConfig struct {
 	MaxWaitTime      time.Duration `mapstructure:"max_wait_time"`
 	RetryStatusCodes []int         `mapstructure:"retry_status_codes"`
 	RetryMethods     []string      `mapstructure:"retry_methods"`
+	RetryAll5xx      bool          `mapstructure:"retry_all_5xx"`
 }
 
 // ResponseConfig 描述远程服务响应解析配置。
 type ResponseConfig struct {
-	Type ResponseType `mapstructure:"type"`
+	Type             ResponseType `mapstructure:"type"`
+	ErrorBodyPreview bool         `mapstructure:"error_body_preview"`
 }
 
 // Validate 校验 HTTP Client 配置。

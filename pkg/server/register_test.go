@@ -15,7 +15,7 @@ func TestRegisterProvidesApp(t *testing.T) {
 	injector := do.New()
 	manager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
 		Issuer:          "initra",
-		Secret:          "server-register-test-secret",
+		Secret:          "server-register-test-secret-32-bytes",
 		AccessTokenTTL:  time.Minute,
 		RefreshTokenTTL: time.Hour,
 	})

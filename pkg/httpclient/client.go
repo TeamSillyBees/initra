@@ -270,7 +270,7 @@ func (c *Client) do(ctx context.Context, method string, path string, body any, o
 			URL:        safeErrorURL(resp.Request.URL),
 			StatusCode: statusCode,
 			Code:       fmt.Sprint(statusCode),
-			Message:    responseMessage(resp),
+			Message:    responseMessage(resp, c.config.Response.ErrorBodyPreview),
 		}
 		c.logRequest(requestCtx, method, path, options.Headers, statusCode, duration, httpErr)
 		return nil, httpErr
@@ -382,9 +382,12 @@ func (c *Client) closeIdleConnections() {
 	c.resty.GetClient().CloseIdleConnections()
 }
 
-func responseMessage(resp *resty.Response) string {
+func responseMessage(resp *resty.Response, includeBody bool) string {
 	if resp == nil {
 		return ""
+	}
+	if !includeBody {
+		return resp.Status()
 	}
 	body := strings.TrimSpace(string(resp.Body()))
 	if body == "" {

@@ -295,6 +295,48 @@ func TestClientRetryGetAndIdempotentPostOnly(t *testing.T) {
 	require.Equal(t, int32(2), atomic.LoadInt32(&idempotentPostAttempts))
 }
 
+func TestClientRetryRespectsConfiguredStatusCodes(t *testing.T) {
+	tests := []struct {
+		name          string
+		retryAll5xx   bool
+		wantAttempts  int32
+		wantRequestOK bool
+	}{
+		{name: "unlisted 5xx is not retried", wantAttempts: 1},
+		{name: "all 5xx opt-in retries", retryAll5xx: true, wantAttempts: 2, wantRequestOK: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var attempts int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if atomic.AddInt32(&attempts, 1) == 1 {
+					http.Error(w, "retry candidate", http.StatusNotImplemented)
+					return
+				}
+				writeJSON(t, w, map[string]string{"ok": "true"})
+			}))
+			defer server.Close()
+
+			client := newTestClient(t, server.URL, ServiceConfig{Retry: RetryConfig{
+				Enabled:          true,
+				Count:            1,
+				WaitTime:         time.Millisecond,
+				MaxWaitTime:      time.Millisecond,
+				RetryStatusCodes: []int{http.StatusBadGateway},
+				RetryAll5xx:      tt.retryAll5xx,
+			}})
+			_, err := client.Get(context.Background(), "/retry")
+			if tt.wantRequestOK {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+			}
+			require.Equal(t, tt.wantAttempts, atomic.LoadInt32(&attempts))
+		})
+	}
+}
+
 func TestClientTimeoutReturnsRequestError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(50 * time.Millisecond)
@@ -386,6 +428,53 @@ func TestClientLogsWithoutSensitiveHeaders(t *testing.T) {
 	require.NotContains(t, body, "secret")
 }
 
+func TestClientErrorBodyPreviewIsOptIn(t *testing.T) {
+	const marker = "remote-debug-marker"
+	tests := []struct {
+		name        string
+		includeBody bool
+	}{
+		{name: "default hides body"},
+		{name: "explicit preview includes body", includeBody: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logger, logPath := newHTTPClientTestLogger(t)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				http.Error(w, marker, http.StatusBadGateway)
+			}))
+			defer server.Close()
+
+			factory, err := NewFactory(Config{
+				Enabled: true,
+				Services: map[string]ServiceConfig{
+					"svc": {
+						BaseURL:  server.URL,
+						Response: ResponseConfig{ErrorBodyPreview: tt.includeBody},
+					},
+				},
+			}, logger)
+			require.NoError(t, err)
+			client, err := factory.Get("svc")
+			require.NoError(t, err)
+
+			_, err = client.Get(context.Background(), "/failure")
+			var httpErr *Error
+			require.ErrorAs(t, err, &httpErr)
+			require.NoError(t, logger.Sync())
+			logBody := readHTTPClientLogFile(t, logPath)
+			if tt.includeBody {
+				require.Contains(t, httpErr.Message, marker)
+				require.Contains(t, logBody, marker)
+			} else {
+				require.Equal(t, "502 Bad Gateway", httpErr.Message)
+				require.NotContains(t, logBody, marker)
+			}
+		})
+	}
+}
+
 func newTestClient(t *testing.T, baseURL string, override ServiceConfig) *Client {
 	t.Helper()
 	factory := newTestFactory(t, baseURL, override)
@@ -418,6 +507,7 @@ func newHTTPClientTestLogger(t *testing.T) (*logx.Logger, string) {
 		Redact:  logx.RedactConfig{Enabled: true},
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, logger.Close()) })
 	return logger, path
 }
 

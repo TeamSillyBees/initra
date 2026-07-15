@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -79,6 +80,9 @@ func UnlinkByPrefix(ctx context.Context, client redis.Cmdable, opts ScanOptions)
 func (o ScanOptions) validate() error {
 	if o.Prefix == "" {
 		return fmt.Errorf("redis scan prefix 不能为空")
+	}
+	if strings.ContainsAny(o.Prefix, "*?[]\\") {
+		return fmt.Errorf("redis scan prefix %q 不能包含 glob 元字符", o.Prefix)
 	}
 	if o.MaxKeys <= 0 {
 		return fmt.Errorf("redis scan maxKeys 必须大于 0")

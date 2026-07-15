@@ -39,6 +39,7 @@ func TestLoggerErrorSplitsConsoleAndJSONLFields(t *testing.T) {
 		Redact: RedactConfig{Enabled: true},
 	}.Normalize())
 	require.NoError(t, err)
+	closeLoggerOnCleanup(t, logger)
 
 	err = apperrors.Wrap(errors.New("driver: duplicate key"), apperrors.CodeDBError, "create user failed",
 		apperrors.WithCauseTrace("trace-1"),
@@ -86,6 +87,7 @@ func TestLoggerInfoRedactsFields(t *testing.T) {
 		Redact:  RedactConfig{Enabled: true},
 	}.Normalize())
 	require.NoError(t, err)
+	closeLoggerOnCleanup(t, logger)
 
 	logger.Info(context.Background(), "config loaded", String("authorization", "Bearer secret-token"))
 	require.NoError(t, logger.Sync())
@@ -104,6 +106,7 @@ func TestLoggerJSONLCallerSkipsLogxWrappers(t *testing.T) {
 		Redact:  RedactConfig{Enabled: true},
 	}.Normalize())
 	require.NoError(t, err)
+	closeLoggerOnCleanup(t, logger)
 
 	logger.Info(context.Background(), "caller probe")
 	logger.Error(context.Background(), "error caller probe", errors.New("boom"))
@@ -129,6 +132,7 @@ func TestNewLoggerWritesJSONLToStdout(t *testing.T) {
 			Redact:  RedactConfig{Enabled: true},
 		}.Normalize())
 		require.NoError(t, err)
+		closeLoggerOnCleanup(t, logger)
 
 		logger.Info(context.Background(), "stdout jsonl", String("operation", "StdoutProbe"))
 		require.NoError(t, logger.Sync())
@@ -163,6 +167,7 @@ func TestNewLoggerCreatesJSONLParentDirectory(t *testing.T) {
 		Redact:  RedactConfig{Enabled: true},
 	}.Normalize())
 	require.NoError(t, err)
+	closeLoggerOnCleanup(t, logger)
 
 	logger.Info(context.Background(), "jsonl ready", String("operation", "CreateParent"))
 	require.NoError(t, logger.Sync())
@@ -189,6 +194,7 @@ func TestNewLoggerWritesJSONLDateRotatedFile(t *testing.T) {
 		Redact: RedactConfig{Enabled: true},
 	}.Normalize())
 	require.NoError(t, err)
+	closeLoggerOnCleanup(t, logger)
 
 	logger.Info(context.Background(), "rotated by date")
 	require.NoError(t, logger.Sync())
@@ -218,6 +224,7 @@ func TestNewLoggerSplitsJSONLBySize(t *testing.T) {
 		Redact: RedactConfig{Enabled: true},
 	}.Normalize())
 	require.NoError(t, err)
+	closeLoggerOnCleanup(t, logger)
 
 	payload := strings.Repeat("x", 700*1024)
 	logger.Info(context.Background(), "large one", String("payload", payload))
@@ -233,12 +240,56 @@ func TestNewLoggerSplitsJSONLBySize(t *testing.T) {
 	require.Contains(t, readFile(t, secondPath), `"msg":"large two"`)
 }
 
+func TestLoggerSyncDoesNotCloseSharedSink(t *testing.T) {
+	jsonlPath := filepath.Join(t.TempDir(), "app.jsonl")
+	logger, err := NewLogger(Config{
+		Console: ConsoleConfig{Enabled: false},
+		JSONL:   JSONLConfig{Enabled: true, Level: "debug", Path: jsonlPath},
+		Redact:  RedactConfig{Enabled: true},
+	}.Normalize())
+	require.NoError(t, err)
+	closeLoggerOnCleanup(t, logger)
+
+	derived := logger.With(String("component", "derived"))
+	derived.Info(context.Background(), "before sync")
+	require.NoError(t, derived.Sync())
+	logger.Info(context.Background(), "after sync")
+	require.NoError(t, logger.Sync())
+
+	body := readFile(t, jsonlPath)
+	require.Contains(t, body, `"msg":"before sync"`)
+	require.Contains(t, body, `"msg":"after sync"`)
+}
+
+func TestLoggerCloseAndShutdownAreIdempotent(t *testing.T) {
+	jsonlPath := filepath.Join(t.TempDir(), "app.jsonl")
+	logger, err := NewLogger(Config{
+		Console: ConsoleConfig{Enabled: false},
+		JSONL:   JSONLConfig{Enabled: true, Level: "debug", Path: jsonlPath},
+		Redact:  RedactConfig{Enabled: true},
+	}.Normalize())
+	require.NoError(t, err)
+
+	logger.Info(context.Background(), "before close")
+	require.NoError(t, logger.Close())
+	require.NoError(t, logger.Close())
+	require.NoError(t, logger.Shutdown())
+	require.Contains(t, readFile(t, jsonlPath), `"msg":"before close"`)
+}
+
 // readFile 读取测试日志文件内容。
 func readFile(t *testing.T, path string) string {
 	t.Helper()
 	content, err := os.ReadFile(path)
 	require.NoError(t, err)
 	return string(content)
+}
+
+func closeLoggerOnCleanup(t *testing.T, logger *Logger) {
+	t.Helper()
+	t.Cleanup(func() {
+		require.NoError(t, logger.Close())
+	})
 }
 
 // captureStdout 捕获函数执行期间写入标准输出的内容。

@@ -11,7 +11,7 @@ const (
 )
 
 // Provide 使用 do 注册 file 示例模块依赖。
-func Provide(injector *do.Injector) {
+func Provide(injector *do.Injector, maxFileSize int64) {
 	do.ProvideNamed(injector, fileServiceServiceName, func(i *do.Injector) (*Service, error) {
 		storageService := do.MustInvoke[platformstorage.Service](i)
 		return NewService(storageService), nil
@@ -22,6 +22,6 @@ func Provide(injector *do.Injector) {
 	})
 	do.Provide(injector, func(i *do.Injector) (*Module, error) {
 		handler := do.MustInvokeNamed[*Handler](i, fileHandlerServiceName)
-		return NewModule(handler), nil
+		return NewModule(handler, maxFileSize), nil
 	})
 }

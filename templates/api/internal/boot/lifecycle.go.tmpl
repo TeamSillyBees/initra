@@ -122,8 +122,8 @@ func (a *Application) Shutdown(ctx context.Context) error {
 		}
 	}
 	if a.Logger != nil {
-		if err := a.Logger.Sync(); err != nil {
-			errs = append(errs, fmt.Errorf("sync logger: %w", err))
+		if err := a.Logger.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("close logger: %w", err))
 		}
 	}
 

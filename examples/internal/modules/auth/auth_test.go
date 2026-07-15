@@ -86,6 +86,33 @@ func (f *fakeTokenStore) ConsumeRefreshToken(_ context.Context, tokenID string) 
 	return record, true, nil
 }
 
+func (f *fakeTokenStore) RotateRefreshToken(
+	_ context.Context,
+	oldTokenID string,
+	expected platformauth.RefreshTokenRecord,
+	newTokenID string,
+	replacement platformauth.RefreshTokenRecord,
+	ttl time.Duration,
+	blacklistTTL time.Duration,
+) (bool, error) {
+	if !f.refreshValid || f.storedRefreshTokenID != oldTokenID ||
+		f.storedRefreshRecord.UserID != expected.UserID ||
+		f.storedRefreshRecord.AccessTokenID != expected.AccessTokenID ||
+		!f.storedRefreshRecord.AccessExpiresAt.Equal(expected.AccessExpiresAt) {
+		return false, nil
+	}
+	f.revokedRefreshIDs = append(f.revokedRefreshIDs, oldTokenID)
+	f.storedRefreshTokenID = newTokenID
+	f.storedRefreshRecord = replacement
+	f.storedRefreshTTL = ttl
+	if blacklistTTL > 0 {
+		f.blacklistedTokenID = expected.AccessTokenID
+		f.blacklistedTTL = blacklistTTL
+		f.accessBlacklisted = true
+	}
+	return true, nil
+}
+
 func (f *fakeTokenStore) RevokeRefreshToken(_ context.Context, tokenID string) error {
 	f.revokedRefreshIDs = append(f.revokedRefreshIDs, tokenID)
 	if f.storedRefreshTokenID == tokenID {
@@ -109,7 +136,7 @@ func TestServiceLoginReturnsTokenPairForValidCredentials(t *testing.T) {
 	store := &fakeTokenStore{refreshValid: true}
 	tokenManager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
 		Issuer:          "initra",
-		Secret:          "auth-test-secret",
+		Secret:          "auth-test-secret-0123456789abcdef",
 		AccessTokenTTL:  time.Hour,
 		RefreshTokenTTL: 24 * time.Hour,
 		Store:           store,
@@ -147,7 +174,7 @@ func TestServiceRefreshIssuesNewAccessToken(t *testing.T) {
 	store := &fakeTokenStore{refreshValid: true}
 	tokenManager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
 		Issuer:          "initra",
-		Secret:          "auth-test-secret",
+		Secret:          "auth-test-secret-0123456789abcdef",
 		AccessTokenTTL:  time.Hour,
 		RefreshTokenTTL: 24 * time.Hour,
 		Store:           store,
@@ -168,7 +195,7 @@ func TestServiceRefreshIssuesNewAccessToken(t *testing.T) {
 	service := NewService(client, fakePasswordVerifier{}, tokenManager)
 	pair, err := tokenManager.IssueTokenPair(context.Background(), platformauth.Principal{
 		UserID: idgen.New(1001),
-		Roles:  []string{"admin"},
+		Roles:  []string{"old-role"},
 	})
 	require.NoError(t, err)
 
@@ -180,11 +207,39 @@ func TestServiceRefreshIssuesNewAccessToken(t *testing.T) {
 	claims, err := tokenManager.ParseAccessToken(context.Background(), vo.AccessToken)
 	require.NoError(t, err)
 	require.Equal(t, idgen.New(1001), claims.UserID)
+	require.Equal(t, []string{"admin"}, claims.Roles)
 
 	_, err = tokenManager.ValidateRefreshToken(context.Background(), pair.RefreshToken)
 	require.Error(t, err)
 
 	_, err = tokenManager.ValidateRefreshToken(context.Background(), vo.RefreshToken)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestServiceRefreshDoesNotConsumeTokenWhenUserLookupFails(t *testing.T) {
+	store := &fakeTokenStore{refreshValid: true}
+	tokenManager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
+		Issuer:          "initra",
+		Secret:          "auth-test-secret-0123456789abcdef",
+		AccessTokenTTL:  time.Hour,
+		RefreshTokenTTL: 24 * time.Hour,
+		Store:           store,
+	})
+	require.NoError(t, err)
+
+	db, mock, client := newMockEntClient(t)
+	defer db.Close()
+	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
+		WillReturnRows(sysUserRows())
+
+	service := NewService(client, fakePasswordVerifier{}, tokenManager)
+	pair, err := tokenManager.IssueTokenPair(context.Background(), platformauth.Principal{UserID: idgen.New(1001)})
+	require.NoError(t, err)
+
+	_, err = service.Refresh(context.Background(), RefreshBody{RefreshToken: pair.RefreshToken})
+	require.Error(t, err)
+	_, err = tokenManager.ValidateRefreshToken(context.Background(), pair.RefreshToken)
 	require.NoError(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }

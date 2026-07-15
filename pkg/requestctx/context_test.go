@@ -85,8 +85,36 @@ func TestRequestMetadataExtraction(t *testing.T) {
 	require.Equal(t, "zh-CN", requestctx.Language(req, "X-Language"))
 	require.Equal(t, "https://app.example.com", requestctx.Origin(req))
 	require.Equal(t, "api.example.com", requestctx.Host(req))
+	require.Equal(t, "http", requestctx.Scheme(req))
+	require.Equal(t, "http://api.example.com", requestctx.BaseURL(req))
+}
+
+func TestForwardedMetadataRequiresTrustedProxy(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "10.0.0.2:12345"
+	req.Host = "internal.example.com"
+	req.Header.Set("Forwarded", `for=203.0.113.9;proto=https;host=api.example.com`)
+
+	require.Equal(t, "internal.example.com", requestctx.Host(req))
+	require.Equal(t, "http", requestctx.Scheme(req))
+	require.Equal(t, "http://internal.example.com", requestctx.BaseURL(req))
+
+	req = req.WithContext(requestctx.WithTrustedProxies(req.Context(), "10.0.0.0/8"))
+	require.Equal(t, "api.example.com", requestctx.Host(req))
 	require.Equal(t, "https", requestctx.Scheme(req))
 	require.Equal(t, "https://api.example.com", requestctx.BaseURL(req))
+}
+
+func TestForwardedMetadataRejectsInvalidProtoAndHost(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "10.0.0.2:12345"
+	req.Host = "internal.example.com:8080"
+	req.Header.Set("X-Forwarded-Host", "evil.example.com/path")
+	req.Header.Set("X-Forwarded-Proto", "javascript")
+
+	require.Equal(t, "internal.example.com:8080", requestctx.Host(req, "10.0.0.0/8"))
+	require.Equal(t, "http", requestctx.Scheme(req, "10.0.0.0/8"))
+	require.Equal(t, "http://internal.example.com:8080", requestctx.BaseURL(req, "10.0.0.0/8"))
 }
 
 func TestFormParamDoesNotFallBackToQuery(t *testing.T) {
@@ -136,6 +164,15 @@ func TestClientIPUsesForwardedHeadersFromTrustedProxy(t *testing.T) {
 			require.Equal(t, tt.want, requestctx.ClientIP(req, "10.0.0.0/8"))
 		})
 	}
+}
+
+func TestClientIPUsesTrustedProxiesFromContext(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "10.0.0.2:12345"
+	req.Header.Set("X-Forwarded-For", "203.0.113.9")
+	req = req.WithContext(requestctx.WithTrustedProxies(req.Context(), "10.0.0.0/8"))
+
+	require.Equal(t, "203.0.113.9", requestctx.ClientIP(req))
 }
 
 func TestClientIPIgnoresForwardedHeadersFromUntrustedPeer(t *testing.T) {

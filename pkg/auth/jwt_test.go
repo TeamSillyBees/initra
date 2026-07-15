@@ -62,6 +62,31 @@ func (f *fakeTokenStore) ConsumeRefreshToken(_ context.Context, tokenID string) 
 	return record, true, nil
 }
 
+// RotateRefreshToken 模拟 refresh token 的原子校验、替换和旧 access token 吊销。
+func (f *fakeTokenStore) RotateRefreshToken(
+	_ context.Context,
+	oldTokenID string,
+	expected RefreshTokenRecord,
+	newTokenID string,
+	replacement RefreshTokenRecord,
+	ttl time.Duration,
+	blacklistTTL time.Duration,
+) (bool, error) {
+	if !f.refreshValid || f.storedRefreshTokenID != oldTokenID || !sameRefreshTokenRecord(f.storedRefreshRecord, expected) {
+		return false, nil
+	}
+	f.revokedRefreshIDs = append(f.revokedRefreshIDs, oldTokenID)
+	f.storedRefreshTokenID = newTokenID
+	f.storedRefreshRecord = replacement
+	f.storedRefreshTTL = ttl
+	if blacklistTTL > 0 {
+		f.blacklistedTokenID = expected.AccessTokenID
+		f.blacklistedTTL = blacklistTTL
+		f.accessBlacklisted = true
+	}
+	return true, nil
+}
+
 // BlacklistAccessToken 记录 access token 黑名单写入参数。
 func (f *fakeTokenStore) BlacklistAccessToken(_ context.Context, tokenID string, ttl time.Duration) error {
 	f.blacklistedTokenID = tokenID
@@ -98,12 +123,37 @@ func TestWithPrincipalInjectsRequestContextUserValues(t *testing.T) {
 	require.Equal(t, "trace-1", traceID)
 }
 
+func TestNewJWTManagerRejectsShortSecret(t *testing.T) {
+	manager, err := NewJWTManager(JWTConfig{
+		Issuer:          "initra",
+		Secret:          "too-short",
+		AccessTokenTTL:  time.Hour,
+		RefreshTokenTTL: 24 * time.Hour,
+	})
+
+	require.Nil(t, manager)
+	require.ErrorContains(t, err, "32 字节")
+}
+
+func TestJWTManagerRejectsZeroUserIDWhenIssuing(t *testing.T) {
+	manager, err := NewJWTManager(JWTConfig{
+		Issuer:          "initra",
+		Secret:          "unit-test-secret-0123456789abcdef",
+		AccessTokenTTL:  time.Hour,
+		RefreshTokenTTL: 24 * time.Hour,
+	})
+	require.NoError(t, err)
+
+	_, err = manager.IssueTokenPair(context.Background(), Principal{})
+	require.ErrorIs(t, err, ErrTokenInvalid)
+}
+
 // TestJWTManagerIssuesAndParsesTokens 验证 token pair 能正常签发、解析并缓存 refresh token。
 func TestJWTManagerIssuesAndParsesTokens(t *testing.T) {
 	store := &fakeTokenStore{refreshValid: true}
 	manager, err := NewJWTManager(JWTConfig{
 		Issuer:          "initra",
-		Secret:          "unit-test-secret",
+		Secret:          "unit-test-secret-0123456789abcdef",
 		AccessTokenTTL:  time.Hour,
 		RefreshTokenTTL: 24 * time.Hour,
 		Store:           store,
@@ -140,7 +190,7 @@ func TestJWTManagerIssuesAndParsesTokens(t *testing.T) {
 func TestJWTManagerRejectsExpiredAccessToken(t *testing.T) {
 	manager, err := NewJWTManager(JWTConfig{
 		Issuer:          "initra",
-		Secret:          "unit-test-secret",
+		Secret:          "unit-test-secret-0123456789abcdef",
 		AccessTokenTTL:  time.Hour,
 		RefreshTokenTTL: 24 * time.Hour,
 	})
@@ -157,7 +207,7 @@ func TestJWTManagerRejectsExpiredAccessToken(t *testing.T) {
 func TestJWTManagerRejectsAccessTokenWithoutExpiration(t *testing.T) {
 	manager, err := NewJWTManager(JWTConfig{
 		Issuer:          "initra",
-		Secret:          "unit-test-secret",
+		Secret:          "unit-test-secret-0123456789abcdef",
 		AccessTokenTTL:  time.Hour,
 		RefreshTokenTTL: 24 * time.Hour,
 	})
@@ -172,11 +222,39 @@ func TestJWTManagerRejectsAccessTokenWithoutExpiration(t *testing.T) {
 			ID:      "token-without-exp",
 		},
 	}
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("unit-test-secret"))
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("unit-test-secret-0123456789abcdef"))
 	require.NoError(t, err)
 
 	_, err = manager.ParseAccessToken(context.Background(), token)
 	require.Error(t, err)
+}
+
+func TestJWTManagerRejectsAccessTokenWithZeroUserID(t *testing.T) {
+	now := time.Now()
+	manager, err := NewJWTManager(JWTConfig{
+		Issuer:          "initra",
+		Secret:          "unit-test-secret-0123456789abcdef",
+		AccessTokenTTL:  time.Hour,
+		RefreshTokenTTL: 24 * time.Hour,
+		Now:             func() time.Time { return now },
+	})
+	require.NoError(t, err)
+
+	claims := Claims{
+		TokenType: TokenTypeAccess,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    "initra",
+			Subject:   "0",
+			ID:        "zero-user-token",
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(time.Hour)),
+		},
+	}
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("unit-test-secret-0123456789abcdef"))
+	require.NoError(t, err)
+
+	_, err = manager.ParseAccessToken(context.Background(), token)
+	require.ErrorIs(t, err, ErrTokenInvalid)
 }
 
 // TestJWTManagerRejectsBlacklistedAccessToken 验证服务端黑名单可以主动吊销 access token。
@@ -184,7 +262,7 @@ func TestJWTManagerRejectsBlacklistedAccessToken(t *testing.T) {
 	store := &fakeTokenStore{refreshValid: true}
 	manager, err := NewJWTManager(JWTConfig{
 		Issuer:          "initra",
-		Secret:          "unit-test-secret",
+		Secret:          "unit-test-secret-0123456789abcdef",
 		AccessTokenTTL:  time.Hour,
 		RefreshTokenTTL: 24 * time.Hour,
 		Store:           store,
@@ -208,7 +286,7 @@ func TestJWTManagerRejectsRefreshTokenMissingFromStore(t *testing.T) {
 	store := &fakeTokenStore{refreshValid: false}
 	manager, err := NewJWTManager(JWTConfig{
 		Issuer:          "initra",
-		Secret:          "unit-test-secret",
+		Secret:          "unit-test-secret-0123456789abcdef",
 		AccessTokenTTL:  time.Hour,
 		RefreshTokenTTL: 24 * time.Hour,
 		Store:           store,
@@ -228,7 +306,7 @@ func TestJWTManagerConsumeRefreshTokenRevokesPairedAccessToken(t *testing.T) {
 	store := &fakeTokenStore{refreshValid: true}
 	manager, err := NewJWTManager(JWTConfig{
 		Issuer:          "initra",
-		Secret:          "unit-test-secret",
+		Secret:          "unit-test-secret-0123456789abcdef",
 		AccessTokenTTL:  time.Hour,
 		RefreshTokenTTL: 24 * time.Hour,
 		Store:           store,
@@ -253,12 +331,41 @@ func TestJWTManagerConsumeRefreshTokenRevokesPairedAccessToken(t *testing.T) {
 	require.ErrorIs(t, err, ErrTokenRevoked)
 }
 
+func TestJWTManagerRotatesRefreshTokenAtomically(t *testing.T) {
+	now := time.Now().Add(-30 * time.Minute)
+	store := &fakeTokenStore{refreshValid: true}
+	manager, err := NewJWTManager(JWTConfig{
+		Issuer:          "initra",
+		Secret:          "unit-test-secret-0123456789abcdef",
+		AccessTokenTTL:  time.Hour,
+		RefreshTokenTTL: 24 * time.Hour,
+		Store:           store,
+		Now:             func() time.Time { return now },
+	})
+	require.NoError(t, err)
+
+	oldPair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001)})
+	require.NoError(t, err)
+	expected, err := manager.ValidateRefreshToken(context.Background(), oldPair.RefreshToken)
+	require.NoError(t, err)
+
+	newPair, err := manager.RotateRefreshToken(context.Background(), oldPair.RefreshToken, *expected, Principal{UserID: idgen.New(1001)})
+	require.NoError(t, err)
+	require.NotEmpty(t, newPair.RefreshToken)
+	_, err = manager.ValidateRefreshToken(context.Background(), oldPair.RefreshToken)
+	require.ErrorIs(t, err, ErrTokenRevoked)
+	_, err = manager.ValidateRefreshToken(context.Background(), newPair.RefreshToken)
+	require.NoError(t, err)
+	_, err = manager.ParseAccessToken(context.Background(), oldPair.AccessToken)
+	require.ErrorIs(t, err, ErrTokenRevoked)
+}
+
 // TestJWTManagerBlacklistAccessTokenStoresRemainingTTL 验证黑名单 TTL 使用 access token 剩余有效期。
 func TestJWTManagerBlacklistAccessTokenStoresRemainingTTL(t *testing.T) {
 	store := &fakeTokenStore{refreshValid: true}
 	manager, err := NewJWTManager(JWTConfig{
 		Issuer:          "initra",
-		Secret:          "unit-test-secret",
+		Secret:          "unit-test-secret-0123456789abcdef",
 		AccessTokenTTL:  time.Hour,
 		RefreshTokenTTL: 24 * time.Hour,
 		Store:           store,
@@ -280,7 +387,7 @@ func TestJWTManagerUsesInjectedClockForRefreshTTL(t *testing.T) {
 	store := &fakeTokenStore{refreshValid: true}
 	manager, err := NewJWTManager(JWTConfig{
 		Issuer:          "initra",
-		Secret:          "unit-test-secret",
+		Secret:          "unit-test-secret-0123456789abcdef",
 		AccessTokenTTL:  time.Hour,
 		RefreshTokenTTL: 24 * time.Hour,
 		Store:           store,
@@ -302,7 +409,7 @@ func TestJWTManagerUsesInjectedClockForBlacklistTTL(t *testing.T) {
 	store := &fakeTokenStore{refreshValid: true}
 	manager, err := NewJWTManager(JWTConfig{
 		Issuer:          "initra",
-		Secret:          "unit-test-secret",
+		Secret:          "unit-test-secret-0123456789abcdef",
 		AccessTokenTTL:  time.Hour,
 		RefreshTokenTTL: 24 * time.Hour,
 		Store:           store,

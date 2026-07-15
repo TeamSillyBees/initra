@@ -3,7 +3,6 @@ package entx
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"entgo.io/ent"
@@ -13,10 +12,8 @@ import (
 
 type fakeMutation struct {
 	ent.Mutation
-	op         ent.Op
-	fields     map[string]ent.Value
-	unknown    map[string]bool
-	typeErrors map[string]bool
+	op     ent.Op
+	fields map[string]ent.Value
 }
 
 func newFakeMutation(op ent.Op) *fakeMutation {
@@ -35,15 +32,21 @@ func (m *fakeMutation) Field(name string) (ent.Value, bool) {
 	return value, ok
 }
 
-func (m *fakeMutation) SetField(name string, value ent.Value) error {
-	if m.unknown[name] {
-		return fmt.Errorf("unknown fieldx %q", name)
-	}
-	if m.typeErrors[name] {
-		return fmt.Errorf("unexpected type %T for fieldx %s", value, name)
-	}
-	m.fields[name] = value
-	return nil
+func (m *fakeMutation) SetCreatedBy(value idgen.ID) {
+	m.fields[FieldCreatedBy] = value
+}
+
+func (m *fakeMutation) SetUpdatedBy(value idgen.ID) {
+	m.fields[FieldUpdatedBy] = value
+}
+
+type mutationWithoutAuditFields struct {
+	ent.Mutation
+	op ent.Op
+}
+
+func (m *mutationWithoutAuditFields) Op() ent.Op {
+	return m.op
 }
 
 func TestAuditHookSetsOperatorFieldsOnCreate(t *testing.T) {
@@ -93,11 +96,7 @@ func TestAuditHookSetsOnlyUpdatedByOnUpdate(t *testing.T) {
 }
 
 func TestAuditHookIgnoresUnknownFields(t *testing.T) {
-	mutation := newFakeMutation(ent.OpCreate)
-	mutation.unknown = map[string]bool{
-		FieldCreatedBy: true,
-		FieldUpdatedBy: true,
-	}
+	mutation := &mutationWithoutAuditFields{op: ent.OpCreate}
 	hook := AuditHook(AuditHookOptions{
 		Operator: func(ctx context.Context) (idgen.ID, bool) {
 			return idgen.New(9001), true
@@ -110,29 +109,6 @@ func TestAuditHookIgnoresUnknownFields(t *testing.T) {
 
 	if err != nil {
 		t.Fatalf("Mutate() error = %v", err)
-	}
-	if _, ok := mutation.fields[FieldCreatedBy]; ok {
-		t.Fatalf("created_by should be ignored when the mutation does not know that fieldx")
-	}
-}
-
-func TestAuditHookReturnsTypeErrors(t *testing.T) {
-	mutation := newFakeMutation(ent.OpUpdate)
-	mutation.typeErrors = map[string]bool{
-		FieldUpdatedBy: true,
-	}
-	hook := AuditHook(AuditHookOptions{
-		Operator: func(ctx context.Context) (idgen.ID, bool) {
-			return idgen.New(9002), true
-		},
-	})
-
-	_, err := hook(ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-		return "ok", nil
-	})).Mutate(context.Background(), mutation)
-
-	if err == nil {
-		t.Fatalf("Mutate() error = nil, want type error")
 	}
 }
 

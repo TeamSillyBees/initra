@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
+	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/requestctx"
 )
@@ -89,6 +90,10 @@ func JWTMiddleware(manager *JWTManager, lookup RouteSecurityLookup) gin.HandlerF
 			writeError(c, apperrors.New(apperrors.CodeUnauthorized, "authorization token is invalid"))
 			return
 		}
+		if claims.UserID <= 0 {
+			writeError(c, apperrors.New(apperrors.CodeUnauthorized, "authorization token is invalid"))
+			return
+		}
 
 		c.Request = c.Request.WithContext(WithPrincipal(c.Request.Context(), Principal{
 			UserID:   claims.UserID,
@@ -131,8 +136,13 @@ func AuthorizationMiddleware(enforcer *casbin.Enforcer, lookup RouteSecurityLook
 			return
 		}
 
-		if userID, ok := requestctx.UserIDFromContext(c.Request.Context()); !ok || strings.TrimSpace(userID) == "" {
+		userID, ok := requestctx.UserIDFromContext(c.Request.Context())
+		if !ok {
 			writeError(c, apperrors.New(apperrors.CodeUnauthorized, "user_id is missing"))
+			return
+		}
+		if _, err := idgen.Parse(strings.TrimSpace(userID)); err != nil {
+			writeError(c, apperrors.New(apperrors.CodeUnauthorized, "user_id is invalid"))
 			return
 		}
 		roles, ok := requestctx.RolesFromContext(c.Request.Context())

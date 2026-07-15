@@ -4,7 +4,7 @@
 
 1. **标准项目模板**：通过 `templates/api` 提供包含 auth/user/file/httpdemo/taskdemo 示例模块、Ent schema、seed 和 Atlas migrations 的 RESTful API 服务模板；`examples` 是 API 模板的可运行验证样例。API 模板不内置 Ent 生成代码，`initra new` 会在生成项目后自动执行 Ent 代码生成。
 2. **可复用的 Go package**：通过根模块 `pkg/*` 沉淀 Web、配置、错误、日志、认证、数据访问、Redis、缓存、文件与对象存储、HTTP Client、任务队列、任务调度等通用能力，业务项目通过 `go.mod` 按需引入。
-3. **工程化 CLI**：通过 `cmd/initra` 承载项目、模块、CRUD/配置骨架、迁移和 Codex skill 的生成命令。
+3. **工程化 CLI**：通过 `cmd/initra` 承载项目、模块、显式代码片段、聚合配置、迁移和 Codex skill 的生成命令。
 
 ## 技术栈
 
@@ -53,7 +53,7 @@ docs/               架构与工程规范文档
 - `pkg/auth`：JWT、refresh token、Redis token store、显式 opt-in 且仅 dev/local/test 可用的内存 store、Casbin、路由安全元信息。
 - `pkg/server`：Gin + Huma 应用与认证授权中间件装配。
 - `pkg/observability`：health、ready、version 接口模块；`/health` 只检查进程存活，`/ready` 通过带独立超时的 registry 检查必要依赖。
-- `pkg/storage`：统一文件与对象存储接口，支持 local、阿里云 OSS、腾讯云 COS、AWS S3 和 S3 兼容服务；分片上传与临时授权通过可选扩展接口提供，具体支持范围由 provider 决定。
+- `pkg/storage`：统一文件与对象存储接口，支持 local、阿里云 OSS、腾讯云 COS、AWS S3 和 S3 兼容服务；分片上传与临时授权通过可选扩展接口提供，具体支持范围由 provider 决定，local provider 不支持 presign。
 - `pkg/task`：任务队列抽象层，提供 `Publisher`、`Worker`、`Registry`、`Scheduler`、`Task` 与 `TaskMeta`；默认由 `pkg/task/asynqadapter` 适配 Asynq，业务代码不直接依赖 Asynq。任务队列按 at-least-once 模型设计，`biz_key` 是业务幂等键，外部副作用任务必须由业务侧保证幂等。启用 Worker 时，应用总关闭超时必须不小于 Worker 关闭超时。
 
 业务项目应只 import 实际需要的 `pkg/*`，组合根由业务项目自己的 `internal/boot` 显式组装。
@@ -61,11 +61,11 @@ docs/               架构与工程规范文档
 ## 配置规范
 
 - 业务项目使用结构体定义配置，配置结构放在自己的 `internal/boot/config.go`。
-- 配置加载支持默认值、可选 `configs/config.yaml` 初始值、可选 `configs/config.<env>.yaml` 覆盖、环境变量覆盖和启动校验；配置文件不存在时会跳过，环境变量可独立完成配置。
+- 配置加载支持默认值、可选 `configs/config.yaml` 初始值、可选 `configs/config.<env>.yaml` 覆盖、环境变量覆盖和启动校验；配置文件不存在时会跳过，环境变量可独立完成配置，配置文件中的未知字段会导致启动失败。
 - 服务进程通过无前缀环境变量 `APP_ENV` 选择运行环境，未设置时使用 `dev`；迁移 diff 默认通过 `--env` 和 `--config-dir` 读取对应业务数据库配置，也可用 `--dev-url` 覆盖，apply/hash 通过 `--env` 选择 Atlas 环境。其他配置环境变量默认使用 `INITRA_` 前缀。
 - 标准模板默认启用 Redis 作为共享 token store；只有 dev/local/test 环境显式设置 `auth.allow_memory_token_store: true` 才允许关闭 Redis，其他环境一律 fail-closed。`idgen.node` 没有可用于生产的默认值，每个实例必须配置唯一的 0–1023 节点号。
 - 数据库连接使用结构化 PostgreSQL URL 安全编码凭据；只有 dev/local/test 环境允许弱 TLS 配置，其他环境必须使用 `require`、`verify-ca` 或 `verify-full`。
-- API 模板的基础配置启用 `storage.provider: local`，当前 YAML 路径为 `./tmp/uploads`；可通过 `storage` 配置分组切换云厂商 provider。
+- API 模板的基础配置启用 `storage.provider: local`，默认路径统一为 `./var/uploads`；可通过 `storage` 配置分组切换云厂商 provider。
 
 ## 工程化 CLI
 
@@ -88,7 +88,7 @@ $framework = (Resolve-Path .).Path
 go run ./cmd/initra new $env:TEMP\demo-api --type api --module example.com/demo-api --replace $framework
 ```
 
-`initra new` 在目标同级临时目录依次完成依赖下载、Ent 生成和全项目测试，再初始化 Git 并原子移动到目标目录；失败不会留下半成品。
+`initra new` 在目标同级临时目录依次完成依赖下载、Ent 生成和全项目测试，再初始化 Git 并原子移动到目标目录；失败不会留下半成品。`--app-name` 会派生独立的展示名称和安全 `app.slug`，每次生成还会创建随机 JWT secret 与一次性管理员密码，密码只在项目成功落盘后输出一次。
 
 核心命令：
 
@@ -97,24 +97,24 @@ initra
 initra help [command]
 initra new <dir> --type api
 initra module add <name>
-initra crud add <module> --table <table>
+initra snippet add <module> --table <table>
 initra config add <capability>
 initra migrate new <name>
 initra migrate diff <name> --env <env> --config-dir configs
 initra migrate apply --env <env>
 initra migrate hash
-initra skill
-initra skill codex
-initra doctor
+initra skill [--check|--force]
+initra skill codex [--check|--force]
+initra doctor [--json]
 ```
 
-`module add` 生成符合当前 flat-package 标准且通过编译/checker 的模块骨架，但仍需在项目 boot 中完成模块注册。`crud add` 和 `config add` 仍只是后续开发骨架，其已知局限记录在 `docs/code-review-2026-07-14.md`。
+`module add` 生成符合当前 flat-package 标准的模块骨架，但仍需在项目 boot 中完成模块注册；`snippet add` 只生成显式命名的数据表常量，不承诺 CRUD、持久化或路由接线；`config add` 会事务化更新能力配置类型、聚合 `boot.Config` 和主配置 YAML。
 
 直接执行 `initra` 或 `initra <group>` 会展示对应帮助；`initra help <command>` 可查看任意子命令的参数、示例和说明。
 
 `initra migrate diff` 默认从 `--env` 对应的业务配置构造数据库 URL，使生成的 diff 基于该业务库；需要临时覆盖时可传 `--dev-url`。`initra migrate apply --env <env>` 会执行 `atlas -c file://db/atlas.hcl migrate apply --env <env>` 应用迁移。手动修改迁移文件后，可执行 `initra migrate hash` 重新计算 `atlas.sum`。
 
-在业务项目根目录执行 `initra skill` 或 `initra skill codex`，会写入 Codex 使用的 `.agents/skills/initra-framework`。
+在业务项目根目录执行 `initra skill` 或 `initra skill codex`，会写入 Codex 使用的 `.agents/skills/initra-framework`；`--check` 只校验版本和内容，`--force` 用于覆盖已修改的内置文件。`initra doctor --json` 可输出适合 agent 消费的稳定检查报告，必需工具或配置异常时返回非零状态。
 
 发布版 CLI 会用自身构建版本写入生成项目 `go.mod`。开发版 CLI 必须传 `--framework-version` 或 `--replace`，避免生成不可复现的 `initra` 依赖。
 
@@ -135,3 +135,9 @@ go vet ./examples/...
 - 面向可复用 Go package：私有发布时业务项目通过 `GOPRIVATE` 配置私有 Git 域名。
 - 面向本地联调：生成项目可用 `replace github.com/teamsillybees/initra => <本地路径>` 指向当前仓库。
 - 面向脚手架仓库自身：根仓库用 `go.work` 组织根模块和 `examples` 开发。
+
+## 工程治理
+
+- 安全问题按 [SECURITY.md](SECURITY.md) 私密报告。
+- 开发和提交要求见 [CONTRIBUTING.md](CONTRIBUTING.md)，面向使用者的变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+- LICENSE/内部授权、CODEOWNERS 与二进制发布信任链仍需由仓库所有者明确决定，当前不作推断。

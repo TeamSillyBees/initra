@@ -36,6 +36,7 @@ func NewFactory(cfg Config, logger *logx.Logger) (*Factory, error) {
 	}, nil
 }
 
+// Get 返回指定服务的缓存客户端；首次调用时按配置创建。
 func (f *Factory) Get(serviceName string) (*Client, error) {
 	if !f.cfg.Enabled {
 		return nil, fmt.Errorf("%w: http_client.enabled=false", ErrDisabled)
@@ -59,6 +60,7 @@ func (f *Factory) Get(serviceName string) (*Client, error) {
 	return client, nil
 }
 
+// Clear 关闭并移除指定服务的缓存客户端，后续 Get 会重新创建。
 func (f *Factory) Clear(serviceName string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -68,6 +70,7 @@ func (f *Factory) Clear(serviceName string) {
 	}
 }
 
+// ClearAll 关闭并清空工厂当前缓存的全部客户端。
 func (f *Factory) ClearAll() {
 	f.mu.Lock()
 	defer f.mu.Unlock()

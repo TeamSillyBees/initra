@@ -1,0 +1,12 @@
+.git
+.github
+.agents
+docs
+tmp
+var
+.env
+.env.*
+configs/*.yaml
+db
+*.log
+coverage.out

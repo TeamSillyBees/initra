@@ -57,7 +57,11 @@ func tokenStoreFromInjector(injector *do.Injector, opts RegisterOptions) (TokenS
 	if client == nil {
 		return nil, fmt.Errorf("auth Redis client 不能为空")
 	}
-	return NewRedisTokenStoreWithEnv(opts.AppName, opts.Env, client), nil
+	store, err := NewRedisTokenStoreWithEnv(opts.AppName, opts.Env, client)
+	if err != nil {
+		return nil, fmt.Errorf("创建 auth Redis token store 失败: %w", err)
+	}
+	return store, nil
 }
 
 func isMemoryStoreAllowedEnvironment(env string) bool {

@@ -20,6 +20,7 @@ import (
 	"github.com/teamsillybees/initra/pkg/observability"
 	"github.com/teamsillybees/initra/pkg/redisx"
 	"github.com/teamsillybees/initra/pkg/server"
+	platformstorage "github.com/teamsillybees/initra/pkg/storage"
 	storageprovider "github.com/teamsillybees/initra/pkg/storage/provider"
 	"github.com/teamsillybees/initra/pkg/task/asynqadapter"
 )
@@ -30,7 +31,7 @@ func registerProviders(injector *do.Injector, cfg *Config, buildInfo observabili
 	redisx.Register(injector, cfg.Redis)
 	asynqadapter.Register(injector, cfg.Task)
 	platformcache.Register(injector, platformcache.Config{
-		AppName:       cfg.App.Name,
+		AppName:       cfg.App.Slug,
 		LocalTTL:      cfg.Cache.LocalTTL,
 		RemoteTTL:     cfg.Cache.RemoteTTL,
 		RemoteEnabled: cfg.Redis.Enabled,
@@ -44,7 +45,7 @@ func registerProviders(injector *do.Injector, cfg *Config, buildInfo observabili
 		return data.NewEntClientFromDB(db, generator), nil
 	})
 	auth.Register(injector, auth.RegisterOptions{
-		AppName:          cfg.App.Name,
+		AppName:          cfg.App.Slug,
 		Env:              cfg.App.Env,
 		RedisEnabled:     cfg.Redis.Enabled,
 		AllowMemoryStore: cfg.Auth.AllowMemoryTokenStore,
@@ -64,14 +65,18 @@ func registerProviders(injector *do.Injector, cfg *Config, buildInfo observabili
 	})
 }
 
-func registerModules(injector *do.Injector) {
+func registerModules(injector *do.Injector, cfg *Config) {
 	// 新增业务模块时，先在 internal/modules/<module>/providers.go 暴露 Provide，
 	// 再在这里把模块依赖注册进同一个 do 容器。
 	usermodule.Provide(injector)
 	authmodule.Provide(injector)
-	filemodule.Provide(injector)
+	filemodule.Provide(injector, storageproviderMaxFileSize(cfg))
 	httpdemomodule.Provide(injector)
 	taskdemomodule.Provide(injector)
+}
+
+func storageproviderMaxFileSize(cfg *Config) int64 {
+	return platformstorage.ConfigWithDefaults(cfg.Storage).Local.MaxSize
 }
 
 func registerRoutes(

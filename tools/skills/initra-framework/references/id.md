@@ -28,7 +28,7 @@ func (SysUser) Fields() []ent.Field {
 - `fieldx.Audit()` 提供 `created_at`、`updated_at`、`created_by`、`updated_by` 字段；时间由 schema default 维护。
 - `fieldx.SoftDelete()` 只提供 `deleted_at` 字段；查询过滤和软删除更新由 service 显式实现。
 - 需要常用软删除索引时使用 `indexx.SoftDelete()`。
-- `fieldx.OptimisticLock()` 目前只提供 version 字段，不包含自动 compare-and-swap、递增或冲突检测。
+- `fieldx.OptimisticLockVersion()` 只提供 version 字段，不包含自动 compare-and-swap、递增或冲突检测。
 
 外键字段显式保留 `idgen.ID` Go 类型：
 

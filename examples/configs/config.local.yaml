@@ -1,6 +1,9 @@
 app:
   instance_id: local-1
 
+server:
+  addr: "127.0.0.1:8080"
+
 database:
   host: "127.0.0.1"
   port: 5432
@@ -14,7 +17,7 @@ database:
 
 auth:
   jwt:
-    secret: "change-me-local"
+    secret: "local-only-change-me-0123456789abcdef"
 
 idgen:
   node: 1

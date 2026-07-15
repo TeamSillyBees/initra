@@ -72,19 +72,19 @@ func (s *Service) Upload(_ context.Context, input storage.UploadInput) (*storage
 	if err != nil {
 		return nil, err
 	}
-	if !input.Overwrite {
-		if _, err := os.Stat(fullPath); err == nil {
-			return nil, fmt.Errorf("%w: %s", storage.ErrObjectExists, key)
-		} else if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
-	}
 	if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
 		return nil, err
 	}
 
-	file, err := os.Create(fullPath)
+	flags := os.O_WRONLY | os.O_CREATE | os.O_TRUNC
+	if !input.Overwrite {
+		flags = os.O_WRONLY | os.O_CREATE | os.O_EXCL
+	}
+	file, err := os.OpenFile(fullPath, flags, 0o644)
 	if err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return nil, fmt.Errorf("%w: %s", storage.ErrObjectExists, key)
+		}
 		return nil, err
 	}
 	defer file.Close()
@@ -335,14 +335,14 @@ func (s *Service) Move(ctx context.Context, input storage.CopyInput) (*storage.O
 	return copied, nil
 }
 
-// PresignUpload 为本地存储返回兼容 URL。调用方需要自行提供能处理 PUT 的 Web 端点。
-func (s *Service) PresignUpload(_ context.Context, input storage.PresignInput) (*storage.PresignedURL, error) {
-	return s.presign(input, "PUT")
+// PresignUpload 明确拒绝本地存储不具备的签名上传能力。
+func (s *Service) PresignUpload(_ context.Context, _ storage.PresignInput) (*storage.PresignedURL, error) {
+	return nil, storage.ErrUnsupported
 }
 
-// PresignDownload 为本地存储返回直接访问 URL。
-func (s *Service) PresignDownload(_ context.Context, input storage.PresignInput) (*storage.PresignedURL, error) {
-	return s.presign(input, "GET")
+// PresignDownload 明确拒绝本地存储不具备的签名下载能力。
+func (s *Service) PresignDownload(_ context.Context, _ storage.PresignInput) (*storage.PresignedURL, error) {
+	return nil, storage.ErrUnsupported
 }
 
 // PublicURL 返回对象公开访问 URL。
@@ -679,28 +679,6 @@ func (s *Service) publicURL(bucket string, key string, requireBase bool) string 
 		return ""
 	}
 	return storage.JoinURL(baseURL, bucket, key)
-}
-
-func (s *Service) presign(input storage.PresignInput, method string) (*storage.PresignedURL, error) {
-	key, err := storage.NormalizeObjectKey(input.Key)
-	if err != nil {
-		return nil, err
-	}
-	bucket := storage.DefaultBucket(s.cfg, input.Bucket)
-	url := s.publicURL(bucket, key, true)
-	if url == "" {
-		return nil, fmt.Errorf("%w: local public_base_url 不能为空", storage.ErrUnsupported)
-	}
-	expires := input.Expires
-	if expires == 0 {
-		expires = s.cfg.PresignDefaultTTL
-	}
-	return &storage.PresignedURL{
-		URL:       url,
-		Key:       key,
-		Method:    method,
-		ExpiresAt: time.Now().Add(expires),
-	}, nil
 }
 
 func copyWithLimit(dst io.Writer, src io.Reader, maxSize int64) (int64, error) {

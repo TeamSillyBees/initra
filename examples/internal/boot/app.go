@@ -53,7 +53,7 @@ func Bootstrap(options Options) (*Application, error) {
 	do.ProvideValue(injector, cfg)
 
 	registerProviders(injector, cfg, options.BuildInfo)
-	registerModules(injector)
+	registerModules(injector, cfg)
 
 	logger := do.MustInvoke[*logx.Logger](injector)
 	db, err := do.Invoke[*sql.DB](injector)

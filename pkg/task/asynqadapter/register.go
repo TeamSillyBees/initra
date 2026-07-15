@@ -12,9 +12,7 @@ func Register(injector *do.Injector, cfg task.Config) {
 		logger := do.MustInvoke[*logx.Logger](i)
 		return task.NewRegistry(
 			task.RecoverMiddleware(logger),
-			task.TracingMiddleware(nil),
 			task.LoggingMiddleware(logger),
-			task.MetricsMiddleware(nil),
 			task.BizKeyValidationMiddleware(),
 			task.IdempotencyMiddleware(nil),
 		), nil

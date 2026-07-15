@@ -32,9 +32,10 @@ initra migrate diff <name> --env local --config-dir configs
 initra migrate apply --env local
 initra migrate hash
 initra skill
+initra skill --check
 ```
 
-`initra skill` 会把 initra 框架使用说明初始化到 `.agents/skills/initra-framework`，供 Codex 在业务项目中识别框架边界和最佳实践。
+`initra skill` 会把 initra 框架使用说明安装或升级到 `.agents/skills/initra-framework`，供 Codex 在业务项目中识别框架边界和最佳实践；`--check` 只校验内容是否为内置最新版本，确需覆盖本地修改时使用 `--force`。
 
 涉及配置、迁移、依赖装配、路由权限或示例模块替换时，应运行与改动风险匹配的 `go test`、`go vet`、构建或迁移验证。若无法运行测试，最终回复中必须说明原因和未验证风险。
 
@@ -45,7 +46,7 @@ initra skill
 - 不引入不必要的抽象。只有在减少真实重复、隔离复杂度或匹配现有模式时才新增抽象。
 - 共享能力优先放入项目内清晰的公共 package 或复用 `github.com/teamsillybees/initra/pkg/*`，不要通过业务模块之间互相 import 具体实现来复用逻辑。
 - 业务 ID 统一使用 `github.com/teamsillybees/initra/pkg/idgen.ID`。Ent 主键、外键、auth user ID、REST path params、service 入参和 JSON VO 不使用 `int64` 或 `string` 表达业务 ID；对外 JSON/OpenAPI ID 暴露为字符串。包级生成器没有固定默认节点，每个运行实例必须显式配置唯一的 0–1023 `idgen.node`。仅在对接雪花 ID 生成器、第三方库、手写 SQL 参数或极少数底层基础设施场景调用 `Int64()`。
-- Ent schema 使用 `github.com/teamsillybees/initra/pkg/entx/fieldx` 的 ID、审计、软删除等字段助手，按需使用 `fieldx.OptimisticLock()` 和 `pkg/entx/indexx`；Ent Client 注册 `entx.AuditHook`、`entx.RejectDeleteHook`。不要复制本地 schema helper，也不要把版本字段助手描述成完整自动乐观锁。
+- Ent schema 使用 `github.com/teamsillybees/initra/pkg/entx/fieldx` 的 ID、审计、软删除等字段助手，按需使用仅定义版本字段的 `fieldx.OptimisticLockVersion()` 和 `pkg/entx/indexx`；Ent Client 注册 `entx.AuditHook`、`entx.RejectDeleteHook`。不要复制本地 schema helper，也不要把版本字段助手描述成完整自动乐观锁。
 - 禁止在业务模块中随意使用 `panic` 或吞掉错误；错误应向上返回并保留足够上下文。
 - 业务专属错误码集中放在 `internal/modules/bizerrors` 或业务约定的错误包中，通过统一错误工厂创建。
 

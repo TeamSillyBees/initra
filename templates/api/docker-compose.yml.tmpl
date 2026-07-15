@@ -1,20 +1,20 @@
+name: {{ .AppSlug }}
+
 services:
   postgres:
     image: postgres:16
-    container_name: initra-postgres
     environment:
-      POSTGRES_DB: initra
+      POSTGRES_DB: {{ .AppSlug }}
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - ./tmp/postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7
-    container_name: initra-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - ./tmp/redis_data:/data

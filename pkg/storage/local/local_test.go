@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -82,6 +83,58 @@ func TestServiceRejectsDisallowedExtensionAndOversizedFile(t *testing.T) {
 		Body: strings.NewReader("too large"),
 	})
 	require.ErrorContains(t, err, "文件大小超过限制")
+}
+
+func TestServiceUploadWithoutOverwriteIsAtomic(t *testing.T) {
+	service := newTestService(t, storage.LocalConfig{RootDir: t.TempDir()})
+	start := make(chan struct{})
+	errorsByWriter := make([]error, 2)
+	bodies := []string{"first complete payload", "second complete payload"}
+	var wait sync.WaitGroup
+
+	for index := range bodies {
+		wait.Add(1)
+		go func(index int) {
+			defer wait.Done()
+			<-start
+			_, errorsByWriter[index] = service.Upload(context.Background(), storage.UploadInput{
+				Key:  "atomic/result.txt",
+				Body: strings.NewReader(bodies[index]),
+			})
+		}(index)
+	}
+	close(start)
+	wait.Wait()
+
+	successes := 0
+	conflicts := 0
+	for _, err := range errorsByWriter {
+		switch {
+		case err == nil:
+			successes++
+		case errors.Is(err, storage.ErrObjectExists):
+			conflicts++
+		default:
+			require.NoError(t, err)
+		}
+	}
+	require.Equal(t, 1, successes)
+	require.Equal(t, 1, conflicts)
+	content, err := service.DownloadBytes(context.Background(), storage.DownloadInput{Key: "atomic/result.txt"})
+	require.NoError(t, err)
+	require.Contains(t, bodies, string(content))
+}
+
+func TestServicePresignIsUnsupported(t *testing.T) {
+	service := newTestService(t, storage.LocalConfig{
+		RootDir:       t.TempDir(),
+		PublicBaseURL: "http://localhost/files",
+	})
+
+	_, err := service.PresignUpload(context.Background(), storage.PresignInput{Key: "result.txt"})
+	require.ErrorIs(t, err, storage.ErrUnsupported)
+	_, err = service.PresignDownload(context.Background(), storage.PresignInput{Key: "result.txt"})
+	require.ErrorIs(t, err, storage.ErrUnsupported)
 }
 
 func TestServiceMultipartUploadCombinesParts(t *testing.T) {

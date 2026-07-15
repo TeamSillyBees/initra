@@ -1,6 +1,7 @@
 package file
 
 import (
+	"math"
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -10,12 +11,13 @@ import (
 
 // Module 负责 file 示例模块路由注册。
 type Module struct {
-	handler *Handler
+	handler      *Handler
+	maxBodyBytes int64
 }
 
 // NewModule 创建 file 示例模块实例。
-func NewModule(handler *Handler) *Module {
-	return &Module{handler: handler}
+func NewModule(handler *Handler, maxFileSize int64) *Module {
+	return &Module{handler: handler, maxBodyBytes: uploadBodyLimit(maxFileSize)}
 }
 
 // Register 将 file 示例模块的 Huma operation 和安全策略注册到应用。
@@ -28,6 +30,7 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Description:   "上传文件到当前配置的 local 存储目录。",
 		Tags:          []string{"文件示例"},
 		DefaultStatus: http.StatusCreated,
+		MaxBodyBytes:  m.maxBodyBytes,
 	}, m.handler.upload)
 	registry.Register(http.MethodPost, "/api/v1/files/local", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Resource: "file", Action: "write"})
 
@@ -60,4 +63,16 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Tags:        []string{"文件示例"},
 	}, m.handler.delete)
 	registry.Register(http.MethodDelete, "/api/v1/files/local", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Resource: "file", Action: "delete"})
+}
+
+const multipartBodyOverhead int64 = 1 << 20
+
+func uploadBodyLimit(maxFileSize int64) int64 {
+	if maxFileSize <= 0 {
+		return multipartBodyOverhead
+	}
+	if maxFileSize > math.MaxInt64-multipartBodyOverhead {
+		return math.MaxInt64
+	}
+	return maxFileSize + multipartBodyOverhead
 }

@@ -13,6 +13,7 @@ type AuthHandler interface {
 
 type defaultAuthHandler struct{}
 
+// Apply 根据认证类型把凭证写入当前请求，不记录或持久化凭证内容。
 func (h defaultAuthHandler) Apply(_ context.Context, r *resty.Request, cfg AuthConfig) error {
 	switch cfg.Type {
 	case "", AuthTypeNone:

@@ -69,7 +69,7 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	modelPath, policyPath := writeCasbinFiles(t)
 	jwtManager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
 		Issuer:          "initra",
-		Secret:          "e2e-test-secret",
+		Secret:          "e2e-test-secret-at-least-32-bytes",
 		AccessTokenTTL:  time.Hour,
 		RefreshTokenTTL: 24 * time.Hour,
 	})
@@ -145,7 +145,7 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	})
 	require.NoError(t, err)
 	fileService := filemodule.NewService(localStorage)
-	filemodule.NewModule(filemodule.NewHandler(fileService)).Register(app.API, app.Registry)
+	filemodule.NewModule(filemodule.NewHandler(fileService), 10*1024*1024).Register(app.API, app.Registry)
 
 	loginResp := struct {
 		Code string `json:"code"`

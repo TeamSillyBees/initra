@@ -2,10 +2,10 @@ app:
   instance_id: test-1
 
 server:
-  addr: ":18080"
+  addr: "127.0.0.1:18080"
 
 database:
-  dbname: "initra_test"
+  dbname: "{{ .AppSlug }}_test"
   ssl_mode: disable
   max_open_conns: 10
   max_idle_conns: 5
@@ -18,7 +18,7 @@ auth:
   allow_memory_token_store: true
   access_token_ttl: 10m
   jwt:
-    secret: "change-me-test"
+    secret: "{{ .TestJWTSecret }}"
 
 idgen:
   node: 1

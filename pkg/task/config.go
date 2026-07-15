@@ -40,15 +40,14 @@ const (
 	RetryStrategyExponential RetryStrategy = "exponential"
 )
 
-// Config 描述任务队列发布、消费、调度和观测配置。
+// Config 描述任务队列发布、消费和调度配置。
 type Config struct {
-	Enabled       bool                `mapstructure:"enabled"`
-	Backend       Backend             `mapstructure:"backend"`
-	Redis         redisx.Config       `mapstructure:"redis"`
-	Publisher     PublisherConfig     `mapstructure:"publisher"`
-	Worker        WorkerConfig        `mapstructure:"worker"`
-	Scheduler     SchedulerConfig     `mapstructure:"scheduler"`
-	Observability ObservabilityConfig `mapstructure:"observability"`
+	Enabled   bool            `mapstructure:"enabled"`
+	Backend   Backend         `mapstructure:"backend"`
+	Redis     redisx.Config   `mapstructure:"redis"`
+	Publisher PublisherConfig `mapstructure:"publisher"`
+	Worker    WorkerConfig    `mapstructure:"worker"`
+	Scheduler SchedulerConfig `mapstructure:"scheduler"`
 }
 
 // PublisherConfig 描述任务发布默认策略。
@@ -87,15 +86,6 @@ type SchedulerConfig struct {
 	Timezone     string        `mapstructure:"timezone"`
 }
 
-// ObservabilityConfig 描述任务日志、指标和链路追踪开关。
-type ObservabilityConfig struct {
-	Logging               bool `mapstructure:"logging"`
-	Metrics               bool `mapstructure:"metrics"`
-	Tracing               bool `mapstructure:"tracing"`
-	IncludePayloadInLog   bool `mapstructure:"include_payload_in_log"`
-	IncludePayloadInTrace bool `mapstructure:"include_payload_in_trace"`
-}
-
 // Normalize 返回补齐默认值后的任务队列配置副本。
 func (c Config) Normalize() Config {
 	if c.Backend == "" {
@@ -104,7 +94,6 @@ func (c Config) Normalize() Config {
 	c.Publisher = c.Publisher.withDefaults()
 	c.Worker = c.Worker.withDefaults()
 	c.Scheduler = c.Scheduler.withDefaults()
-	c.Observability = c.Observability.withDefaults()
 	if c.Enabled {
 		c.Redis.Enabled = true
 	}
@@ -193,13 +182,6 @@ func (c Config) SafeForLog() map[string]any {
 			"enabled":       cfg.Scheduler.Enabled,
 			"sync_interval": cfg.Scheduler.SyncInterval,
 			"timezone":      cfg.Scheduler.Timezone,
-		},
-		"observability": map[string]any{
-			"logging":                  cfg.Observability.Logging,
-			"metrics":                  cfg.Observability.Metrics,
-			"tracing":                  cfg.Observability.Tracing,
-			"include_payload_in_log":   cfg.Observability.IncludePayloadInLog,
-			"include_payload_in_trace": cfg.Observability.IncludePayloadInTrace,
 		},
 	}
 }
@@ -317,10 +299,6 @@ func (c SchedulerConfig) validate() error {
 		return fmt.Errorf("task.scheduler.timezone %q 非法: %w", c.Timezone, err)
 	}
 	return nil
-}
-
-func (c ObservabilityConfig) withDefaults() ObservabilityConfig {
-	return c
 }
 
 // ValidateQueueName 校验队列名是否符合框架约定。

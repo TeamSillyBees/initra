@@ -4,10 +4,13 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"go/parser"
+	"go/token"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -100,6 +103,11 @@ func scanFile(path string, rules []rule) ([]finding, error) {
 
 	var findings []finding
 	findings = append(findings, filenameFindings(path, rules)...)
+	importFindings, err := rootInternalImportFindings(path)
+	if err != nil {
+		return nil, err
+	}
+	findings = append(findings, importFindings...)
 
 	scanner := bufio.NewScanner(file)
 	line := 0
@@ -210,13 +218,6 @@ func defaultRules() []rule {
 			allowed:  allowFrameworkOrBoot,
 		},
 		{
-			id:       "root-internal-import",
-			severity: "error",
-			message:  "业务项目和模板不得 import initra 根仓库 internal package",
-			patterns: []string{"github.com/teamsillybees/initra/internal/"},
-			allowed:  allowFrameworkOrBoot,
-		},
-		{
 			id:       "injector-in-business-logic",
 			severity: "warning",
 			message:  "在 boot/provider 文件中解析依赖；service 和 handler 应通过构造函数接收依赖",
@@ -238,6 +239,35 @@ func defaultRules() []rule {
 			allowed:          allowFrameworkOrGenerated,
 		},
 	}
+}
+
+// rootInternalImportFindings 使用 Go 语法树只检查真实 import，避免注释、字符串和目录名造成误报或漏报。
+func rootInternalImportFindings(path string) ([]finding, error) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, path, nil, parser.ImportsOnly)
+	if err != nil {
+		return nil, fmt.Errorf("解析 Go import %s 失败: %w", path, err)
+	}
+	const internalRoot = "github.com/teamsillybees/initra/internal"
+	var findings []finding
+	for _, imported := range file.Imports {
+		importPath, err := strconv.Unquote(imported.Path.Value)
+		if err != nil {
+			return nil, fmt.Errorf("解析 import %s 失败: %w", imported.Path.Value, err)
+		}
+		if importPath != internalRoot && !strings.HasPrefix(importPath, internalRoot+"/") {
+			continue
+		}
+		findings = append(findings, finding{
+			path:     path,
+			line:     fset.Position(imported.Path.Pos()).Line,
+			severity: "error",
+			ruleID:   "root-internal-import",
+			message:  "业务项目和模板不得 import initra 根仓库 internal package",
+			text:     importPath,
+		})
+	}
+	return findings, nil
 }
 
 // matchesRule 判断一行文本是否命中规则。

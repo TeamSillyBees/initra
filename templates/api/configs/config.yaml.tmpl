@@ -1,5 +1,6 @@
 app:
-  name: initra
+  name: {{ printf "%q" .AppName }}
+  slug: {{ .AppSlug }}
   version: 0.1.0
   instance_id: local-1
 
@@ -13,13 +14,14 @@ server:
 database:
   host: "192.168.100.2"
   port: 5432
-  user: "initra"
+  user: "{{ .AppSlug }}"
   password: "QRD5jmc9nex3qxw-kez"
-  dbname: "initra"
+  dbname: "{{ .AppSlug }}"
   ssl_mode: require
   max_open_conns: 20
   max_idle_conns: 10
   conn_max_lifetime: 1h
+  ping_timeout: 5s
 
 redis:
   enabled: true
@@ -34,10 +36,9 @@ auth:
   allow_memory_token_store: false
   access_token_ttl: 15m
   refresh_token_ttl: 720h
-  allow_multiple_devices: true
   jwt:
-    issuer: initra
-    secret: "change-me-local"
+    issuer: {{ .AppSlug }}
+    secret: "{{ .LocalJWTSecret }}"
 
 log:
   level: debug
@@ -58,15 +59,9 @@ log:
       max_size_mb: 0
   redact:
     enabled: true
-    fields: [ "password", "token", "secret", "authorization" ]
+    fields: [ "password", "token", "secret", "authorization", "dsn" ]
 
 observability:
-  metrics:
-    enabled: true
-  tracing:
-    enabled: false
-  pprof:
-    enabled: false
   health:
     enabled: true
 
@@ -85,7 +80,7 @@ storage:
   public_base_url: ""
   presign_default_ttl: 15m
   local:
-    root_dir: ./tmp/uploads
+    root_dir: ./var/uploads
     temp_dir: .multipart
     public_base_url: ""
     private_base_url: ""
@@ -108,9 +103,9 @@ http_client:
       timeout: 10s
       proxy: ""
       properties:
-        app_id: initra-httpdemo
+        app_id: {{ .AppSlug }}-httpdemo
       headers:
-        X-App-Id: initra
+        X-App-Id: {{ .AppSlug }}
       retry:
         enabled: true
         count: 2
@@ -152,9 +147,3 @@ task:
     enabled: false
     sync_interval: 3m
     timezone: Asia/Shanghai
-  observability:
-    logging: true
-    metrics: true
-    tracing: true
-    include_payload_in_log: false
-    include_payload_in_trace: false

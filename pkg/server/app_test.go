@@ -54,7 +54,7 @@ func TestNewAppLogsUnauthorizedRequests(t *testing.T) {
 	logger, logPath := newTestLogger(t)
 	manager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
 		Issuer:          "initra",
-		Secret:          "server-test-secret",
+		Secret:          "server-test-secret-at-least-32-bytes",
 		AccessTokenTTL:  time.Minute,
 		RefreshTokenTTL: time.Hour,
 	})
@@ -78,7 +78,7 @@ func TestNewAppLogsUnauthorizedRequests(t *testing.T) {
 	app.Engine.ServeHTTP(rec, req)
 
 	require.Equal(t, http.StatusUnauthorized, rec.Code)
-	require.NoError(t, logger.Sync())
+	require.NoError(t, logger.Close())
 	body := readTextFile(t, logPath)
 	require.Contains(t, body, "http request failed")
 	require.Contains(t, body, `"error_code":"UNAUTHORIZED"`)
@@ -111,7 +111,7 @@ func TestNewAppLogsHumaHandlerServerError(t *testing.T) {
 
 	require.Equal(t, http.StatusInternalServerError, rec.Code)
 	require.NotContains(t, rec.Body.String(), "duplicate key")
-	require.NoError(t, logger.Sync())
+	require.NoError(t, logger.Close())
 	body := readTextFile(t, logPath)
 	require.Contains(t, body, "http request failed")
 	require.Contains(t, body, `"error_code":"DB_ERROR"`)
@@ -126,7 +126,7 @@ func TestNewAppAcceptsValidJWTForProtectedAPIRoute(t *testing.T) {
 
 	manager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
 		Issuer:          "initra",
-		Secret:          "server-test-secret",
+		Secret:          "server-test-secret-at-least-32-bytes",
 		AccessTokenTTL:  time.Minute,
 		RefreshTokenTTL: time.Hour,
 	})
@@ -175,7 +175,7 @@ func TestNewAppAllowsAuthenticatedAPIRouteWithoutCasbinPolicy(t *testing.T) {
 
 	manager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
 		Issuer:          "initra",
-		Secret:          "server-test-secret",
+		Secret:          "server-test-secret-at-least-32-bytes",
 		AccessTokenTTL:  time.Minute,
 		RefreshTokenTTL: time.Hour,
 	})
@@ -216,7 +216,7 @@ func TestNewAppInjectsAuthenticatedContextIntoHumaHandler(t *testing.T) {
 	logger, logPath := newTestLogger(t)
 	manager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
 		Issuer:          "initra",
-		Secret:          "server-test-secret",
+		Secret:          "server-test-secret-at-least-32-bytes",
 		AccessTokenTTL:  time.Minute,
 		RefreshTokenTTL: time.Hour,
 	})
@@ -267,7 +267,7 @@ func TestNewAppInjectsAuthenticatedContextIntoHumaHandler(t *testing.T) {
 	require.Equal(t, "req-1", rec.Header().Get("X-Request-ID"))
 	require.Equal(t, "trace-1", rec.Header().Get("X-Trace-ID"))
 
-	require.NoError(t, logger.Sync())
+	require.NoError(t, logger.Close())
 	body := readTextFile(t, logPath)
 	require.Contains(t, body, "http request completed")
 	require.Contains(t, body, `"request_id":"req-1"`)
@@ -377,6 +377,7 @@ func newTestLogger(t *testing.T) (*logx.Logger, string) {
 		Redact:  logx.RedactConfig{Enabled: true},
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = logger.Close() })
 	return logger, path
 }
 

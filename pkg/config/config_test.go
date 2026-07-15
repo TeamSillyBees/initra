@@ -134,6 +134,39 @@ func TestLoadIntoRejectsInvalidExistingConfig(t *testing.T) {
 	require.Contains(t, err.Error(), "读取基础配置文件 config.yaml 失败")
 }
 
+// TestLoadIntoRejectsUnknownKeys 验证拼错或过期的配置键不会被静默忽略。
+func TestLoadIntoRejectsUnknownKeys(t *testing.T) {
+	configDir := t.TempDir()
+	writeConfigYAML(t, configDir, "config.yaml", `
+app:
+  name: initra
+  prot: 8080
+`)
+
+	_, err := LoadInto[testConfig](LoaderOptions{
+		Env:       "prod",
+		ConfigDir: configDir,
+	})
+
+	require.ErrorContains(t, err, "反序列化配置失败")
+	require.ErrorContains(t, err, "prot")
+}
+
+func TestLoadIntoDoesNotRequireAppEnvField(t *testing.T) {
+	configDir := t.TempDir()
+	writeConfigYAML(t, configDir, "config.yaml", "feature:\n  enabled: true\n")
+	type featureConfig struct {
+		Feature struct {
+			Enabled bool `mapstructure:"enabled"`
+		} `mapstructure:"feature"`
+	}
+
+	cfg, err := LoadInto[featureConfig](LoaderOptions{Env: "test", ConfigDir: configDir})
+
+	require.NoError(t, err)
+	require.True(t, cfg.Feature.Enabled)
+}
+
 // TestLoadIntoDefaultsToDevEnv 验证未指定运行环境时默认读取 dev 配置。
 func TestLoadIntoDefaultsToDevEnv(t *testing.T) {
 	t.Setenv("APP_ENV", "")
@@ -206,9 +239,13 @@ func TestLoadIntoRunsCustomValidator(t *testing.T) {
 
 // TestSanitizeMasksSensitiveConfig 验证配置打印前会递归脱敏常见敏感字段。
 func TestSanitizeMasksSensitiveConfig(t *testing.T) {
+	type linkedConfig struct {
+		Next *linkedConfig `mapstructure:"next"`
+	}
 	cfg := struct {
 		Database struct {
 			Password string `mapstructure:"password"`
+			DSN      string `mapstructure:"dsn"`
 		} `mapstructure:"database"`
 		Redis struct {
 			Password string `mapstructure:"password"`
@@ -220,22 +257,45 @@ func TestSanitizeMasksSensitiveConfig(t *testing.T) {
 			} `mapstructure:"jwt"`
 		} `mapstructure:"auth"`
 		Headers map[string]string `mapstructure:"headers"`
+		HTTP    struct {
+			Proxy   string `mapstructure:"proxy"`
+			BaseURL string `mapstructure:"base_url"`
+		} `mapstructure:"http"`
+		Cycle *linkedConfig `mapstructure:"cycle"`
+		Deep  *linkedConfig `mapstructure:"deep"`
 	}{}
 	cfg.Database.Password = "db-password"
+	cfg.Database.DSN = "postgres://user:password@localhost/database"
 	cfg.Redis.Password = "redis-password"
 	cfg.Auth.JWT.Secret = "jwt-secret"
 	cfg.Auth.JWT.AccessTokenTTL = 15 * time.Minute
 	cfg.Headers = map[string]string{"authorization": "Bearer raw-token"}
+	cfg.HTTP.Proxy = "https://proxy-user:proxy-password@proxy.example.test"
+	cfg.HTTP.BaseURL = "https://api.example.test/items?token=query-token&lang=zh"
+	cfg.Cycle = &linkedConfig{}
+	cfg.Cycle.Next = cfg.Cycle
+	cfg.Deep = &linkedConfig{}
+	cursor := cfg.Deep
+	for i := 0; i < maxSanitizeDepth+2; i++ {
+		cursor.Next = &linkedConfig{}
+		cursor = cursor.Next
+	}
 
 	sanitized := Sanitize(cfg, []string{"authorization"})
 	printable := fmt.Sprint(sanitized)
 
 	require.NotContains(t, printable, "db-password")
+	require.NotContains(t, printable, "postgres://")
 	require.NotContains(t, printable, "redis-password")
 	require.NotContains(t, printable, "jwt-secret")
 	require.NotContains(t, printable, "raw-token")
+	require.NotContains(t, printable, "proxy-password")
+	require.NotContains(t, printable, "query-token")
 	database := sanitized["database"].(map[string]any)
 	require.Equal(t, "***", database["password"])
+	require.Equal(t, "***", database["dsn"])
+	require.Contains(t, fmt.Sprint(sanitized["cycle"]), "***")
+	require.Contains(t, fmt.Sprint(sanitized["deep"]), "***")
 
 	auth := sanitized["auth"].(map[string]any)
 	jwt := auth["jwt"].(map[string]any)

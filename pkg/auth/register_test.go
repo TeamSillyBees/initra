@@ -17,7 +17,7 @@ func TestRegisterProvidesAuthComponents(t *testing.T) {
 		AllowMemoryStore: true,
 		JWT: JWTConfig{
 			Issuer:          "initra",
-			Secret:          "register-test-secret",
+			Secret:          "register-test-secret-0123456789abcdef",
 			AccessTokenTTL:  time.Minute,
 			RefreshTokenTTL: time.Hour,
 		},
@@ -38,7 +38,7 @@ func TestRegisterRejectsImplicitMemoryTokenStore(t *testing.T) {
 		Env:     "dev",
 		JWT: JWTConfig{
 			Issuer:          "initra",
-			Secret:          "register-test-secret",
+			Secret:          "register-test-secret-0123456789abcdef",
 			AccessTokenTTL:  time.Minute,
 			RefreshTokenTTL: time.Hour,
 		},

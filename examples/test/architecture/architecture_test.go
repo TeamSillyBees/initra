@@ -60,7 +60,7 @@ func TestExampleUsesAPIFoundationLayout(t *testing.T) {
 	require.DirExists(t, filepath.Join(root, "internal", "data", "schema"))
 	require.FileExists(t, filepath.Join(root, "internal", "data", "ent", "client.go"))
 	require.FileExists(t, filepath.Join(root, "internal", "data", "tx.go"))
-	requireNoEntImportOutsideRepositories(t, root)
+	requireEntImportsStayInPersistenceFiles(t, root)
 	_, err := os.Stat(filepath.Join(root, "internal", "app"))
 	require.True(t, errors.Is(err, os.ErrNotExist), "示例项目不应继续保留 internal/app 业务目录")
 }
@@ -82,6 +82,27 @@ func TestBusinessModulesUseBizerrorsFacade(t *testing.T) {
 		}
 		return nil
 	}))
+}
+
+// TestDockerBaselineKeepsRuntimeImageMinimalAndLocalServicesPrivate 固定企业部署基线的最小权限边界。
+func TestDockerBaselineKeepsRuntimeImageMinimalAndLocalServicesPrivate(t *testing.T) {
+	root := repoRoot(t)
+	dockerfile, err := os.ReadFile(filepath.Join(root, "Dockerfile"))
+	require.NoError(t, err)
+	dockerText := string(dockerfile)
+	require.Contains(t, dockerText, "static-debian12:nonroot")
+	require.Contains(t, dockerText, "USER 65532:65532")
+	require.Contains(t, dockerText, "--chown=65532:65532 /out/var /app/var")
+	require.NotContains(t, dockerText, "/app/db")
+	require.NotContains(t, dockerText, "/app/configs/config")
+	require.FileExists(t, filepath.Join(root, ".dockerignore"))
+
+	compose, err := os.ReadFile(filepath.Join(root, "docker-compose.yml"))
+	require.NoError(t, err)
+	composeText := string(compose)
+	require.Contains(t, composeText, "127.0.0.1:5432:5432")
+	require.Contains(t, composeText, "127.0.0.1:6379:6379")
+	require.NotContains(t, composeText, "container_name:")
 }
 
 // requireNoTransportTypes 确认 handler 文件只承载 HTTP 适配逻辑，不再混放类型定义。
@@ -110,14 +131,14 @@ func requireHTTPNaming(t *testing.T, path string) {
 	require.Falsef(t, exportedWrapper.Match(content), "%s should keep Huma Request/Response wrappers unexported", path)
 }
 
-// requireNoEntImportOutsideRepositories 确认 Ent 只出现在持久化边界，不泄漏到 handler/service/dto。
-func requireNoEntImportOutsideRepositories(t *testing.T, root string) {
+// requireEntImportsStayInPersistenceFiles 确认 Ent 只出现在同包持久化与映射边界，不泄漏到 handler/dto/usecase。
+func requireEntImportsStayInPersistenceFiles(t *testing.T, root string) {
 	t.Helper()
 
 	moduleRoot := filepath.Join(root, "internal", "modules")
 	require.NoError(t, filepath.WalkDir(moduleRoot, func(path string, entry os.DirEntry, err error) error {
 		require.NoError(t, err)
-		if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, ".service.go") || strings.HasSuffix(path, "_test.go") || filepath.Base(path) == "providers.go" {
+		if entry.IsDir() || !strings.HasSuffix(path, ".go") || allowsEntImport(path) {
 			return nil
 		}
 		content, err := os.ReadFile(path)
@@ -125,6 +146,18 @@ func requireNoEntImportOutsideRepositories(t *testing.T, root string) {
 		require.NotContainsf(t, string(content), "/internal/data/ent", "%s should not import internal/data/ent", path)
 		return nil
 	}))
+}
+
+func allowsEntImport(path string) bool {
+	if strings.HasSuffix(path, "_test.go") || filepath.Base(path) == "providers.go" {
+		return true
+	}
+	for _, suffix := range []string{".service.go", ".persistence.go", ".roles.go", ".mapper.go"} {
+		if strings.HasSuffix(path, suffix) {
+			return true
+		}
+	}
+	return false
 }
 
 func isBizerrorsPath(path string) bool {

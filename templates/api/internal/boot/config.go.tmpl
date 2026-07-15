@@ -34,6 +34,7 @@ type Config struct {
 // AppConfig 描述应用基础元信息。
 type AppConfig struct {
 	Name       string `mapstructure:"name"`
+	Slug       string `mapstructure:"slug"`
 	Env        string `mapstructure:"env"`
 	Version    string `mapstructure:"version"`
 	InstanceID string `mapstructure:"instance_id"`
@@ -54,7 +55,6 @@ type AuthConfig struct {
 	AllowMemoryTokenStore bool          `mapstructure:"allow_memory_token_store"`
 	AccessTokenTTL        time.Duration `mapstructure:"access_token_ttl"`
 	RefreshTokenTTL       time.Duration `mapstructure:"refresh_token_ttl"`
-	AllowMultipleDevices  bool          `mapstructure:"allow_multiple_devices"`
 	JWT                   JWTConfig     `mapstructure:"jwt"`
 }
 
@@ -64,12 +64,9 @@ type JWTConfig struct {
 	Secret string `mapstructure:"secret"`
 }
 
-// ObservabilityConfig 描述可观测性能力开关。
+// ObservabilityConfig 描述已接入运行时的可观测性能力开关。
 type ObservabilityConfig struct {
-	Metrics FeatureConfig `mapstructure:"metrics"`
-	Tracing FeatureConfig `mapstructure:"tracing"`
-	Pprof   FeatureConfig `mapstructure:"pprof"`
-	Health  FeatureConfig `mapstructure:"health"`
+	Health FeatureConfig `mapstructure:"health"`
 }
 
 // FeatureConfig 描述单项能力是否启用。
@@ -117,6 +114,8 @@ func (c *Config) Validate() error {
 	switch {
 	case c.App.Name == "":
 		return fmt.Errorf("app.name 不能为空")
+	case !isSafeAppSlug(c.App.Slug):
+		return fmt.Errorf("app.slug 必须是长度不超过 63 的小写字母、数字或中划线组合，且不能以中划线开头或结尾")
 	case c.App.Env == "":
 		return fmt.Errorf("app.env 不能为空")
 	case c.Server.Addr == "":
@@ -153,8 +152,10 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("auth.enabled 当前必须为 true")
 	case c.Auth.JWT.Issuer == "":
 		return fmt.Errorf("auth.jwt.issuer 不能为空")
-	case c.Auth.JWT.Secret == "":
-		return fmt.Errorf("auth.jwt.secret 不能为空")
+	case requiresSecureInfrastructure(c.App.Env) && isDevelopmentJWTSecret(c.Auth.JWT.Secret):
+		return fmt.Errorf("非 dev/local/test 环境禁止使用示例 JWT secret")
+	case len([]byte(strings.TrimSpace(c.Auth.JWT.Secret))) < 32:
+		return fmt.Errorf("auth.jwt.secret 长度不能少于 32 字节")
 	case c.Auth.AccessTokenTTL <= 0:
 		return fmt.Errorf("auth.access_token_ttl 必须大于 0")
 	case c.Auth.RefreshTokenTTL <= 0:
@@ -184,6 +185,7 @@ func (c *Config) Validate() error {
 func configDefaults() map[string]any {
 	return map[string]any{
 		"app.version":                                        "dev",
+		"app.slug":                                           "",
 		"app.instance_id":                                    "local-1",
 		"server.addr":                                        ":8080",
 		"server.read_timeout":                                "10s",
@@ -199,6 +201,7 @@ func configDefaults() map[string]any {
 		"database.max_open_conns":                            20,
 		"database.max_idle_conns":                            10,
 		"database.conn_max_lifetime":                         "1h",
+		"database.ping_timeout":                              "5s",
 		"redis.enabled":                                      false,
 		"redis.addr":                                         "127.0.0.1:6379",
 		"redis.password":                                     "",
@@ -210,7 +213,6 @@ func configDefaults() map[string]any {
 		"auth.allow_memory_token_store":                      false,
 		"auth.access_token_ttl":                              "15m",
 		"auth.refresh_token_ttl":                             "720h",
-		"auth.allow_multiple_devices":                        true,
 		"auth.jwt.issuer":                                    "",
 		"auth.jwt.secret":                                    "",
 		"log.level":                                          "info",
@@ -227,10 +229,7 @@ func configDefaults() map[string]any {
 		"log.jsonl.rotation.date_format":                     logx.DefaultRotationDateFormat,
 		"log.jsonl.rotation.max_size_mb":                     0,
 		"log.redact.enabled":                                 true,
-		"log.redact.fields":                                  []string{"password", "token", "secret", "authorization"},
-		"observability.metrics.enabled":                      true,
-		"observability.tracing.enabled":                      false,
-		"observability.pprof.enabled":                        false,
+		"log.redact.fields":                                  []string{"password", "token", "secret", "authorization", "dsn"},
 		"observability.health.enabled":                       true,
 		"casbin.model_path":                                  "",
 		"casbin.policy_path":                                 "",
@@ -288,12 +287,21 @@ func configDefaults() map[string]any {
 		"task.scheduler.enabled":                             false,
 		"task.scheduler.sync_interval":                       "3m",
 		"task.scheduler.timezone":                            "Asia/Shanghai",
-		"task.observability.logging":                         true,
-		"task.observability.metrics":                         true,
-		"task.observability.tracing":                         true,
-		"task.observability.include_payload_in_log":          false,
-		"task.observability.include_payload_in_trace":        false,
 	}
+}
+
+func isSafeAppSlug(slug string) bool {
+	slug = strings.TrimSpace(slug)
+	if slug == "" || len(slug) > 63 || slug[0] == '-' || slug[len(slug)-1] == '-' {
+		return false
+	}
+	for _, char := range slug {
+		if char >= 'a' && char <= 'z' || char >= '0' && char <= '9' || char == '-' {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 func isValidDatabaseSSLMode(mode string) bool {
@@ -321,4 +329,12 @@ func requiresSecureInfrastructure(env string) bool {
 	default:
 		return true
 	}
+}
+
+func isDevelopmentJWTSecret(secret string) bool {
+	secret = strings.ToLower(strings.TrimSpace(secret))
+	return strings.HasPrefix(secret, "change-me") ||
+		strings.HasPrefix(secret, "local-only-change-me-") ||
+		strings.HasPrefix(secret, "dev-only-change-me-") ||
+		strings.HasPrefix(secret, "test-only-change-me-")
 }

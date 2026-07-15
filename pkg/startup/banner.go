@@ -33,7 +33,6 @@ type Info struct {
 	Task        string
 	DocsURL     string
 	Health      string
-	Metrics     string
 	Storage     string
 	HTTPClient  string
 	ShutdownTTL string
@@ -76,7 +75,6 @@ func Render(info Info) string {
 	writeLine(&builder, "Port", info.Port)
 	writeLine(&builder, "Docs", info.DocsURL)
 	writeLine(&builder, "Health", info.Health)
-	writeLine(&builder, "Metrics", info.Metrics)
 	writeLine(&builder, "Database", info.Database)
 	writeLine(&builder, "Redis", info.Redis)
 	writeLine(&builder, "Task", info.Task)

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/samber/do"
 	"github.com/stretchr/testify/require"
@@ -40,6 +41,21 @@ func TestOpenReturnsPingError(t *testing.T) {
 	require.ErrorContains(t, err, "database ping failed")
 }
 
+func TestOpenAppliesPingTimeout(t *testing.T) {
+	name := registerBlockingPingDriver()
+	started := time.Now()
+
+	db, err := Open(context.Background(), Config{
+		DriverName:     name,
+		DataSourceName: "test",
+		PingTimeout:    10 * time.Millisecond,
+	})
+
+	require.Nil(t, db)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+	require.Less(t, time.Since(started), time.Second)
+}
+
 func TestRegisterProvidesPingingDatabase(t *testing.T) {
 	name := registerTestDriver(nil)
 	injector := do.New()
@@ -62,19 +78,31 @@ func registerTestDriver(pingErr error) string {
 	return name
 }
 
+func registerBlockingPingDriver() string {
+	name := fmt.Sprintf("initra_database_test_%d", testDriverID.Add(1))
+	sql.Register(name, &pingDriver{waitForContext: true})
+	return name
+}
+
 type pingDriver struct {
-	pingErr error
+	pingErr        error
+	waitForContext bool
 }
 
 func (d *pingDriver) Open(_ string) (driver.Conn, error) {
-	return &pingConn{pingErr: d.pingErr}, nil
+	return &pingConn{pingErr: d.pingErr, waitForContext: d.waitForContext}, nil
 }
 
 type pingConn struct {
-	pingErr error
+	pingErr        error
+	waitForContext bool
 }
 
-func (c *pingConn) Ping(_ context.Context) error {
+func (c *pingConn) Ping(ctx context.Context) error {
+	if c.waitForContext {
+		<-ctx.Done()
+		return ctx.Err()
+	}
 	return c.pingErr
 }
 

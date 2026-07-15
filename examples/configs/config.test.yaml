@@ -2,7 +2,7 @@ app:
   instance_id: test-1
 
 server:
-  addr: ":18080"
+  addr: "127.0.0.1:18080"
 
 database:
   dbname: "initra_test"
@@ -18,7 +18,7 @@ auth:
   allow_memory_token_store: true
   access_token_ttl: 10m
   jwt:
-    secret: "change-me-test"
+    secret: "test-only-change-me-0123456789abcdef"
 
 idgen:
   node: 1

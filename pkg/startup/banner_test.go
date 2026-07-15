@@ -22,7 +22,6 @@ func TestRenderIncludesRuntimeSummary(t *testing.T) {
 		Task:        "enabled backend=asynq",
 		DocsURL:     "http://localhost:8080/docs",
 		Health:      "http://localhost:8080/health",
-		Metrics:     "enabled otel",
 		Storage:     "enabled local",
 		HTTPClient:  "enabled services=1",
 		ShutdownTTL: "20s",

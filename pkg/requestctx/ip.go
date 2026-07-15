@@ -27,7 +27,7 @@ func ClientIP(r *http.Request, trustedProxies ...string) string {
 		return ""
 	}
 
-	trusted := newTrustedProxySet(trustedProxies)
+	trusted := newTrustedProxySet(requestTrustedProxies(r, trustedProxies))
 	if !trusted.contains(remoteIP) {
 		return remoteIP.String()
 	}
@@ -48,6 +48,28 @@ func ClientIP(r *http.Request, trustedProxies ...string) string {
 		}
 	}
 	return remoteIP.String()
+}
+
+func requestTrustedProxies(r *http.Request, explicit []string) []string {
+	if len(explicit) > 0 {
+		return explicit
+	}
+	if r == nil {
+		return nil
+	}
+	trustedProxies, _ := TrustedProxiesFromContext(r.Context())
+	return trustedProxies
+}
+
+func trustsForwardedHeaders(r *http.Request, explicit []string) bool {
+	if r == nil {
+		return false
+	}
+	remoteIP, ok := ParseIP(r.RemoteAddr)
+	if !ok {
+		return false
+	}
+	return newTrustedProxySet(requestTrustedProxies(r, explicit)).contains(remoteIP)
 }
 
 // ParseIP 解析 IPv4 或 IPv6 地址，并兼容带端口、IPv6 方括号和空白的输入。

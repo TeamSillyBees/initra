@@ -1,21 +1,21 @@
 variable "local_url" {
   type    = string
-  default = "postgres://postgres:postgres@127.0.0.1:5432/initra?sslmode=disable"
+  default = "postgres://postgres:postgres@127.0.0.1:5432/{{ .AppSlug }}?sslmode=disable"
 }
 
 variable "dev_url" {
   type    = string
-  default = "postgres://initra:QRD5jmc9nex3qxw-kez@192.168.100.2:5432/initra_dev?sslmode=require"
+  default = "postgres://{{ .AppSlug }}:QRD5jmc9nex3qxw-kez@192.168.100.2:5432/{{ .AppSlug }}_dev?sslmode=require"
 }
 
 variable "test_url" {
   type    = string
-  default = "postgres://postgres:postgres@127.0.0.1:5432/initra_test?sslmode=disable"
+  default = "postgres://postgres:postgres@127.0.0.1:5432/{{ .AppSlug }}_test?sslmode=disable"
 }
 
 variable "prod_url" {
   type    = string
-  default = "postgres://postgres:postgres@127.0.0.1:5432/initra?sslmode=verify-full"
+  default = "postgres://postgres:postgres@127.0.0.1:5432/{{ .AppSlug }}?sslmode=verify-full"
 }
 
 env "local" {

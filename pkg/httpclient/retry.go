@@ -47,7 +47,7 @@ func retryCondition(cfg RetryConfig) resty.RetryConditionFunc {
 		if _, ok := statusCodes[statusCode]; ok {
 			return true
 		}
-		return statusCode >= http.StatusInternalServerError && statusCode <= 599
+		return cfg.RetryAll5xx && statusCode >= http.StatusInternalServerError && statusCode <= 599
 	}
 }
 

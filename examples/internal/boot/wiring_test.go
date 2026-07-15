@@ -1,6 +1,7 @@
 package boot
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -25,7 +26,7 @@ func TestModuleProvideDoesNotCollide(t *testing.T) {
 	require.NotPanics(t, func() {
 		usermodule.Provide(injector)
 		authmodule.Provide(injector)
-		filemodule.Provide(injector)
+		filemodule.Provide(injector, 10*1024*1024)
 		httpdemomodule.Provide(injector)
 		taskdemomodule.Provide(injector)
 	})
@@ -37,6 +38,7 @@ func TestRegisterProvidersDoesNotConnectDuringRegistration(t *testing.T) {
 	cfg := &Config{
 		App: AppConfig{
 			Name: "example-api",
+			Slug: "example-api",
 			Env:  "test",
 		},
 		Auth: AuthConfig{
@@ -45,7 +47,7 @@ func TestRegisterProvidersDoesNotConnectDuringRegistration(t *testing.T) {
 			RefreshTokenTTL:       time.Hour,
 			JWT: JWTConfig{
 				Issuer: "example-api",
-				Secret: "secret",
+				Secret: "0123456789abcdef0123456789abcdef",
 			},
 		},
 		IDGen: IDGenConfig{Node: 1},
@@ -62,6 +64,7 @@ func TestLoadConfigUsesRecommendedConfigShape(t *testing.T) {
 	content := []byte(`
 app:
   name: example-api
+  slug: example-api
   version: 0.1.0
   instance_id: base-1
 
@@ -81,6 +84,7 @@ database:
   max_open_conns: 20
   max_idle_conns: 10
   conn_max_lifetime: 1h
+  ping_timeout: 5s
 
 redis:
   enabled: false
@@ -95,10 +99,9 @@ auth:
   allow_memory_token_store: true
   access_token_ttl: 15m
   refresh_token_ttl: 720h
-  allow_multiple_devices: true
   jwt:
     issuer: example-api
-    secret: "base-secret"
+    secret: "0123456789abcdef0123456789abcdef"
 
 log:
   level: info
@@ -112,15 +115,9 @@ log:
     path: ./var/logs/app.jsonl
   redact:
     enabled: true
-    fields: ["password", "token", "secret", "authorization"]
+    fields: ["password", "token", "secret", "authorization", "dsn"]
 
 observability:
-  metrics:
-    enabled: true
-  tracing:
-    enabled: false
-  pprof:
-    enabled: false
   health:
     enabled: true
 
@@ -179,7 +176,7 @@ server:
 
 auth:
   jwt:
-    secret: "change-me"
+    secret: "abcdef0123456789abcdef0123456789"
 `)
 	require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.yaml"), content, 0o600))
 	require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.local.yaml"), override, 0o600))
@@ -188,23 +185,23 @@ auth:
 
 	require.NoError(t, err)
 	require.Equal(t, "example-api", cfg.App.Name)
+	require.Equal(t, "example-api", cfg.App.Slug)
 	require.Equal(t, "local", cfg.App.Env)
 	require.Equal(t, "0.1.0", cfg.App.Version)
 	require.Equal(t, "local-1", cfg.App.InstanceID)
 	require.Equal(t, ":18080", cfg.Server.Addr)
 	require.Equal(t, 20*time.Second, cfg.Server.ShutdownTimeout)
 	require.Equal(t, time.Hour, cfg.Database.ConnMaxLifetime)
+	require.Equal(t, 5*time.Second, cfg.Database.PingTimeout)
 	require.Equal(t, "require", cfg.Database.SSLMode)
 	require.False(t, cfg.Redis.Enabled)
 	require.Equal(t, 10, cfg.Redis.Pool.Size)
 	require.True(t, cfg.Auth.Enabled)
 	require.True(t, cfg.Auth.AllowMemoryTokenStore)
 	require.Equal(t, 720*time.Hour, cfg.Auth.RefreshTokenTTL)
-	require.True(t, cfg.Auth.AllowMultipleDevices)
 	require.Equal(t, "example-api", cfg.Auth.JWT.Issuer)
-	require.Equal(t, "change-me", cfg.Auth.JWT.Secret)
-	require.Equal(t, []string{"password", "token", "secret", "authorization"}, cfg.Log.Redact.Fields)
-	require.True(t, cfg.Observability.Metrics.Enabled)
+	require.Equal(t, "abcdef0123456789abcdef0123456789", cfg.Auth.JWT.Secret)
+	require.Equal(t, []string{"password", "token", "secret", "authorization", "dsn"}, cfg.Log.Redact.Fields)
 	require.True(t, cfg.Storage.Enabled)
 	require.Equal(t, "./var/uploads", cfg.Storage.Local.RootDir)
 	require.Equal(t, int64(10*1024*1024), cfg.Storage.Local.MaxSize)
@@ -217,10 +214,12 @@ auth:
 	require.Equal(t, "example-api", cfg.HTTPClient.Services["httpbingo"].Headers["x-app-id"])
 	require.Equal(t, int64(1), cfg.IDGen.Node)
 
+	cfg.HTTPClient.Proxy = "https://proxy-user:proxy-password@proxy.example.test"
 	safe := cfg.SafeForLog()
 	auth := safe["auth"].(map[string]any)
 	jwt := auth["jwt"].(map[string]any)
 	require.Equal(t, "***", jwt["secret"])
+	require.NotContains(t, fmt.Sprint(safe["http_client"]), "proxy-password")
 }
 
 // TestConfigValidateRequiresExplicitIDNode 验证缺少实例唯一节点时启动校验失败。
@@ -229,6 +228,25 @@ func TestConfigValidateRequiresExplicitIDNode(t *testing.T) {
 	cfg.IDGen.Node = -1
 
 	require.ErrorContains(t, cfg.Validate(), "必须显式配置")
+}
+
+func TestConfigValidateRejectsDevelopmentJWTSecretInProduction(t *testing.T) {
+	cfg := validConfigForValidation()
+	cfg.App.Env = "prod"
+	cfg.Redis.Enabled = true
+	cfg.Redis.Addr = "127.0.0.1:6379"
+	cfg.Auth.AllowMemoryTokenStore = false
+	cfg.Database.SSLMode = "verify-full"
+	cfg.Auth.JWT.Secret = "local-only-change-me-0123456789abcdef"
+
+	require.ErrorContains(t, cfg.Validate(), "示例 JWT secret")
+}
+
+func TestConfigValidateRejectsShortJWTSecret(t *testing.T) {
+	cfg := validConfigForValidation()
+	cfg.Auth.JWT.Secret = "too-short"
+
+	require.ErrorContains(t, cfg.Validate(), "32 字节")
 }
 
 // TestConfigValidateRequiresTLSInSharedEnvironments 验证除本地开发和测试外的环境都必须启用安全 TLS。
@@ -285,7 +303,7 @@ func TestConfigValidateRequiresWorkerShutdownBudget(t *testing.T) {
 
 func validConfigForValidation() *Config {
 	return &Config{
-		App: AppConfig{Name: "example-api", Env: "test"},
+		App: AppConfig{Name: "example-api", Slug: "example-api", Env: "test"},
 		Server: ServerConfig{
 			Addr:            ":8080",
 			ReadTimeout:     time.Second,
@@ -307,7 +325,7 @@ func validConfigForValidation() *Config {
 			RefreshTokenTTL:       time.Hour,
 			JWT: JWTConfig{
 				Issuer: "example-api",
-				Secret: "secret",
+				Secret: "0123456789abcdef0123456789abcdef",
 			},
 		},
 		Casbin: CasbinConfig{ModelPath: "model.conf", PolicyPath: "policy.csv"},

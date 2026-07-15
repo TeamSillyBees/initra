@@ -1,4 +1,4 @@
--- 默认管理员账号: admin / admin123
+-- 默认管理员账号为 admin；示例仓库不提供初始密码明文。
 -- 该种子数据同时准备 admin、viewer 两个基础角色，便于 user 模块默认角色逻辑直接工作。
 
 INSERT INTO sys_role (
@@ -60,7 +60,7 @@ INSERT INTO sys_user (
 ) VALUES (
     1000000000001,
     'admin',
-    '$2a$10$2JNGca7Fqsq/IAvSmG2QC.XDzt5VRO9ofixT0jmZsnAic6pzBnV7C',
+    '$2a$10$Eeup5EaAhD2L4O/IQutOZOOEWtpM6SvBf5zbBOeknwIlhf418NBQe',
     'System Admin',
     NULL,
     'admin@example.com',

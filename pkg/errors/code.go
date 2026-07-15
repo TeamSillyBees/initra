@@ -7,14 +7,22 @@ type Code string
 
 // 标准错误码常量是 HTTP 层、业务层和测试断言之间的稳定契约。
 const (
-	CodeOK            Code = "OK"
-	CodeBadRequest    Code = "BAD_REQUEST"
-	CodeUnauthorized  Code = "UNAUTHORIZED"
-	CodeForbidden     Code = "FORBIDDEN"
-	CodeNotFound      Code = "NOT_FOUND"
+	// CodeOK 表示请求处理成功。
+	CodeOK Code = "OK"
+	// CodeBadRequest 表示请求参数或格式错误。
+	CodeBadRequest Code = "BAD_REQUEST"
+	// CodeUnauthorized 表示请求未通过身份认证。
+	CodeUnauthorized Code = "UNAUTHORIZED"
+	// CodeForbidden 表示请求方无权执行目标操作。
+	CodeForbidden Code = "FORBIDDEN"
+	// CodeNotFound 表示请求的资源不存在。
+	CodeNotFound Code = "NOT_FOUND"
+	// CodeInternalError 表示服务内部发生未分类错误。
 	CodeInternalError Code = "INTERNAL_ERROR"
-	CodeDBError       Code = "DB_ERROR"
-	CodeCacheError    Code = "CACHE_ERROR"
+	// CodeDBError 表示数据库访问或事务操作失败。
+	CodeDBError Code = "DB_ERROR"
+	// CodeCacheError 表示缓存读取、写入或失效操作失败。
+	CodeCacheError Code = "CACHE_ERROR"
 )
 
 // 标准 cause domain 常量用于 oops 内部元数据和日志归类，不作为业务错误码返回给客户端。

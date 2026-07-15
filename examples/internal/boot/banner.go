@@ -31,7 +31,6 @@ func newStartupInfo(cfg *Config, addr string) startup.Info {
 		}),
 		Redis:       startup.RedisSummary(cfg.Redis),
 		Task:        startup.TaskSummary(cfg.Task),
-		Metrics:     startup.EnabledSummary(cfg.Observability.Metrics.Enabled, "otel"),
 		Storage:     startup.EnabledSummary(cfg.Storage.Enabled, string(cfg.Storage.Provider)),
 		HTTPClient:  startup.EnabledSummary(cfg.HTTPClient.Enabled, "services="+strconv.Itoa(len(cfg.HTTPClient.Services))),
 		ShutdownTTL: cfg.Server.ShutdownTimeout.String(),

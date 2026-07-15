@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/require"
 	"github.com/teamsillybees/initra/pkg/idgen"
+	"github.com/teamsillybees/initra/pkg/requestctx"
 )
 
 // staticRouteSecurityLookup 始终返回同一份安全元信息，用于 JWT 中间件单元测试。
@@ -48,7 +50,7 @@ func TestJWTMiddlewareRejectsBlacklistedToken(t *testing.T) {
 	store := &fakeTokenStore{refreshValid: true}
 	manager, err := NewJWTManager(JWTConfig{
 		Issuer:          "initra",
-		Secret:          "middleware-test-secret",
+		Secret:          "middleware-test-secret-0123456789abcdef",
 		AccessTokenTTL:  time.Hour,
 		RefreshTokenTTL: 24 * time.Hour,
 		Store:           store,
@@ -73,6 +75,45 @@ func TestJWTMiddlewareRejectsBlacklistedToken(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
 	req.Header.Set("Authorization", "Bearer "+pair.AccessToken)
+	rec := httptest.NewRecorder()
+
+	engine.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+func TestJWTMiddlewareRejectsTokenWithZeroUserID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	now := time.Now()
+	manager, err := NewJWTManager(JWTConfig{
+		Issuer:          "initra",
+		Secret:          "middleware-test-secret-0123456789abcdef",
+		AccessTokenTTL:  time.Hour,
+		RefreshTokenTTL: 24 * time.Hour,
+		Now:             func() time.Time { return now },
+	})
+	require.NoError(t, err)
+	claims := Claims{
+		TokenType: TokenTypeAccess,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    "initra",
+			Subject:   "0",
+			ID:        "zero-user-token",
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(time.Hour)),
+		},
+	}
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("middleware-test-secret-0123456789abcdef"))
+	require.NoError(t, err)
+
+	engine := gin.New()
+	engine.Use(JWTMiddleware(manager, staticRouteSecurityLookup{
+		security: RouteSecurity{AccessMode: AccessModeAuthenticated},
+	}))
+	engine.GET("/api/v1/me", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
 
 	engine.ServeHTTP(rec, req)
@@ -179,6 +220,30 @@ func TestAuthorizationMiddlewareRejectsUnknownAccessMode(t *testing.T) {
 	engine.ServeHTTP(rec, req)
 
 	require.Equal(t, http.StatusForbidden, rec.Code)
+}
+
+func TestAuthorizationMiddlewareRejectsZeroUserID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	engine := gin.New()
+	engine.Use(func(c *gin.Context) {
+		ctx := requestctx.WithUserID(c.Request.Context(), "0")
+		ctx = requestctx.WithRoles(ctx, []string{"admin"})
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	engine.Use(AuthorizationMiddleware(nil, staticRouteSecurityLookup{
+		security: RouteSecurity{AccessMode: AccessModePermission, Resource: "user", Action: "read"},
+	}))
+	engine.GET("/api/v1/users", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
+	rec := httptest.NewRecorder()
+	engine.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
 }
 
 // TestAuthMiddlewareReusesRouteSecurityLookup 验证 JWT 与授权中间件在同一请求中复用路由安全元信息。

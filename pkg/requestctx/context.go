@@ -7,13 +7,14 @@ type requestContextKey string
 
 // 请求上下文 key 常量集中维护请求级数据的存储位置。
 const (
-	requestIDKey requestContextKey = "request_id"
-	traceIDKey   requestContextKey = "trace_id"
-	userIDKey    requestContextKey = "user_id"
-	rolesKey     requestContextKey = "roles"
-	tenantIDKey  requestContextKey = "tenant_id"
-	sessionIDKey requestContextKey = "session_id"
-	appIDKey     requestContextKey = "app_id"
+	requestIDKey      requestContextKey = "request_id"
+	traceIDKey        requestContextKey = "trace_id"
+	userIDKey         requestContextKey = "user_id"
+	rolesKey          requestContextKey = "roles"
+	tenantIDKey       requestContextKey = "tenant_id"
+	sessionIDKey      requestContextKey = "session_id"
+	appIDKey          requestContextKey = "app_id"
+	trustedProxiesKey requestContextKey = "trusted_proxies"
 )
 
 // Values 表示可随请求上下文传递的请求级数据。
@@ -134,6 +135,23 @@ func WithAppID(ctx context.Context, appID string) context.Context {
 // AppIDFromContext 从上下文中提取 app_id。
 func AppIDFromContext(ctx context.Context) (string, bool) {
 	return stringFromContext(ctx, appIDKey)
+}
+
+// WithTrustedProxies 将可信反向代理 IP 或 CIDR 白名单写入请求上下文。
+func WithTrustedProxies(ctx context.Context, trustedProxies ...string) context.Context {
+	return context.WithValue(ctx, trustedProxiesKey, append([]string(nil), trustedProxies...))
+}
+
+// TrustedProxiesFromContext 从请求上下文读取可信反向代理白名单。
+func TrustedProxiesFromContext(ctx context.Context) ([]string, bool) {
+	if ctx == nil {
+		return nil, false
+	}
+	trustedProxies, ok := ctx.Value(trustedProxiesKey).([]string)
+	if !ok {
+		return nil, false
+	}
+	return append([]string(nil), trustedProxies...), true
 }
 
 func withString(ctx context.Context, key requestContextKey, value string) context.Context {

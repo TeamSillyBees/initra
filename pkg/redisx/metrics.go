@@ -114,10 +114,12 @@ func (h *RedisLogHook) Snapshot() CommandStatsSnapshot {
 	return h.stats.Snapshot()
 }
 
+// DialHook 保留底层拨号行为，不采集连接参数或凭证。
 func (h *RedisLogHook) DialHook(next redis.DialHook) redis.DialHook {
 	return next
 }
 
+// ProcessHook 包装单命令执行，记录耗时、错误和统计信息。
 func (h *RedisLogHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
 		start := time.Now()
@@ -127,6 +129,7 @@ func (h *RedisLogHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 	}
 }
 
+// ProcessPipelineHook 包装流水线执行，按批次记录命令名、耗时、错误和统计信息。
 func (h *RedisLogHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.ProcessPipelineHook {
 	return func(ctx context.Context, cmds []redis.Cmder) error {
 		start := time.Now()

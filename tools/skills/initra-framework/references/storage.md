@@ -21,7 +21,7 @@ object, err := s.storage.Upload(ctx, storage.UploadInput{
 })
 ```
 
-下载、删除、预签名 URL、公开 URL 和对象元信息都通过同一个 service 接口完成。
+下载、删除、公开 URL 和对象元信息都通过同一个 service 接口完成。云 provider 支持预签名 URL；local provider 没有可验证的签名和过期端点，因此 `PresignUpload`、`PresignDownload` 明确返回 `storage.ErrUnsupported`。
 
 ## Provider
 

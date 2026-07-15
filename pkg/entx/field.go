@@ -1,41 +1,17 @@
 package entx
 
-import (
-	"strings"
-
-	"entgo.io/ent"
-)
-
 // 审计与软删除字段名是 Ent hook 和业务 schema 之间的稳定契约。
 const (
-	FieldID        = "id"
+	// FieldID 是实体主键字段名。
+	FieldID = "id"
+	// FieldCreatedAt 是实体创建时间字段名。
 	FieldCreatedAt = "created_at"
+	// FieldUpdatedAt 是实体更新时间字段名。
 	FieldUpdatedAt = "updated_at"
+	// FieldCreatedBy 是实体创建人字段名。
 	FieldCreatedBy = "created_by"
+	// FieldUpdatedBy 是实体更新人字段名。
 	FieldUpdatedBy = "updated_by"
+	// FieldDeletedAt 是实体软删除时间字段名。
 	FieldDeletedAt = "deleted_at"
 )
-
-func setFieldIfExists(mutation ent.Mutation, name string, value ent.Value) error {
-	if err := mutation.SetField(name, value); err != nil {
-		if isUnknownFieldError(err) {
-			return nil
-		}
-		return err
-	}
-	return nil
-}
-
-func isUnknownFieldError(err error) bool {
-	if err == nil {
-		return false
-	}
-	message := strings.ToLower(err.Error())
-	if strings.Contains(message, "unknown") && strings.Contains(message, "fieldx") {
-		return true
-	}
-	if strings.Contains(message, "not found") && strings.Contains(message, "fieldx") {
-		return true
-	}
-	return false
-}

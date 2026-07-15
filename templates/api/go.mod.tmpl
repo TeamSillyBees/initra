@@ -149,8 +149,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-{{- if .LocalReplacePath }}
-replace {{ .FrameworkModule }} => {{ .LocalReplacePath }}
-{{- end }}
-
 tool entgo.io/ent/cmd/ent

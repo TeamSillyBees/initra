@@ -15,6 +15,14 @@ type AuditHookOptions struct {
 	Operator OperatorFunc
 }
 
+type createdBySetter interface {
+	SetCreatedBy(idgen.ID)
+}
+
+type updatedBySetter interface {
+	SetUpdatedBy(idgen.ID)
+}
+
 // AuditHook 为 Ent create/update mutation 自动填充操作人字段。
 //
 // 设计原则：
@@ -39,16 +47,16 @@ func AuditHook(options AuditHookOptions) ent.Hook {
 
 			switch {
 			case mutation.Op().Is(ent.OpCreate):
-				if err := setFieldIfExists(mutation, FieldCreatedBy, operatorID); err != nil {
-					return nil, err
+				if setter, ok := mutation.(createdBySetter); ok {
+					setter.SetCreatedBy(operatorID)
 				}
-				if err := setFieldIfExists(mutation, FieldUpdatedBy, operatorID); err != nil {
-					return nil, err
+				if setter, ok := mutation.(updatedBySetter); ok {
+					setter.SetUpdatedBy(operatorID)
 				}
 
 			case mutation.Op().Is(ent.OpUpdate | ent.OpUpdateOne):
-				if err := setFieldIfExists(mutation, FieldUpdatedBy, operatorID); err != nil {
-					return nil, err
+				if setter, ok := mutation.(updatedBySetter); ok {
+					setter.SetUpdatedBy(operatorID)
 				}
 			}
 

@@ -32,6 +32,22 @@ func TestScanPrefixRequiresAllowlistAndLimit(t *testing.T) {
 	require.Len(t, keys, 2)
 }
 
+func TestScanPrefixRejectsGlobMetacharacters(t *testing.T) {
+	_, client := newRedisForTest(t)
+
+	for _, prefix := range []string{"safe:*", "safe:?", "safe:[ab]", `safe:\escape`} {
+		t.Run(prefix, func(t *testing.T) {
+			_, err := ScanPrefix(context.Background(), client, ScanOptions{
+				Prefix:          prefix,
+				AllowedPrefixes: []string{prefix},
+				MaxKeys:         10,
+				BatchSize:       10,
+			})
+			require.ErrorContains(t, err, "glob")
+		})
+	}
+}
+
 func TestUnlinkByPrefixSupportsDryRun(t *testing.T) {
 	_, client := newRedisForTest(t)
 	ctx := context.Background()

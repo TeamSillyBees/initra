@@ -19,7 +19,7 @@ func TestRegisterProvidesLogger(t *testing.T) {
 
 	logger := do.MustInvoke[*Logger](injector)
 	t.Cleanup(func() {
-		require.NoError(t, logger.Sync())
+		require.NoError(t, logger.Close())
 	})
 	require.NotNil(t, logger)
 }

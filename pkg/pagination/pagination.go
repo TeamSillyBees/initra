@@ -6,10 +6,12 @@ type PageQuery struct {
 	PageSize int32 `query:"pageSize" example:"20" minimum:"1" default:"20" doc:"每页记录数，不传默认为 20"`
 }
 
+// Offset 将页码和每页数量换算为数据库查询偏移量。
 func (p PageQuery) Offset() int32 {
 	return (p.Page - 1) * p.PageSize
 }
 
+// Limit 返回当前分页查询要求的每页记录数。
 func (p PageQuery) Limit() int32 {
 	return p.PageSize
 }
@@ -39,7 +41,7 @@ func NewPageVO[T any](items []T, total int32, query PageQuery) PageVO[T] {
 // OffsetQuery 描述 offset/limit HTTP 查询参数，可嵌入 Huma request 结构体。
 type OffsetQuery struct {
 	Offset int32 `query:"offset" example:"0" minimum:"0" default:"0" doc:"偏移量，从 0 开始，不传默认为 0"`
-	Limit  int32 `query:"limit" example:"20" minimum:"1" defulat:"20" doc:"返回记录数，不传默认为 20"`
+	Limit  int32 `query:"limit" example:"20" minimum:"1" default:"20" doc:"返回记录数，不传默认为 20"`
 }
 
 // Page 返回 offset/limit 对应的当前页码。

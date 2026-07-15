@@ -2,6 +2,7 @@ package logx
 
 import (
 	"context"
+	"sync"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -9,32 +10,42 @@ import (
 
 // Logger 是项目统一日志入口，内部按 console/jsonl 策略分别渲染字段。
 type Logger struct {
-	console *consoleLogger
-	jsonl   *zap.Logger
-	cfg     Config
-	closers []func()
+	console   *consoleLogger
+	jsonl     *zap.Logger
+	cfg       Config
+	lifecycle *loggerLifecycle
+}
+
+type loggerLifecycle struct {
+	mu       sync.Mutex
+	closed   bool
+	closeErr error
+	closers  []func()
 }
 
 // NewLogger 根据配置创建统一日志器。
 func NewLogger(cfg Config) (*Logger, error) {
 	cfg = cfg.Normalize()
 	logger := &Logger{cfg: cfg}
+	closers := make([]func(), 0, 2)
 	if cfg.Console.Enabled {
 		console, closeConsole, err := newConsoleLogger(cfg)
 		if err != nil {
 			return nil, err
 		}
 		logger.console = console
-		logger.closers = append(logger.closers, closeConsole)
+		closers = append(closers, closeConsole)
 	}
 	if cfg.JSONL.Enabled {
 		jsonl, closeJSONL, err := newJSONLLogger(cfg)
 		if err != nil {
+			closeLoggerSinks(closers)
 			return nil, err
 		}
 		logger.jsonl = jsonl
-		logger.closers = append(logger.closers, closeJSONL)
+		closers = append(closers, closeJSONL)
 	}
+	logger.lifecycle = &loggerLifecycle{closers: closers}
 	return logger, nil
 }
 
@@ -100,10 +111,10 @@ func (l *Logger) With(fields ...Field) *Logger {
 		return NewNop()
 	}
 	return &Logger{
-		console: withConsoleFields(l.console, fields),
-		jsonl:   withLoggerFields(l.jsonl, fields),
-		cfg:     l.cfg,
-		closers: l.closers,
+		console:   withConsoleFields(l.console, fields),
+		jsonl:     withLoggerFields(l.jsonl, fields),
+		cfg:       l.cfg,
+		lifecycle: l.lifecycle,
 	}
 }
 
@@ -113,27 +124,73 @@ func (l *Logger) Named(name string) *Logger {
 		return NewNop()
 	}
 	return &Logger{
-		console: namedConsoleLogger(l.console, name),
-		jsonl:   namedLogger(l.jsonl, name),
-		cfg:     l.cfg,
-		closers: l.closers,
+		console:   namedConsoleLogger(l.console, name),
+		jsonl:     namedLogger(l.jsonl, name),
+		cfg:       l.cfg,
+		lifecycle: l.lifecycle,
 	}
 }
 
-// Sync 刷新所有底层 logger。
+// Sync 刷新所有底层 logger，但不关闭共享输出目标。
 func (l *Logger) Sync() error {
 	if l == nil {
 		return nil
 	}
+	if l.lifecycle == nil {
+		return l.syncSinks()
+	}
+	return l.lifecycle.sync(l.syncSinks)
+}
+
+// Close 刷新并关闭共享输出目标；由同一 Logger 派生的实例共享一次关闭生命周期。
+func (l *Logger) Close() error {
+	if l == nil {
+		return nil
+	}
+	if l.lifecycle == nil {
+		return l.syncSinks()
+	}
+	return l.lifecycle.close(l.syncSinks)
+}
+
+// Shutdown 是 Close 的语义化别名。
+func (l *Logger) Shutdown() error {
+	return l.Close()
+}
+
+func (l *Logger) syncSinks() error {
 	err := syncConsoleLogger(l.console)
-	err = combineSyncErrors(err, syncLogger(l.jsonl))
-	for _, closer := range l.closers {
-		if closer != nil {
-			closer()
+	return combineSyncErrors(err, syncLogger(l.jsonl))
+}
+
+func (l *loggerLifecycle) sync(syncFn func() error) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.closed {
+		return nil
+	}
+	return syncFn()
+}
+
+func (l *loggerLifecycle) close(syncFn func() error) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.closed {
+		return l.closeErr
+	}
+	l.closeErr = syncFn()
+	closeLoggerSinks(l.closers)
+	l.closers = nil
+	l.closed = true
+	return l.closeErr
+}
+
+func closeLoggerSinks(closers []func()) {
+	for index := len(closers) - 1; index >= 0; index-- {
+		if closers[index] != nil {
+			closers[index]()
 		}
 	}
-	l.closers = nil
-	return err
 }
 
 // write 将普通日志写入已启用的 console/jsonl 底层 logger。

@@ -90,6 +90,44 @@ func (s *MemoryTokenStore) ConsumeRefreshToken(_ context.Context, tokenID string
 	return item.record, true, nil
 }
 
+// RotateRefreshToken 在同一临界区内校验旧记录、替换 refresh token 并吊销配对 access token。
+func (s *MemoryTokenStore) RotateRefreshToken(
+	_ context.Context,
+	oldTokenID string,
+	expected RefreshTokenRecord,
+	newTokenID string,
+	replacement RefreshTokenRecord,
+	ttl time.Duration,
+	blacklistTTL time.Duration,
+) (bool, error) {
+	if s == nil {
+		return false, fmt.Errorf("memory token store 不能为空")
+	}
+	if ttl <= 0 {
+		return false, fmt.Errorf("refresh token ttl must be positive")
+	}
+
+	now := s.currentTime()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.ensureMapsLocked()
+	s.pruneLocked(now)
+	item, ok := s.refreshTokens[oldTokenID]
+	if !ok || !sameRefreshTokenRecord(item.record, expected) {
+		return false, nil
+	}
+	s.refreshTokens[newTokenID] = memoryRefreshToken{
+		record:    replacement,
+		expiresAt: now.Add(ttl),
+	}
+	delete(s.refreshTokens, oldTokenID)
+	if blacklistTTL > 0 {
+		s.accessBlacklist[expected.AccessTokenID] = now.Add(blacklistTTL)
+	}
+	return true, nil
+}
+
 // BlacklistAccessToken 将 access token jti 写入进程内黑名单。
 func (s *MemoryTokenStore) BlacklistAccessToken(_ context.Context, tokenID string, ttl time.Duration) error {
 	if s == nil || ttl <= 0 {
@@ -149,4 +187,10 @@ func (s *MemoryTokenStore) pruneLocked(now time.Time) {
 			delete(s.accessBlacklist, tokenID)
 		}
 	}
+}
+
+func sameRefreshTokenRecord(left RefreshTokenRecord, right RefreshTokenRecord) bool {
+	return left.UserID == right.UserID &&
+		left.AccessTokenID == right.AccessTokenID &&
+		left.AccessExpiresAt.Equal(right.AccessExpiresAt)
 }

@@ -10,6 +10,8 @@ import (
 	"github.com/samber/do"
 )
 
+const defaultPingTimeout = 5 * time.Second
+
 // Config 描述标准 SQL 数据库连接池配置。
 type Config struct {
 	DriverName      string
@@ -17,6 +19,7 @@ type Config struct {
 	MaxOpenConns    int
 	MaxIdleConns    int
 	ConnMaxLifetime time.Duration
+	PingTimeout     time.Duration
 }
 
 // Validate 校验数据库连接池配置。
@@ -32,6 +35,8 @@ func (c Config) Validate() error {
 		return fmt.Errorf("database max idle conns 不能小于 0")
 	case c.ConnMaxLifetime < 0:
 		return fmt.Errorf("database conn max lifetime 不能小于 0")
+	case c.PingTimeout < 0:
+		return fmt.Errorf("database ping timeout 不能小于 0")
 	}
 	return nil
 }
@@ -50,11 +55,20 @@ func Open(ctx context.Context, cfg Config) (*sql.DB, error) {
 	db.SetMaxIdleConns(cfg.MaxIdleConns)
 	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 
-	if err := Ping(ctx, db); err != nil {
+	pingCtx, cancel := context.WithTimeout(ctx, cfg.pingTimeout())
+	defer cancel()
+	if err := Ping(pingCtx, db); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
 	return db, nil
+}
+
+func (c Config) pingTimeout() time.Duration {
+	if c.PingTimeout <= 0 {
+		return defaultPingTimeout
+	}
+	return c.PingTimeout
 }
 
 // Ping 执行数据库 Ping 健康检查。

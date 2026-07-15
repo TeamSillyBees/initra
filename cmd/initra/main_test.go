@@ -240,7 +240,7 @@ func TestNewGeneratesPublishedProjectWithoutReplace(t *testing.T) {
 	require.NoError(t, testErr, string(output))
 }
 
-func TestNewGeneratesAPIMigrationsWithoutPhysicalForeignKeys(t *testing.T) {
+func TestNewGeneratesAPIMigrationsWithPhysicalForeignKeys(t *testing.T) {
 	target := filepath.Join(t.TempDir(), "demo")
 
 	err := run([]string{
@@ -251,19 +251,19 @@ func TestNewGeneratesAPIMigrationsWithoutPhysicalForeignKeys(t *testing.T) {
 	}, ioDiscard{}, "dev")
 
 	require.NoError(t, err)
-	migrations, err := filepath.Glob(filepath.Join(target, "db", "migrations", "*_init.sql"))
+	migrations, err := filepath.Glob(filepath.Join(target, "db", "migrations", "*_add_relationship_foreign_keys.sql"))
 	require.NoError(t, err)
 	require.Len(t, migrations, 1)
 	migrationContent := readFile(t, migrations[0])
-	require.NotContains(t, migrationContent, "FOREIGN KEY")
-	require.NotContains(t, migrationContent, "REFERENCES")
+	require.Contains(t, migrationContent, `CONSTRAINT "fk_sys_user_role_user" FOREIGN KEY ("user_id") REFERENCES "sys_user" ("id")`)
+	require.Contains(t, migrationContent, `CONSTRAINT "fk_sys_role_menu_role" FOREIGN KEY ("role_id") REFERENCES "sys_role" ("id")`)
 
 	require.NoFileExists(t, filepath.Join(target, "internal", "data", "ent", "migrate", "main.go"))
 	diffGenerator := readFile(t, filepath.Join(target, "internal", "data", "migratediff", "main.go"))
 	require.Contains(t, diffGenerator, `_ "github.com/lib/pq"`)
 	require.Contains(t, diffGenerator, "boot.LoadConfig")
 	require.Contains(t, diffGenerator, "data.SQLDBConfig")
-	require.Contains(t, diffGenerator, "migrate.WithForeignKeys(false)")
+	require.Contains(t, diffGenerator, "migrate.WithForeignKeys(true)")
 	require.Contains(t, diffGenerator, "schema.WithMigrationMode(schema.ModeReplay)")
 	require.Contains(t, readFile(t, filepath.Join(target, "db", "atlas.hcl")), "docker://postgres/16/dev")
 
@@ -591,28 +591,35 @@ replace github.com/teamsillybees/initra => %s
 	}
 }
 
-func TestCRUDAddGeneratesSampleForModule(t *testing.T) {
+func TestSnippetAddGeneratesExplicitTableSnippet(t *testing.T) {
 	target := t.TempDir()
 	require.NoError(t, os.MkdirAll(filepath.Join(target, "internal", "modules", "order"), 0o755))
 	t.Chdir(target)
 
-	err := run([]string{"crud", "add", "order", "--table", "sys_order"}, ioDiscard{}, "dev")
+	err := run([]string{"snippet", "add", "order", "--table", "sys_order"}, ioDiscard{}, "dev")
 
 	require.NoError(t, err)
-	content := readFile(t, filepath.Join(target, "internal", "modules", "order", "order.crud.go"))
+	content := readFile(t, filepath.Join(target, "internal", "modules", "order", "order.table.go"))
 	require.Contains(t, content, "sys_order")
-	require.Contains(t, content, "type OrderCRUD")
+	require.Contains(t, content, "const OrderTableName")
+	require.NotContains(t, content, "type OrderCRUD")
 }
 
-func TestConfigAddGeneratesConfigSnippet(t *testing.T) {
+func TestConfigAddConnectsAggregateAndBaseYAML(t *testing.T) {
 	target := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(target, "internal", "boot"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(target, "configs"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(target, "internal", "boot", "config.go"), []byte("package boot\n\ntype Config struct{}\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(target, "configs", "config.yaml"), []byte("app:\n  name: demo\n"), 0o644))
 	t.Chdir(target)
 
-	err := run([]string{"config", "add", "redis"}, ioDiscard{}, "dev")
+	err := run([]string{"config", "add", "feature_flag"}, ioDiscard{}, "dev")
 
 	require.NoError(t, err)
-	require.FileExists(t, filepath.Join(target, "internal", "boot", "redis.config.go"))
-	require.FileExists(t, filepath.Join(target, "configs", "redis.yaml"))
+	require.FileExists(t, filepath.Join(target, "internal", "boot", "feature_flag.config.go"))
+	require.Contains(t, readFile(t, filepath.Join(target, "internal", "boot", "config.go")), "FeatureFlag FeatureFlagConfig")
+	require.Contains(t, readFile(t, filepath.Join(target, "internal", "boot", "config.go")), `mapstructure:"feature_flag"`)
+	require.Contains(t, readFile(t, filepath.Join(target, "configs", "config.yaml")), "feature_flag:\n  enabled: false")
 }
 
 func TestMigrateCommandsGenerateFiles(t *testing.T) {
@@ -703,10 +710,11 @@ func TestMigrateHashDefaultsToLocalEnv(t *testing.T) {
 
 func TestDoctorReportsEnvironmentChecks(t *testing.T) {
 	var stdout bytes.Buffer
+	t.Chdir(t.TempDir())
 
 	err := run([]string{"doctor"}, &stdout, "dev")
 
-	require.NoError(t, err)
+	require.Error(t, err)
 	require.Contains(t, stdout.String(), "Go:")
 	require.Contains(t, stdout.String(), "Atlas:")
 	require.Contains(t, stdout.String(), "Ent:")

@@ -31,6 +31,7 @@ type DatabaseConfig struct {
 	MaxOpenConns    int           `mapstructure:"max_open_conns"`
 	MaxIdleConns    int           `mapstructure:"max_idle_conns"`
 	ConnMaxLifetime time.Duration `mapstructure:"conn_max_lifetime"`
+	PingTimeout     time.Duration `mapstructure:"ping_timeout"`
 }
 
 // SQLDBConfig 将业务数据库配置转换为通用 SQL 连接池配置。
@@ -52,6 +53,7 @@ func SQLDBConfig(cfg DatabaseConfig) platformdatabase.Config {
 		MaxOpenConns:    cfg.MaxOpenConns,
 		MaxIdleConns:    cfg.MaxIdleConns,
 		ConnMaxLifetime: cfg.ConnMaxLifetime,
+		PingTimeout:     cfg.PingTimeout,
 	}
 }
 

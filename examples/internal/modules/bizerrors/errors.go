@@ -10,8 +10,10 @@ import (
 
 // 示例业务错误码独立于框架公共错误码，避免业务语义泄漏到 pkg API。
 const (
+	// CodeUserNotFound 表示指定用户不存在。
 	CodeUserNotFound apperrors.Code = "USER_NOT_FOUND"
-	CodeLoginFailed  apperrors.Code = "LOGIN_FAILED"
+	// CodeLoginFailed 表示登录凭证校验失败。
+	CodeLoginFailed apperrors.Code = "LOGIN_FAILED"
 )
 
 // Option 表示业务错误构造选项。

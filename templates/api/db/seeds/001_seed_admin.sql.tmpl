@@ -1,4 +1,4 @@
--- 默认管理员账号: admin / admin123
+-- 默认管理员账号为 admin；初始密码由 initra new 成功后一次性输出，明文不会写入项目文件。
 -- 该种子数据同时准备 admin、viewer 两个基础角色，便于 user 模块默认角色逻辑直接工作。
 
 INSERT INTO sys_role (
@@ -60,7 +60,7 @@ INSERT INTO sys_user (
 ) VALUES (
     1000000000001,
     'admin',
-    '$2a$10$2JNGca7Fqsq/IAvSmG2QC.XDzt5VRO9ofixT0jmZsnAic6pzBnV7C',
+    '{{ .AdminPasswordHash }}',
     'System Admin',
     NULL,
     'admin@example.com',

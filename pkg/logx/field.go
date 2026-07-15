@@ -16,7 +16,7 @@ func String(key string, value string) Field {
 
 // Strings 创建字符串切片日志字段。
 func Strings(key string, values []string) Field {
-	return zap.Strings(key, values)
+	return zap.Reflect(key, append([]string(nil), values...))
 }
 
 // Int 创建 int 日志字段。
@@ -36,5 +36,5 @@ func Duration(key string, value time.Duration) Field {
 
 // Any 创建任意类型日志字段。
 func Any(key string, value any) Field {
-	return zap.Any(key, value)
+	return zap.Reflect(key, value)
 }

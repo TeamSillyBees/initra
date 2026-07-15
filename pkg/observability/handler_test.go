@@ -68,7 +68,7 @@ func newObservabilityApp(t *testing.T, readiness *observability.ReadinessRegistr
 	logger := logx.NewNop()
 	jwtManager, err := auth.NewJWTManager(auth.JWTConfig{
 		Issuer:          "initra",
-		Secret:          "observability-test-secret",
+		Secret:          "observability-test-secret-32-bytes",
 		AccessTokenTTL:  3600,
 		RefreshTokenTTL: 7200,
 	})

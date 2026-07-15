@@ -19,7 +19,7 @@
 
 - **标准项目模板**：`templates/api` 提供包含 auth/user/file/httpdemo/taskdemo 示例模块、Ent schema、seed 和 Atlas migrations 的 RESTful API 服务模板；`examples` 是 API 模板的可运行验证样例。模板不保存 Ent 生成代码，`initra new` 在渲染后执行生成入口。
 - **可复用 Go package**：根模块 `github.com/teamsillybees/initra` 的 `pkg/*`，沉淀 Web、配置、错误、日志、认证、数据库、Redis、缓存、文件与对象存储、HTTP Client、任务队列、任务调度等通用能力；
-- **工程化 CLI**：`cmd/initra`，负责生成项目、模块、CRUD/配置骨架、迁移文件和 Codex skill。
+- **工程化 CLI**：`cmd/initra`，负责生成项目、模块、显式代码片段、聚合配置、迁移文件和 Codex skill。
 
 重要边界：
 
@@ -58,7 +58,7 @@ go run ./cmd/initra new $target --type api --module example.com/demo-api --repla
 - 不引入不必要的抽象。只有在减少真实重复、隔离复杂度或匹配现有模式时才新增抽象。
 - 共享能力放入 `pkg/*`，不要通过业务模块之间互相 import 来复用逻辑。
 - 业务 ID 统一使用 `pkg/idgen.ID`。Ent 主键、外键、auth user ID、REST path params、service 入参和 JSON VO 不使用 `int64` 或 `string` 表达业务 ID；对外 JSON/OpenAPI ID 暴露为字符串。`pkg/idgen` 没有固定默认节点，每个运行实例必须显式配置唯一的 0–1023 Snowflake node。仅在对接雪花 ID 生成器、第三方库、手写 SQL 参数或极少数底层基础设施场景调用 `Int64()`。
-- Ent schema 使用 `pkg/entx/fieldx` 的 `ID()`、`Audit()`、`SoftDelete()` 等字段助手，按需使用 `fieldx.OptimisticLock()` 和 `pkg/entx/indexx`；审计操作人和物理删除保护由 Ent Client 注册 `entx.AuditHook`、`entx.RejectDeleteHook`。不要复制本地 schema helper，也不要把 `fieldx.OptimisticLock()` 描述成完整的自动乐观锁实现。
+- Ent schema 使用 `pkg/entx/fieldx` 的 `ID()`、`Audit()`、`SoftDelete()` 等字段助手，按需使用仅定义版本字段的 `fieldx.OptimisticLockVersion()` 和 `pkg/entx/indexx`；审计操作人和物理删除保护由 Ent Client 注册 `entx.AuditHook`、`entx.RejectDeleteHook`。不要复制本地 schema helper，也不要把版本字段助手描述成完整的自动乐观锁实现。
 - Redis 业务能力优先使用 `pkg/redisx` 的 client、Key Builder、缓存、Lua registry、SCAN+UNLINK 和 redislock 短锁；禁止生产使用 `KEYS`，禁止记录密码、token、验证码、session value。
 - 认证 token store 默认使用 Redis；内存 store 必须显式 opt-in 且仅允许用于 dev/local/test。其他任何环境关闭 Redis 或启用内存 store 时都必须启动失败。
 - 文件与对象存储业务能力优先使用 `pkg/storage` 的统一接口和 `pkg/storage/provider` 工厂；业务模块不要直接依赖云厂商 SDK。

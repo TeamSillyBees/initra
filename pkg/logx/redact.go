@@ -2,8 +2,10 @@ package logx
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
+	"time"
 	"unicode"
 
 	"go.uber.org/zap"
@@ -37,6 +39,9 @@ var (
 		"idcard",
 		"identitycard",
 		"dsn",
+		"datasourcename",
+		"databaseurl",
+		"connectionstring",
 		"sql",
 		"query",
 		"body",
@@ -46,9 +51,21 @@ var (
 	}
 	// assignmentPatterns 匹配字符串中常见的敏感 key=value/key:value 片段。
 	assignmentPatterns = []*regexp.Regexp{
+		regexp.MustCompile(`(?i)(authorization)\s*[:=]\s*(?:bearer\s+)?[^,\s;&]+`),
 		regexp.MustCompile(`(?i)(password|passwd|pwd|token|secret|authorization|access[_-]?key|secret[_-]?key|dsn)\s*[:=]\s*[^,\s;&]+`),
 	}
+	urlCredentialPattern = regexp.MustCompile(`(?i)\b([a-z][a-z0-9+.-]*://)[^/@\s]+@`)
 )
+
+const maxRedactDepth = 32
+
+var timeValueType = reflect.TypeOf(time.Time{})
+
+type redactVisit struct {
+	kind   reflect.Kind
+	typeOf reflect.Type
+	ptr    uintptr
+}
 
 // IsSensitiveKey 判断字段名是否属于敏感信息。
 func IsSensitiveKey(key string, extraFields []string) bool {
@@ -70,43 +87,134 @@ func IsSensitiveKey(key string, extraFields []string) bool {
 
 // RedactValue 按字段名和值类型递归脱敏。
 func RedactValue(key string, value any) any {
-	if IsSensitiveKey(key, nil) {
+	return redactReflectValue(key, reflect.ValueOf(value), 0, make(map[redactVisit]struct{}))
+}
+
+func redactReflectValue(key string, value reflect.Value, depth int, seen map[redactVisit]struct{}) any {
+	if IsSensitiveKey(key, nil) || depth >= maxRedactDepth {
 		return RedactedValue
 	}
-	switch typed := value.(type) {
-	case map[string]any:
-		result := make(map[string]any, len(typed))
-		for itemKey, itemValue := range typed {
-			result[itemKey] = RedactValue(itemKey, itemValue)
+	if !value.IsValid() {
+		return nil
+	}
+	if value.Kind() == reflect.Interface {
+		if value.IsNil() {
+			return nil
+		}
+		return redactReflectValue(key, value.Elem(), depth+1, seen)
+	}
+	if value.Kind() == reflect.Pointer && value.IsNil() {
+		return nil
+	}
+	if value.CanInterface() {
+		if err, ok := value.Interface().(error); ok {
+			return RedactText(err.Error())
+		}
+		if value.Type() == timeValueType {
+			return value.Interface()
+		}
+		if stringer, ok := value.Interface().(fmt.Stringer); ok {
+			return RedactText(stringer.String())
+		}
+	}
+	if release, repeated := enterRedactValue(value, seen); repeated {
+		return RedactedValue
+	} else if release != nil {
+		defer release()
+	}
+
+	switch value.Kind() {
+	case reflect.Pointer:
+		if value.IsNil() {
+			return nil
+		}
+		return redactReflectValue(key, value.Elem(), depth+1, seen)
+	case reflect.Map:
+		if value.IsNil() {
+			return nil
+		}
+		result := make(map[string]any, value.Len())
+		iterator := value.MapRange()
+		for iterator.Next() {
+			itemKey := reflectMapKey(iterator.Key())
+			result[itemKey] = redactReflectValue(itemKey, iterator.Value(), depth+1, seen)
 		}
 		return result
-	case map[string]string:
-		result := make(map[string]string, len(typed))
-		for itemKey, itemValue := range typed {
-			if IsSensitiveKey(itemKey, nil) {
-				result[itemKey] = RedactedValue
+	case reflect.Struct:
+		result := make(map[string]any, value.NumField())
+		typeOf := value.Type()
+		for index := 0; index < value.NumField(); index++ {
+			field := typeOf.Field(index)
+			fieldName, ok := redactFieldName(field)
+			if !ok {
 				continue
 			}
-			result[itemKey] = RedactText(itemValue)
+			result[fieldName] = redactReflectValue(fieldName, value.Field(index), depth+1, seen)
 		}
 		return result
-	case []any:
-		result := make([]any, 0, len(typed))
-		for _, item := range typed {
-			result = append(result, RedactValue("", item))
+	case reflect.Slice, reflect.Array:
+		if value.Kind() == reflect.Slice && value.IsNil() {
+			return nil
+		}
+		if value.Type().Elem().Kind() == reflect.Uint8 {
+			return RedactedValue
+		}
+		result := make([]any, value.Len())
+		for index := 0; index < value.Len(); index++ {
+			result[index] = redactReflectValue("", value.Index(index), depth+1, seen)
 		}
 		return result
-	case []string:
-		result := make([]string, 0, len(typed))
-		for _, item := range typed {
-			result = append(result, RedactText(item))
-		}
-		return result
-	case string:
-		return RedactText(typed)
+	case reflect.String:
+		return RedactText(value.String())
 	default:
-		return value
+		if value.CanInterface() {
+			return value.Interface()
+		}
+		return fmt.Sprint(value)
 	}
+}
+
+func enterRedactValue(value reflect.Value, seen map[redactVisit]struct{}) (func(), bool) {
+	switch value.Kind() {
+	case reflect.Pointer, reflect.Map, reflect.Slice:
+		if value.IsNil() {
+			return nil, false
+		}
+	default:
+		return nil, false
+	}
+	visit := redactVisit{kind: value.Kind(), typeOf: value.Type(), ptr: value.Pointer()}
+	if _, ok := seen[visit]; ok {
+		return nil, true
+	}
+	seen[visit] = struct{}{}
+	return func() { delete(seen, visit) }, false
+}
+
+func reflectMapKey(value reflect.Value) string {
+	if value.Kind() == reflect.String {
+		return value.String()
+	}
+	if value.CanInterface() {
+		return fmt.Sprint(value.Interface())
+	}
+	return fmt.Sprint(value)
+}
+
+func redactFieldName(field reflect.StructField) (string, bool) {
+	if field.PkgPath != "" {
+		return "", false
+	}
+	for _, tagName := range []string{"json", "mapstructure", "yaml"} {
+		tag := strings.Split(field.Tag.Get(tagName), ",")[0]
+		if tag == "-" {
+			return "", false
+		}
+		if tag != "" {
+			return tag, true
+		}
+	}
+	return field.Name, true
 }
 
 // RedactFields 对 zap 字段执行集中脱敏。
@@ -130,6 +238,12 @@ func RedactFields(fields []Field, cfg RedactConfig) []Field {
 			}
 		case zapcore.ReflectType:
 			result[index] = zap.Any(field.Key, RedactValue(field.Key, field.Interface))
+		case zapcore.StringerType:
+			if stringer, ok := field.Interface.(fmt.Stringer); ok && stringer != nil {
+				result[index] = zap.String(field.Key, RedactText(stringer.String()))
+			}
+		case zapcore.BinaryType, zapcore.ByteStringType:
+			result[index] = zap.String(field.Key, RedactedValue)
 		}
 	}
 	return result
@@ -141,6 +255,7 @@ func RedactText(text string) string {
 	for _, pattern := range assignmentPatterns {
 		result = pattern.ReplaceAllStringFunc(result, redactAssignment)
 	}
+	result = urlCredentialPattern.ReplaceAllString(result, "${1}"+RedactedValue+"@")
 	return result
 }
 

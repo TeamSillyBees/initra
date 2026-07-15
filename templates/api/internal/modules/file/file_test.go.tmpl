@@ -4,12 +4,18 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"math"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/teamsillybees/initra/pkg/storage"
 )
+
+func TestUploadBodyLimitIncludesMultipartOverhead(t *testing.T) {
+	require.Equal(t, int64(11*1024*1024), uploadBodyLimit(10*1024*1024))
+	require.Equal(t, int64(math.MaxInt64), uploadBodyLimit(math.MaxInt64))
+}
 
 func TestServiceUploadLocal(t *testing.T) {
 	store := &fakeStorage{}
