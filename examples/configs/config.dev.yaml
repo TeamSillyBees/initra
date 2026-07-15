@@ -12,6 +12,9 @@ auth:
   jwt:
     secret: "change-me-dev"
 
+idgen:
+  node: 1
+
 log:
   level: info
   console:

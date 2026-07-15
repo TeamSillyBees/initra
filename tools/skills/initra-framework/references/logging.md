@@ -27,7 +27,7 @@ logger.Error(ctx, "publish task failed", err, logx.String("task_type", taskType)
 
 - 配置日志使用项目 `SafeForLog()`。
 - HTTP Client、request log 和错误上下文不要包含密码、token、验证码、session value、Authorization、access key 或带密码 DSN。
-- `log.redact.fields` 应包含 `password`、`token`、`secret`、`authorization`。
+- `logx` 已内置常见敏感字段；`log.redact.fields` 只补充项目专属字段。
 
 ## 禁止
 

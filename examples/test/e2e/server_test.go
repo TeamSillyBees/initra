@@ -89,7 +89,7 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 		Version:   "test",
 		Commit:    "abc123",
 		BuildTime: "2026-04-21T00:00:00Z",
-	}).Register(app.API, app.Registry)
+	}, nil).Register(app.API, app.Registry)
 
 	db, mock, entClient := newMockEntClient(t)
 	defer db.Close()

@@ -16,14 +16,6 @@ var defaultState = struct {
 	generator *Generator
 }{}
 
-func init() {
-	generator, err := NewGenerator(1)
-	if err != nil {
-		panic(err)
-	}
-	SetDefaultGenerator(generator)
-}
-
 // NewGenerator 初始化指定节点编号的雪花算法生成器。
 func NewGenerator(node int64) (*Generator, error) {
 	n, err := snowflake.NewNode(node)
@@ -56,7 +48,7 @@ func ConfigureDefault(node int64) (*Generator, error) {
 	return generator, nil
 }
 
-// SetDefaultGenerator 设置 Ent mixin 默认使用的 ID 生成器。
+// SetDefaultGenerator 设置 Ent schema 字段默认使用的 ID 生成器。
 func SetDefaultGenerator(generator *Generator) {
 	defaultState.Lock()
 	defer defaultState.Unlock()

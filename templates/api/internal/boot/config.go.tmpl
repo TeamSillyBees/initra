@@ -2,6 +2,7 @@ package boot
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"{{ .ModulePath }}/internal/data"
@@ -49,11 +50,12 @@ type ServerConfig struct {
 
 // AuthConfig 描述认证与令牌配置。
 type AuthConfig struct {
-	Enabled              bool          `mapstructure:"enabled"`
-	AccessTokenTTL       time.Duration `mapstructure:"access_token_ttl"`
-	RefreshTokenTTL      time.Duration `mapstructure:"refresh_token_ttl"`
-	AllowMultipleDevices bool          `mapstructure:"allow_multiple_devices"`
-	JWT                  JWTConfig     `mapstructure:"jwt"`
+	Enabled               bool          `mapstructure:"enabled"`
+	AllowMemoryTokenStore bool          `mapstructure:"allow_memory_token_store"`
+	AccessTokenTTL        time.Duration `mapstructure:"access_token_ttl"`
+	RefreshTokenTTL       time.Duration `mapstructure:"refresh_token_ttl"`
+	AllowMultipleDevices  bool          `mapstructure:"allow_multiple_devices"`
+	JWT                   JWTConfig     `mapstructure:"jwt"`
 }
 
 // JWTConfig 描述 JWT 签发所需配置。
@@ -111,6 +113,7 @@ func (c *Config) Validate() error {
 	if err := c.Redis.Validate(); err != nil {
 		return err
 	}
+	taskConfig := c.Task.Normalize()
 	switch {
 	case c.App.Name == "":
 		return fmt.Errorf("app.name 不能为空")
@@ -126,6 +129,8 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("server.idle_timeout 必须大于 0")
 	case c.Server.ShutdownTimeout <= 0:
 		return fmt.Errorf("server.shutdown_timeout 必须大于 0")
+	case taskConfig.Enabled && taskConfig.Worker.Enabled && c.Server.ShutdownTimeout < taskConfig.Worker.ShutdownTimeout:
+		return fmt.Errorf("server.shutdown_timeout 不能小于 task.worker.shutdown_timeout")
 	case c.Database.Host == "":
 		return fmt.Errorf("database.host 不能为空")
 	case c.Database.Port <= 0 || c.Database.Port > 65535:
@@ -134,6 +139,16 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("database.user 不能为空")
 	case c.Database.DBName == "":
 		return fmt.Errorf("database.dbname 不能为空")
+	case !isValidDatabaseSSLMode(c.Database.SSLMode):
+		return fmt.Errorf("database.ssl_mode 必须是 disable、allow、prefer、require、verify-ca 或 verify-full")
+	case requiresSecureInfrastructure(c.App.Env) && !isSecureDatabaseSSLMode(c.Database.SSLMode):
+		return fmt.Errorf("非 dev/local/test 环境的 database.ssl_mode 必须是 require、verify-ca 或 verify-full")
+	case requiresSecureInfrastructure(c.App.Env) && !c.Redis.Enabled:
+		return fmt.Errorf("非 dev/local/test 环境的认证必须启用 Redis 共享 token store")
+	case requiresSecureInfrastructure(c.App.Env) && c.Auth.AllowMemoryTokenStore:
+		return fmt.Errorf("非 dev/local/test 环境禁止启用 auth.allow_memory_token_store")
+	case !c.Redis.Enabled && !c.Auth.AllowMemoryTokenStore:
+		return fmt.Errorf("Redis 关闭时必须显式启用 auth.allow_memory_token_store")
 	case !c.Auth.Enabled:
 		return fmt.Errorf("auth.enabled 当前必须为 true")
 	case c.Auth.JWT.Issuer == "":
@@ -151,7 +166,7 @@ func (c *Config) Validate() error {
 	case c.Casbin.PolicyPath == "":
 		return fmt.Errorf("casbin.policy_path 不能为空")
 	case c.IDGen.Node < 0 || c.IDGen.Node > 1023:
-		return fmt.Errorf("idgen.node 必须在 0 到 1023 之间")
+		return fmt.Errorf("idgen.node 必须显式配置为 0 到 1023 之间的实例唯一值")
 	}
 	if err := c.Storage.Validate(); err != nil {
 		return err
@@ -159,7 +174,7 @@ func (c *Config) Validate() error {
 	if err := c.HTTPClient.Validate(); err != nil {
 		return err
 	}
-	if err := c.Task.Validate(); err != nil {
+	if err := taskConfig.Validate(); err != nil {
 		return err
 	}
 	return nil
@@ -174,12 +189,13 @@ func configDefaults() map[string]any {
 		"server.read_timeout":                                "10s",
 		"server.write_timeout":                               "30s",
 		"server.idle_timeout":                                "60s",
-		"server.shutdown_timeout":                            "20s",
+		"server.shutdown_timeout":                            "45s",
 		"database.host":                                      "",
 		"database.port":                                      5432,
 		"database.user":                                      "",
 		"database.password":                                  "",
 		"database.dbname":                                    "",
+		"database.ssl_mode":                                  "require",
 		"database.max_open_conns":                            20,
 		"database.max_idle_conns":                            10,
 		"database.conn_max_lifetime":                         "1h",
@@ -191,6 +207,7 @@ func configDefaults() map[string]any {
 		"redis.observability.metrics_enabled":                true,
 		"redis.observability.tracing_enabled":                false,
 		"auth.enabled":                                       true,
+		"auth.allow_memory_token_store":                      false,
 		"auth.access_token_ttl":                              "15m",
 		"auth.refresh_token_ttl":                             "720h",
 		"auth.allow_multiple_devices":                        true,
@@ -219,7 +236,7 @@ func configDefaults() map[string]any {
 		"casbin.policy_path":                                 "",
 		"cache.local_ttl":                                    "1m",
 		"cache.remote_ttl":                                   "10m",
-		"idgen.node":                                         1,
+		"idgen.node":                                         int64(-1),
 		"storage.enabled":                                    true,
 		"storage.provider":                                   string(platformstorage.ProviderLocal),
 		"storage.presign_default_ttl":                        "15m",
@@ -276,5 +293,32 @@ func configDefaults() map[string]any {
 		"task.observability.tracing":                         true,
 		"task.observability.include_payload_in_log":          false,
 		"task.observability.include_payload_in_trace":        false,
+	}
+}
+
+func isValidDatabaseSSLMode(mode string) bool {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "disable", "allow", "prefer", "require", "verify-ca", "verify-full":
+		return true
+	default:
+		return false
+	}
+}
+
+func isSecureDatabaseSSLMode(mode string) bool {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "require", "verify-ca", "verify-full":
+		return true
+	default:
+		return false
+	}
+}
+
+func requiresSecureInfrastructure(env string) bool {
+	switch strings.ToLower(strings.TrimSpace(env)) {
+	case "dev", "local", "test":
+		return false
+	default:
+		return true
 	}
 }

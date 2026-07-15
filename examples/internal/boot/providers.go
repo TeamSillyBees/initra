@@ -44,9 +44,10 @@ func registerProviders(injector *do.Injector, cfg *Config, buildInfo observabili
 		return data.NewEntClientFromDB(db, generator), nil
 	})
 	auth.Register(injector, auth.RegisterOptions{
-		AppName:      cfg.App.Name,
-		Env:          cfg.App.Env,
-		RedisEnabled: cfg.Redis.Enabled,
+		AppName:          cfg.App.Name,
+		Env:              cfg.App.Env,
+		RedisEnabled:     cfg.Redis.Enabled,
+		AllowMemoryStore: cfg.Auth.AllowMemoryTokenStore,
 		JWT: auth.JWTConfig{
 			Issuer:          cfg.Auth.JWT.Issuer,
 			Secret:          cfg.Auth.JWT.Secret,
@@ -73,10 +74,15 @@ func registerModules(injector *do.Injector) {
 	taskdemomodule.Provide(injector)
 }
 
-func registerRoutes(injector *do.Injector, webApp *server.App, buildInfo observability.BuildInfoVO) {
+func registerRoutes(
+	injector *do.Injector,
+	webApp *server.App,
+	buildInfo observability.BuildInfoVO,
+	readiness *observability.ReadinessRegistry,
+) {
 	cfg := do.MustInvoke[*Config](injector)
 	if cfg.Observability.Health.Enabled {
-		observability.NewModule(buildInfo).Register(webApp.API, webApp.Registry)
+		observability.NewModule(buildInfo, readiness).Register(webApp.API, webApp.Registry)
 	}
 
 	// 新增业务模块完成依赖注册后，需要在这里解析 Module 并调用 Register。

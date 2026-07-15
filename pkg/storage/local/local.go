@@ -41,10 +41,15 @@ func New(cfg storage.Config) (*Service, error) {
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		return nil, fmt.Errorf("创建本地存储目录失败: %w", err)
 	}
-	if err := os.MkdirAll(filepath.Join(root, cfg.Local.TempDir), 0o755); err != nil {
+	service := &Service{cfg: cfg}
+	tempRoot, err := service.multipartRoot()
+	if err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(tempRoot, 0o755); err != nil {
 		return nil, fmt.Errorf("创建本地分片目录失败: %w", err)
 	}
-	return &Service{cfg: cfg}, nil
+	return service, nil
 }
 
 // Upload 保存对象。
@@ -361,7 +366,10 @@ func (s *Service) CreateMultipartUpload(_ context.Context, input storage.Multipa
 		return nil, err
 	}
 	uploadID = strings.ReplaceAll(uploadID, "/", "-")
-	dir := s.multipartDir(bucket, uploadID)
+	dir, err := s.multipartDir(bucket, uploadID)
+	if err != nil {
+		return nil, err
+	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, err
 	}
@@ -370,9 +378,6 @@ func (s *Service) CreateMultipartUpload(_ context.Context, input storage.Multipa
 
 // UploadPart 保存本地分片。
 func (s *Service) UploadPart(_ context.Context, input storage.UploadPartInput) (*storage.UploadedPart, error) {
-	if input.PartNumber <= 0 {
-		return nil, fmt.Errorf("%w: part_number 必须大于 0", storage.ErrInvalidConfig)
-	}
 	if input.Body == nil {
 		return nil, fmt.Errorf("%w: part body 不能为空", storage.ErrInvalidKey)
 	}
@@ -380,14 +385,17 @@ func (s *Service) UploadPart(_ context.Context, input storage.UploadPartInput) (
 	if _, err := storage.NormalizeObjectKey(input.Key); err != nil {
 		return nil, err
 	}
-	if strings.TrimSpace(input.UploadID) == "" {
-		return nil, fmt.Errorf("%w: upload_id 不能为空", storage.ErrInvalidConfig)
+	dir, err := s.multipartDir(bucket, input.UploadID)
+	if err != nil {
+		return nil, err
 	}
-	dir := s.multipartDir(bucket, input.UploadID)
+	partPath, err := multipartPartPath(dir, input.PartNumber)
+	if err != nil {
+		return nil, err
+	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, err
 	}
-	partPath := filepath.Join(dir, strconv.Itoa(input.PartNumber))
 	file, err := os.Create(partPath)
 	if err != nil {
 		return nil, err
@@ -419,6 +427,17 @@ func (s *Service) CompleteMultipartUpload(_ context.Context, input storage.Compl
 	if len(parts) == 0 {
 		return nil, fmt.Errorf("%w: parts 不能为空", storage.ErrInvalidConfig)
 	}
+	dir, err := s.multipartDir(bucket, input.UploadID)
+	if err != nil {
+		return nil, err
+	}
+	partPaths := make([]string, len(parts))
+	for index, part := range parts {
+		partPaths[index], err = multipartPartPath(dir, part.PartNumber)
+		if err != nil {
+			return nil, err
+		}
+	}
 	fullPath, err := s.fullPath(bucket, key)
 	if err != nil {
 		return nil, err
@@ -434,13 +453,12 @@ func (s *Service) CompleteMultipartUpload(_ context.Context, input storage.Compl
 
 	hash := md5.New() //nolint:gosec // ETag 只用于对象标识，不用于安全校验。
 	total := int64(0)
-	for _, part := range parts {
+	for index := range parts {
 		if s.cfg.Local.MaxSize > 0 && total >= s.cfg.Local.MaxSize {
 			_ = os.Remove(fullPath)
 			return nil, fmt.Errorf("%w: 文件大小超过限制", storage.ErrInvalidConfig)
 		}
-		partPath := filepath.Join(s.multipartDir(bucket, input.UploadID), strconv.Itoa(part.PartNumber))
-		in, err := os.Open(partPath)
+		in, err := os.Open(partPaths[index])
 		if err != nil {
 			_ = os.Remove(fullPath)
 			return nil, err
@@ -465,7 +483,12 @@ func (s *Service) CompleteMultipartUpload(_ context.Context, input storage.Compl
 		_ = os.Remove(fullPath)
 		return nil, err
 	}
-	_ = os.RemoveAll(s.multipartDir(bucket, input.UploadID))
+	cleanupDir, err := s.multipartDir(bucket, input.UploadID)
+	if err != nil {
+		_ = os.Remove(fullPath)
+		return nil, err
+	}
+	_ = os.RemoveAll(cleanupDir)
 	info, err := os.Stat(fullPath)
 	if err != nil {
 		return nil, err
@@ -486,7 +509,11 @@ func (s *Service) CompleteMultipartUpload(_ context.Context, input storage.Compl
 // AbortMultipartUpload 删除本地分片临时目录。
 func (s *Service) AbortMultipartUpload(_ context.Context, input storage.AbortMultipartUploadInput) error {
 	bucket := storage.DefaultBucket(s.cfg, input.Bucket)
-	return os.RemoveAll(s.multipartDir(bucket, input.UploadID))
+	dir, err := s.multipartDir(bucket, input.UploadID)
+	if err != nil {
+		return err
+	}
+	return os.RemoveAll(dir)
 }
 
 // PresignUploadPart 当前本地实现不提供分片直传端点。
@@ -531,13 +558,100 @@ func (s *Service) fullPath(bucket string, key string) (string, error) {
 	return fullPath, nil
 }
 
-func (s *Service) multipartDir(bucket string, uploadID string) string {
-	parts := []string{s.cfg.Local.RootDir, s.cfg.Local.TempDir}
-	if bucket != "" {
-		parts = append(parts, filepath.FromSlash(bucket))
+func (s *Service) multipartRoot() (string, error) {
+	tempDir := strings.TrimSpace(strings.ReplaceAll(s.cfg.Local.TempDir, "\\", "/"))
+	if tempDir == "" || strings.HasPrefix(tempDir, "/") {
+		return "", fmt.Errorf("%w: storage.local.temp_dir 必须是非空相对路径", storage.ErrInvalidConfig)
 	}
-	parts = append(parts, uploadID)
-	return filepath.Join(parts...)
+	for _, segment := range strings.Split(tempDir, "/") {
+		if segment == "" || segment == "." || segment == ".." || strings.Contains(segment, ":") {
+			return "", fmt.Errorf("%w: storage.local.temp_dir 包含非法路径片段", storage.ErrInvalidConfig)
+		}
+	}
+	tempRoot := filepath.Join(s.cfg.Local.RootDir, filepath.FromSlash(tempDir))
+	contained, err := isStrictSubdirectory(s.cfg.Local.RootDir, tempRoot)
+	if err != nil {
+		return "", fmt.Errorf("%w: 校验本地分片目录失败: %v", storage.ErrInvalidConfig, err)
+	}
+	if !contained {
+		return "", fmt.Errorf("%w: storage.local.temp_dir 必须位于存储根目录内", storage.ErrInvalidConfig)
+	}
+	return tempRoot, nil
+}
+
+func (s *Service) multipartDir(bucket string, uploadID string) (string, error) {
+	tempRoot, err := s.multipartRoot()
+	if err != nil {
+		return "", err
+	}
+	cleanBucket, err := validateMultipartSegment("bucket", bucket, true)
+	if err != nil {
+		return "", err
+	}
+	cleanUploadID, err := validateMultipartSegment("upload_id", uploadID, false)
+	if err != nil {
+		return "", err
+	}
+	parts := []string{tempRoot}
+	if cleanBucket != "" {
+		parts = append(parts, cleanBucket)
+	}
+	parts = append(parts, cleanUploadID)
+	dir := filepath.Join(parts...)
+	contained, err := isStrictSubdirectory(tempRoot, dir)
+	if err != nil {
+		return "", fmt.Errorf("校验本地分片会话目录失败: %w", err)
+	}
+	if !contained {
+		return "", fmt.Errorf("%w: 分片会话目录必须位于临时根目录内", storage.ErrInvalidKey)
+	}
+	return dir, nil
+}
+
+func multipartPartPath(dir string, partNumber int) (string, error) {
+	if partNumber <= 0 {
+		return "", fmt.Errorf("%w: part_number 必须大于 0", storage.ErrInvalidConfig)
+	}
+	partPath := filepath.Join(dir, strconv.Itoa(partNumber))
+	contained, err := isStrictSubdirectory(dir, partPath)
+	if err != nil {
+		return "", fmt.Errorf("校验本地分片路径失败: %w", err)
+	}
+	if !contained {
+		return "", fmt.Errorf("%w: 分片路径必须位于会话目录内", storage.ErrInvalidKey)
+	}
+	return partPath, nil
+}
+
+func validateMultipartSegment(name string, value string, allowEmpty bool) (string, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		if allowEmpty {
+			return "", nil
+		}
+		return "", fmt.Errorf("%w: %s 不能为空", storage.ErrInvalidKey, name)
+	}
+	if value == "." || value == ".." {
+		return "", fmt.Errorf("%w: %s 包含非法路径片段", storage.ErrInvalidKey, name)
+	}
+	for _, char := range value {
+		if char >= 'a' && char <= 'z' || char >= 'A' && char <= 'Z' || char >= '0' && char <= '9' || char == '-' || char == '_' || char == '.' {
+			continue
+		}
+		return "", fmt.Errorf("%w: %s 只能包含字母、数字、点、下划线和连字符", storage.ErrInvalidKey, name)
+	}
+	return value, nil
+}
+
+func isStrictSubdirectory(root string, target string) (bool, error) {
+	rel, err := filepath.Rel(root, target)
+	if err != nil {
+		return false, err
+	}
+	if rel == "." || rel == ".." || filepath.IsAbs(rel) || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (s *Service) validateExtension(key string) error {

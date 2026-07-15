@@ -30,7 +30,7 @@ object, err := s.storage.Upload(ctx, storage.UploadInput{
 ## 高级能力
 
 - 分片上传：在需要时判断实现是否满足 `storage.MultipartService`。
-- STS：在需要临时授权时判断实现是否满足 `storage.STSService`。
+- STS：在 boot 层调用 `storageprovider.NewSTS(ctx, cfg.Storage)` 创建并注册独立的 `storage.STSService`；当前支持 AWS S3、阿里云 OSS 和腾讯云 COS，local 与 S3 compatible 返回 `ErrUnsupported`。
 
 ## 禁止
 

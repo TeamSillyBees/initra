@@ -15,10 +15,10 @@ return apperrors.WrapContext(ctx, err, apperrors.CodeDBError, "查询用户失�
 
 ## HTTP 映射
 
-HTTP 边界复用框架 mapper 和响应机制。中间件通过 `apperrors.ToHTTP(err, traceID)` 生成：
+HTTP 边界复用框架 mapper 和响应机制。`pkg/server` 的 Huma error mapper 通过 `apperrors.ToHTTP(err, traceID)` 生成：
 
 ```json
-{"code":"BAD_REQUEST","message":"request failed","traceId":"..."}
+{"code":"BAD_REQUEST","message":"用户名不能为空","traceId":"..."}
 ```
 
 ## 公开信息

@@ -12,7 +12,7 @@ asynqadapter.Register(injector, cfg.Task)
 storageprovider.Register(injector, cfg.Storage)
 ```
 
-只有项目自身组件，例如 Ent client、SQL DB 和模块对象，才在 boot 中写本地 `do.Provide`。
+SQL 连接池使用 `database.Register(injector, data.SQLDBConfig(cfg.Database))`。配置聚合根、由项目 schema 生成的 Ent Client 和业务模块对象由项目自行注册。
 
 ## Module 层
 

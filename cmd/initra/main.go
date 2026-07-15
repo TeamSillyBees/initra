@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"go/format"
 	"io"
 	"io/fs"
 	"os"
@@ -88,6 +89,16 @@ type templateData struct {
 	FrameworkModule  string
 	FrameworkVersion string
 	LocalReplacePath string
+}
+
+// projectCommandRunner 在指定目录执行项目生成阶段的外部命令。
+type projectCommandRunner func(dir string, name string, args ...string) ([]byte, error)
+
+// projectTarget 记录最终目标目录、生成前状态和需要保留的目录权限。
+type projectTarget struct {
+	path    string
+	existed bool
+	mode    fs.FileMode
 }
 
 func main() {
@@ -296,7 +307,7 @@ func newModuleCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "module",
 		Short:         "管理业务模块骨架",
-		Long:          "管理标准项目的 internal/modules/<name> 业务模块骨架。模块按 flat package 组织，包含 handler、service、repo、model、dto、routes、providers 和测试文件。",
+		Long:          "管理标准项目的 internal/modules/<name> 业务模块骨架。模块按 flat package 组织，包含 handler、service、dto、routes、providers 和测试文件。",
 		Example:       "  initra module add order",
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -435,8 +446,8 @@ func newMigrateDiffCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "diff <name>",
 		Short:         "执行 Ent/Atlas 迁移 diff",
-		Long:          "调用当前项目的 go run ./internal/data/migratediff/main.go <name>，并把 env、config-dir、dev-url 透传给 migratediff。",
-		Example:       "  initra migrate diff add_order\n  initra migrate diff add_order --env local --config-dir configs --dev-url postgres://dev",
+		Long:          "调用当前项目的 migratediff 入口生成迁移；默认按 env 和 config-dir 读取业务数据库配置，也可用 dev-url 显式覆盖。",
+		Example:       "  initra migrate diff add_order --env local --config-dir configs\n  initra migrate diff add_order --dev-url postgres://dev",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Args:          requireExactArgs(1, "迁移名"),
@@ -448,7 +459,7 @@ func newMigrateDiffCommand(stdout io.Writer) *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&opts.env, "env", "", "运行环境，传递给 migratediff")
 	flags.StringVar(&opts.configDir, "config-dir", "", "配置目录，传递给 migratediff")
-	flags.StringVar(&opts.devURL, "dev-url", "", "Atlas dev database URL，传递给 migratediff")
+	flags.StringVar(&opts.devURL, "dev-url", "", "可选的数据库 URL 覆盖值，传递给 migratediff")
 	_ = cmd.RegisterFlagCompletionFunc("env", completeValues("dev", "test", "local", "prod"))
 	return cmd
 }
@@ -500,8 +511,8 @@ func newSkillCommand(stdout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "skill",
 		Short:         "初始化 initra 框架 skill 文档",
-		Long:          "在当前项目初始化 initra 框架相关的 skill 文档，默认写入 Codex 的 .agents/skills/initra-framework，也可显式写入 Claude Code。",
-		Example:       "  initra skill\n  initra skill codex\n  initra skill cc",
+		Long:          "在当前项目初始化 initra 框架相关的 skill 文档，写入 Codex 的 .agents/skills/initra-framework。",
+		Example:       "  initra skill\n  initra skill codex",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Args:          requireNoArgs,
@@ -510,7 +521,7 @@ func newSkillCommand(stdout io.Writer) *cobra.Command {
 		},
 	}
 	configureCommand(cmd, stdout)
-	cmd.AddCommand(newSkillCodexCommand(stdout), newSkillClaudeCodeCommand(stdout))
+	cmd.AddCommand(newSkillCodexCommand(stdout))
 	return cmd
 }
 
@@ -525,24 +536,6 @@ func newSkillCodexCommand(stdout io.Writer) *cobra.Command {
 		Args:          requireNoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return initFrameworkSkill(filepath.Join(".agents", "skills", "initra-framework"), cmd.OutOrStdout())
-		},
-	}
-	configureCommand(cmd, stdout)
-	return cmd
-}
-
-func newSkillClaudeCodeCommand(stdout io.Writer) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:           "cc",
-		Aliases:       []string{"claude", "claude-code"},
-		Short:         "添加 Claude Code skill 文档",
-		Long:          "在当前项目写入 .claude/skills/initra-framework，供 Claude Code 理解并检查 initra 项目约束。",
-		Example:       "  initra skill cc\n  initra skill claude",
-		SilenceUsage:  true,
-		SilenceErrors: true,
-		Args:          requireNoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return initFrameworkSkill(filepath.Join(".claude", "skills", "initra-framework"), cmd.OutOrStdout())
 		},
 	}
 	configureCommand(cmd, stdout)
@@ -567,6 +560,11 @@ func newDoctorCommand(stdout io.Writer) *cobra.Command {
 }
 
 func createProject(targetDir string, stdout io.Writer, cliVersion string, opts newOptions) error {
+	return createProjectWithRunner(targetDir, stdout, cliVersion, opts, executeProjectCommand)
+}
+
+// createProjectWithRunner 在临时目录完成项目生成，成功后再把完整项目移动到目标目录。
+func createProjectWithRunner(targetDir string, stdout io.Writer, cliVersion string, opts newOptions, runner projectCommandRunner) error {
 	resolvedType, err := normalizeProjectType(opts.projectType)
 	if err != nil {
 		return err
@@ -581,10 +579,14 @@ func createProject(targetDir string, stdout io.Writer, cliVersion string, opts n
 		}
 		resolvedType = templateType
 	}
+	target, err := inspectProjectTarget(targetDir)
+	if err != nil {
+		return err
+	}
 
 	normalizedAppName := strings.TrimSpace(opts.appName)
 	if normalizedAppName == "" {
-		normalizedAppName = filepath.Base(filepath.Clean(targetDir))
+		normalizedAppName = filepath.Base(target.path)
 	}
 	normalizedModulePath := strings.TrimSpace(opts.modulePath)
 	if normalizedModulePath == "" {
@@ -600,9 +602,14 @@ func createProject(targetDir string, stdout io.Writer, cliVersion string, opts n
 		return err
 	}
 
-	if err := ensureWritableTarget(targetDir); err != nil {
-		return err
+	if err := os.MkdirAll(filepath.Dir(target.path), 0o755); err != nil {
+		return fmt.Errorf("创建目标父目录失败: %w", err)
 	}
+	workDir, err := os.MkdirTemp(filepath.Dir(target.path), ".initra-new-*")
+	if err != nil {
+		return fmt.Errorf("创建项目临时目录失败: %w", err)
+	}
+	defer os.RemoveAll(workDir)
 
 	data := templateData{
 		ModulePath:       normalizedModulePath,
@@ -611,15 +618,24 @@ func createProject(targetDir string, stdout io.Writer, cliVersion string, opts n
 		FrameworkVersion: resolvedVersion,
 		LocalReplacePath: resolvedReplace,
 	}
-	if err := renderTemplate(resolvedType, targetDir, data); err != nil {
+	if err := renderTemplate(resolvedType, workDir, data); err != nil {
 		return err
 	}
 	if resolvedType == "api" {
-		if err := generateEntCode(targetDir); err != nil {
+		if err := prepareProjectDependencies(workDir, runner); err != nil {
+			return err
+		}
+		if err := generateEntCode(workDir, runner); err != nil {
+			return err
+		}
+		if err := validateGeneratedProject(workDir, runner); err != nil {
 			return err
 		}
 	}
-	if err := initGitRepository(targetDir); err != nil {
+	if err := initGitRepository(workDir, runner); err != nil {
+		return err
+	}
+	if err := commitProject(workDir, target); err != nil {
 		return err
 	}
 
@@ -640,30 +656,51 @@ func normalizeProjectType(projectType string) (string, error) {
 	}
 }
 
-func generateEntCode(targetDir string) error {
-	command := exec.Command("go", "run", "./internal/data/entgenerate")
-	command.Dir = targetDir
-	output, err := command.CombinedOutput()
+func prepareProjectDependencies(targetDir string, runner projectCommandRunner) error {
+	output, err := runner(targetDir, "go", "mod", "download", "all")
 	if err != nil {
-		message := strings.TrimSpace(string(output))
-		if message == "" {
-			return fmt.Errorf("生成 Ent 代码失败: %w", err)
-		}
-		return fmt.Errorf("生成 Ent 代码失败: %w: %s", err, message)
+		return projectCommandError("下载项目依赖失败", err, output)
 	}
 	return nil
 }
 
-func initGitRepository(targetDir string) error {
-	output, err := exec.Command("git", "-C", targetDir, "init").CombinedOutput()
+func generateEntCode(targetDir string, runner projectCommandRunner) error {
+	output, err := runner(targetDir, "go", "run", "./internal/data/entgenerate")
 	if err != nil {
-		message := strings.TrimSpace(string(output))
-		if message == "" {
-			return fmt.Errorf("初始化 git 仓库失败: %w", err)
-		}
-		return fmt.Errorf("初始化 git 仓库失败: %w: %s", err, message)
+		return projectCommandError("生成 Ent 代码失败", err, output)
 	}
 	return nil
+}
+
+func validateGeneratedProject(targetDir string, runner projectCommandRunner) error {
+	output, err := runner(targetDir, "go", "test", "./...", "-count=1")
+	if err != nil {
+		return projectCommandError("验证生成项目失败", err, output)
+	}
+	return nil
+}
+
+func initGitRepository(targetDir string, runner projectCommandRunner) error {
+	output, err := runner(targetDir, "git", "init")
+	if err != nil {
+		return projectCommandError("初始化 git 仓库失败", err, output)
+	}
+	return nil
+}
+
+func executeProjectCommand(dir string, name string, args ...string) ([]byte, error) {
+	command := exec.Command(name, args...)
+	command.Dir = dir
+	command.Env = append(os.Environ(), "GOWORK=off")
+	return command.CombinedOutput()
+}
+
+func projectCommandError(action string, err error, output []byte) error {
+	message := strings.TrimSpace(string(output))
+	if message == "" {
+		return fmt.Errorf("%s: %w", action, err)
+	}
+	return fmt.Errorf("%s: %w: %s", action, err, message)
 }
 
 func addModule(name string, stdout io.Writer) error {
@@ -678,9 +715,7 @@ func addModule(name string, stdout io.Writer) error {
 	}
 
 	files := map[string]string{
-		name + ".model.go":   moduleModelTemplate(name),
 		name + ".service.go": moduleServiceTemplate(name),
-		name + ".repo.go":    moduleRepoTemplate(name),
 		name + ".dto.go":     moduleDTOTemplate(name),
 		name + ".handler.go": moduleHandlerTemplate(name),
 		name + ".routes.go":  moduleRoutesTemplate(name),
@@ -688,7 +723,11 @@ func addModule(name string, stdout io.Writer) error {
 		name + "_test.go":    moduleTestTemplate(name),
 	}
 	for filename, content := range files {
-		if err := writeNewFile(filepath.Join(moduleDir, filename), content); err != nil {
+		formatted, err := format.Source([]byte(content))
+		if err != nil {
+			return fmt.Errorf("格式化模块文件 %s 失败: %w", filename, err)
+		}
+		if err := writeNewFile(filepath.Join(moduleDir, filename), string(formatted)); err != nil {
 			return err
 		}
 	}
@@ -940,18 +979,98 @@ func normalizeReplacePath(path string) (string, error) {
 	return filepath.ToSlash(absolute), nil
 }
 
-func ensureWritableTarget(targetDir string) error {
-	entries, err := os.ReadDir(targetDir)
+func inspectProjectTarget(targetDir string) (projectTarget, error) {
+	if strings.TrimSpace(targetDir) == "" {
+		return projectTarget{}, fmt.Errorf("目标目录不能为空")
+	}
+	absolute, err := filepath.Abs(targetDir)
+	if err != nil {
+		return projectTarget{}, fmt.Errorf("解析目标目录失败: %w", err)
+	}
+	target := projectTarget{path: filepath.Clean(absolute), mode: 0o755}
+	entries, err := os.ReadDir(target.path)
 	switch {
 	case err == nil && len(entries) > 0:
-		return fmt.Errorf("目标目录 %s 已存在且非空", targetDir)
+		return projectTarget{}, fmt.Errorf("目标目录 %s 已存在且非空", targetDir)
 	case err == nil:
-		return nil
+		info, statErr := os.Stat(target.path)
+		if statErr != nil {
+			return projectTarget{}, statErr
+		}
+		target.existed = true
+		target.mode = info.Mode().Perm()
+		return target, nil
 	case errors.Is(err, os.ErrNotExist):
-		return os.MkdirAll(targetDir, 0o755)
+		return target, nil
 	default:
+		return projectTarget{}, err
+	}
+}
+
+func commitProject(workDir string, target projectTarget) (returnErr error) {
+	if err := os.Chmod(workDir, target.mode); err != nil {
+		return fmt.Errorf("设置项目目录权限失败: %w", err)
+	}
+	restoreWorkingDirectory, err := leaveTargetWorkingDirectory(target)
+	if err != nil {
 		return err
 	}
+	if restoreWorkingDirectory != nil {
+		defer func() {
+			if restoreErr := restoreWorkingDirectory(); restoreErr != nil {
+				returnErr = errors.Join(returnErr, fmt.Errorf("恢复项目工作目录失败: %w", restoreErr))
+			}
+		}()
+	}
+
+	if target.existed {
+		entries, err := os.ReadDir(target.path)
+		if err != nil {
+			return fmt.Errorf("重新检查目标目录失败: %w", err)
+		}
+		if len(entries) > 0 {
+			return fmt.Errorf("目标目录 %s 在生成期间变为非空", target.path)
+		}
+		if err := os.Remove(target.path); err != nil {
+			return fmt.Errorf("准备目标目录失败: %w", err)
+		}
+	} else if _, err := os.Stat(target.path); err == nil {
+		return fmt.Errorf("目标目录 %s 在生成期间已被创建", target.path)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("重新检查目标目录失败: %w", err)
+	}
+
+	if err := os.Rename(workDir, target.path); err != nil {
+		if target.existed {
+			_ = os.Mkdir(target.path, target.mode)
+		}
+		return fmt.Errorf("提交生成项目失败: %w", err)
+	}
+	return nil
+}
+
+// leaveTargetWorkingDirectory 在 Windows 提交当前工作目录时临时切换到其父目录。
+func leaveTargetWorkingDirectory(target projectTarget) (func() error, error) {
+	if !target.existed {
+		return nil, nil
+	}
+	currentInfo, err := os.Stat(".")
+	if err != nil {
+		return nil, fmt.Errorf("检查当前工作目录失败: %w", err)
+	}
+	targetInfo, err := os.Stat(target.path)
+	if err != nil {
+		return nil, fmt.Errorf("检查目标工作目录失败: %w", err)
+	}
+	if !os.SameFile(currentInfo, targetInfo) {
+		return nil, nil
+	}
+	if err := os.Chdir(filepath.Dir(target.path)); err != nil {
+		return nil, fmt.Errorf("临时切换到目标父目录失败: %w", err)
+	}
+	return func() error {
+		return os.Chdir(target.path)
+	}, nil
 }
 
 func renderTemplate(templateName string, targetDir string, data templateData) error {
@@ -1096,19 +1215,6 @@ func pluralName(name string) string {
 	return name + "s"
 }
 
-func moduleModelTemplate(name string) string {
-	typeName := exportedName(name)
-	return fmt.Sprintf(`package %s
-
-import "github.com/teamsillybees/initra/pkg/idgen"
-
-// %s 是 %s 模块的领域占位模型。
-type %s struct {
-	ID idgen.ID
-}
-`, name, typeName, name, typeName)
-}
-
 func moduleServiceTemplate(name string) string {
 	typeName := exportedName(name)
 	return fmt.Sprintf(`package %s
@@ -1128,25 +1234,12 @@ func NewService() *Service {
 }
 
 // Get 返回 %s 详情占位数据。
-func (s *Service) Get(ctx context.Context, id idgen.ID) (*%s, error) {
+func (s *Service) Get(ctx context.Context, id idgen.ID) (%sVO, error) {
 	_ = s
 	_ = ctx
-	return &%s{ID: id}, nil
+	return %sVO{ID: id}, nil
 }
 `, name, name, name, name, typeName, typeName)
-}
-
-func moduleRepoTemplate(name string) string {
-	return fmt.Sprintf(`package %s
-
-// Repository 是 %s 模块的数据访问占位实现。
-type Repository struct{}
-
-// NewRepository 创建 %s 模块仓储。
-func NewRepository() *Repository {
-	return &Repository{}
-}
-`, name, name, name)
 }
 
 func moduleHandlerTemplate(name string) string {
@@ -1156,7 +1249,6 @@ func moduleHandlerTemplate(name string) string {
 import (
 	"context"
 
-	"github.com/teamsillybees/initra/pkg/requestctx"
 	"github.com/teamsillybees/initra/pkg/response"
 )
 
@@ -1175,12 +1267,11 @@ func (h *Handler) get(ctx context.Context, input *get%sRequest) (*get%sResponse,
 	if err != nil {
 		return nil, err
 	}
-	traceID, _ := requestctx.TraceIDFromContext(ctx)
 	return &get%sResponse{
-		Body: response.OK(traceID, %sVO{ID: item.ID}),
+		Body: response.OK(ctx, item),
 	}, nil
 }
-`, name, name, name, typeName, typeName, typeName, typeName)
+`, name, name, name, typeName, typeName, typeName)
 }
 
 func moduleDTOTemplate(name string) string {
@@ -1272,7 +1363,6 @@ func Provide(injector *do.Injector) {
 }
 
 func moduleTestTemplate(name string) string {
-	typeName := exportedName(name)
 	return fmt.Sprintf(`package %s
 
 import (
@@ -1291,8 +1381,7 @@ func TestServiceGet(t *testing.T) {
 	}
 }
 
-var _ = (*%s)(nil)
-`, name, name, typeName)
+`, name, name)
 }
 
 func crudTemplate(moduleName string, tableName string) string {

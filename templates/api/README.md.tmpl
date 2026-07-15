@@ -1,6 +1,6 @@
 # {{ .AppName }}
 
-本项目是基于 initra 生成的 Go RESTful API 服务。它提供一套可运行的内部系统起点：Huma/Gin Web 层、配置加载、认证鉴权、Ent/Atlas 迁移、日志、Redis、缓存、文件存储、HTTP Client、任务队列和测试骨架。
+本项目是基于 initra 生成的 Go RESTful API 服务。它提供一套可运行的内部系统起点：Huma/Gin Web 层、配置加载、认证鉴权、Ent/Atlas 迁移、日志、Redis、缓存、文件存储、HTTP Client、异步任务和测试骨架。Worker 与 Scheduler 会在各自 enabled 配置开启时接入应用生命周期。
 
 当前代码包含 `auth`、`user`、`file`、`httpdemo`、`taskdemo` 示例模块，用来展示框架能力的正确接入方式。正式业务开发时应按业务域替换或裁剪示例模块，不要把示例接口、默认账号和本地密钥带入共享环境。
 
@@ -30,16 +30,18 @@ test/                       架构、集成和 e2e 测试
 initra skill
 ```
 
-该命令会写入 `.agents/skills/initra-framework`，让 Codex 在本项目内按 initra 的框架边界、模块结构和 package 最佳实践工作。使用 Claude Code 时执行 `initra skill cc`。
+该命令会写入 `.agents/skills/initra-framework`，让 Codex 在本项目内按 initra 的框架边界、模块结构和 package 最佳实践工作。
 
 正式接入业务前，至少完成这些替换：
 
-- 修改服务名称、配置中的密钥、数据库连接、Redis 连接、对象存储配置和默认管理员密码。
+- 修改 `configs/config.yaml` 中的 `app.name`、`auth.jwt.issuer`、数据库和 Redis 连接、对象存储、HTTP Client 标识及默认管理员密码，并为每个运行实例分配唯一的 `idgen.node`。`--app-name` 当前只影响 README 标题，其他固定的 `initra` 标识需显式修改。
 - 删除不需要的示例模块，并同步清理 `internal/boot/providers.go`、路由、Casbin policy、测试、迁移和种子数据。
 - 根据真实业务角色补齐 Casbin `Resource`、`Action` 和策略文件。
 - 把本 README 改成真实业务说明：业务边界、上游下游、接口清单、部署方式、告警和排障入口。
 
 ## 快速启动
+
+启动前确保 `docker`、`initra`、`atlas` 和 `psql` 已加入 `PATH`。
 
 ```powershell
 docker compose up -d postgres redis
@@ -71,17 +73,18 @@ go build ./cmd/server
 3. `configs/config.yaml`（存在时）
 4. `internal/boot/config.go` 中的默认值
 
-服务进程的运行环境由 `APP_ENV` 决定，未设置时使用默认值 `dev`；`initra migrate` 等 CLI 命令可通过 `--env` 显式指定环境。其他环境变量默认使用 `INITRA_` 前缀，例如 `INITRA_AUTH_JWT_SECRET`、`INITRA_DATABASE_DSN`。
+服务进程的运行环境由 `APP_ENV` 决定，未设置时使用默认值 `dev`；migrate diff 默认通过 `--env` 和 `--config-dir` 读取对应业务数据库配置，也可用 `--dev-url` 覆盖，migrate apply/hash 通过 `--env` 指定环境。其他环境变量默认使用 `INITRA_` 前缀，例如 `INITRA_AUTH_JWT_SECRET`、`INITRA_DATABASE_HOST`、`INITRA_DATABASE_PASSWORD`、`INITRA_IDGEN_NODE`。
 
 常用配置分组：
 
-- `app`、`server`、`database`、`redis`、`auth`、`log`、`observability`：基础运行配置。
+- `app`、`server`、`database`、`redis`、`auth`、`log`：基础运行配置。数据库通过 `ssl_mode` 控制 TLS；认证默认使用 Redis 共享 token store，内存 store 仅允许 dev/local/test 环境显式 opt-in，其他环境 fail-closed。
+- `observability.health.enabled`：控制 `/health`、`/ready`、`/version` 的注册。`/health` 只检查进程存活，`/ready` 对数据库及已启用的 Redis、任务后端执行独立超时检查；`metrics`、`tracing`、`pprof` 当前只定义配置字段，尚未接入运行时。
 - `casbin`：权限模型和策略文件。
 - `cache`、`idgen`、`storage`、`task`、`http_client`：缓存、雪花 ID、文件存储、任务队列和命名 HTTP Client。
 
 配置打印前会走脱敏逻辑。密码、Token、Secret、Access Key、Authorization、Cookie、验证码、session value、完整请求体、完整响应体和带密码的 DSN 不应明文进入日志。
 
-业务 ID 统一使用 `github.com/teamsillybees/initra/pkg/idgen.ID`。Ent 主键、外键、auth user ID、REST path params、service 入参和 JSON VO 不使用 `int64` 或 `string` 表达业务 ID；REST/OpenAPI 对外暴露为 JSON string，示例形如 `"1771234567890123456"`。只有对接雪花 ID 生成器、第三方库、手写 SQL 参数或底层基础设施时才调用 `Int64()`。
+业务 ID 统一使用 `github.com/teamsillybees/initra/pkg/idgen.ID`。Ent 主键、外键、auth user ID、REST path params、service 入参和 JSON VO 不使用 `int64` 或 `string` 表达业务 ID；REST/OpenAPI 对外暴露为 JSON string，示例形如 `"1771234567890123456"`。包级生成器没有静默默认节点，启动前必须显式配置实例唯一的 `idgen.node`。只有对接雪花 ID 生成器、第三方库、手写 SQL 参数或底层基础设施时才调用 `Int64()`。
 
 ## 模块开发
 
@@ -89,43 +92,43 @@ go build ./cmd/server
 
 ```text
 internal/modules/<module>/
-  <module>.handler.go HTTP 适配方法，调用 service 并包装响应
-  <module>.dto.go     HTTP 边界类型：Request/Response、Query、Body、VO
-  <module>.service.go 业务逻辑 + Ent 数据库操作 + 必要的私有小接口
+  <module>.handler.go HTTP 适配：解包请求、转换参数、调用 Service、包装响应
+  <module>.dto.go     传输边界类型：request/response、Query、Body、Form、VO、私有 Payload
+  <module>.service.go 用例逻辑与依赖编排；需要数据库时直接使用 Ent Client
   <module>.routes.go  路由注册 + Module 结构体
   providers.go        samber/do 依赖注入
   cache.go            可选，缓存适配器或少量领域实体
-  <module>_test.go    单元测试
+  *_test.go           单元测试
 ```
 
 开发约束：
 
-- Handler 不定义 DTO；只做参数转换、调用 service 和响应包装。
-- Service 直接接受 HTTP 边界 `Body`/`Query` 类型并返回 `VO`，不再定义 `CreateXxxDTO`、`UpdateXxxDTO` 这类 service DTO。
-- Service 直接通过 Ent Client 操作数据库，不默认拆 Repository 层；跨模块调用优先依赖调用方内部定义的小接口。
-- `*.dto.go` 中 Huma/Gin 包装类型用非导出的 `request`/`response` 后缀，查询参数用 `Query`，请求体用 `Body`，对外 JSON 类型用 `VO`。
+- Handler 负责 Huma 请求解包、multipart 生命周期、上下文身份或 trace ID 提取、参数转换、Service 调用和响应包装，不在 handler 文件定义 DTO。
+- Service 参数按用例选择已有 `Body`/`Query`、`idgen.ID`、必要的基础参数或流；返回 `VO`、分页 VO、专用结果类型或 error。不要仅为分层转换新增 service DTO。
+- 需要数据库的 Service 直接使用 Ent Client，不拆 Repository 层；跨模块调用优先依赖调用方内部定义的小接口。
+- `*.dto.go` 保存传输边界类型：Huma/Gin 包装使用非导出的 `request`/`response` 后缀，查询参数使用 `Query`，请求体使用 `Body`，multipart 表单使用 `Form`，对外 JSON 使用 `VO`，外部 HTTP 私有载荷可使用 `Payload`。
 - 新增 `/api/` 路由必须通过 `registry.Register` 登记 `RouteSecurity`；公开接口用 `AccessModePublic`，登录即可访问接口用 `AccessModeAuthenticated`，后台或运营接口用 `AccessModePermission` 并同步 Casbin policy。
 
 ## 数据库与迁移
 
-`internal/data/schema` 是数据库结构主源；`db/migrations` 是版本化迁移历史；`db/seeds` 保存初始化数据。Ent schema 复用 `pkg/entx/mixin` 中的 ID、审计、软删除和乐观锁 mixin，不在业务项目内复制本地 mixin。
+`internal/data/schema` 是数据库结构主源；`db/migrations` 是版本化迁移历史；`db/seeds` 保存初始化数据。应用数据库连接通过结构化 PostgreSQL URL 编码用户名、密码和数据库名；只有 dev/local/test 环境允许弱 TLS 配置，其他环境必须使用 `require`、`verify-ca` 或 `verify-full`。当前 schema 组合 `pkg/entx/fieldx.ID()`、`fieldx.SoftDelete()` 和 `fieldx.Audit()`，需要软删除索引时使用 `pkg/entx/indexx.SoftDelete()`。Ent Client 在 `internal/data/ent_client.go` 注册 `entx.AuditHook` 和 `entx.RejectDeleteHook`；当前 schema 未使用乐观锁。
 
 ```powershell
 go generate ./internal/data
-initra migrate diff <name> --env local
+initra migrate diff <name> --env local --config-dir configs
 initra migrate apply --env local
 initra migrate hash
 ```
 
-修改 Ent schema 后先执行 `go generate ./internal/data`，再生成迁移。手动修改迁移文件后使用 `initra migrate hash` 重新计算 `atlas.sum`。
+修改 Ent schema 后先执行 `go generate ./internal/data`，再生成迁移。migrate diff 默认使用所选环境的业务数据库配置，使生成结果基于该业务库；需要临时覆盖时可传 `--dev-url`。手动修改迁移文件后使用 `initra migrate hash` 重新计算 `atlas.sum`。
 
 ## 框架能力
 
 - Redis：使用 `pkg/redisx` 的 client、Key Builder、Lua registry、SCAN+UNLINK 和 redislock；生产禁止使用 `KEYS`。
 - 缓存：使用 `pkg/cache`，明确 key 命名、TTL 和失效策略。
 - 文件存储：使用 `pkg/storage` 和 `pkg/storage/provider`，业务模块不要直接依赖云厂商 SDK。
-- HTTP Client：由 `httpclient.Register(injector, cfg.HTTPClient)` 统一装配，业务模块通过命名 client 或最小接口依赖。
-- 任务队列：使用 `pkg/task` 和 `pkg/task/asynqadapter` 的装配入口；业务代码不得直接 import `github.com/hibiken/asynq`。
+- HTTP Client：启动层调用 `httpclient.Register(injector, cfg.HTTPClient)`；业务 Service 依赖 `httpclient.ReadCaller` 等最小接口，模块 `providers.go` 使用 `httpclient.ProvideConsumer` 绑定命名服务。
+- 任务：模板通过 `asynqadapter.Register` 注册组件，`taskdemo` 展示 `task.Publisher`；`Application` 会按 `task.worker.enabled`、`task.scheduler.enabled` 解析并管理对应生命周期。启用 Worker 时，`server.shutdown_timeout` 不得小于 `task.worker.shutdown_timeout`；启用 Worker 前需向 `task.Registry` 注册 handler，启用 Scheduler 前需注册周期任务。
 - 依赖装配：框架能力包在 `internal/boot/providers.go` 中通过 `Register(injector, cfg)` 显式注册一次；业务模块只在自己的 `providers.go` 注册本地 handler、service、module。
 
 ## 开发与验证

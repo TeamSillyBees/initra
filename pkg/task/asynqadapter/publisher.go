@@ -89,6 +89,20 @@ func (p *Publisher) Close() error {
 	return p.client.Close()
 }
 
+// CheckReadiness 检查任务队列 Redis 后端是否可用。
+func (p *Publisher) CheckReadiness(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if p == nil || p.client == nil {
+		return task.ErrDisabled
+	}
+	if err := p.client.Ping(); err != nil {
+		return fmt.Errorf("task backend ping failed: %w", err)
+	}
+	return nil
+}
+
 func (p *Publisher) publish(ctx context.Context, item task.Task, extra []asynq.Option, opts ...task.PublishOption) (*task.PublishResult, error) {
 	if p == nil || p.client == nil {
 		return nil, task.ErrDisabled

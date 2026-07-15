@@ -2,9 +2,12 @@ package main
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -50,11 +53,15 @@ func TestNewGeneratesAPIProjectWithFrameworkRequireAndNoPkgCopy(t *testing.T) {
 		require.NotContains(t, handlerContent, "Output struct")
 		require.NotContains(t, handlerContent, "Response struct")
 	}
-	require.FileExists(t, filepath.Join(target, "db", "schema", "01_sys_user.sql"))
+	require.NoDirExists(t, filepath.Join(target, "db", "schema"))
+	migrations, err := filepath.Glob(filepath.Join(target, "db", "migrations", "*_init.sql"))
+	require.NoError(t, err)
+	require.Len(t, migrations, 1)
 	require.FileExists(t, filepath.Join(target, "db", "seeds", "001_seed_admin.sql"))
 	require.DirExists(t, filepath.Join(target, "internal", "data", "schema"))
 	require.FileExists(t, filepath.Join(target, "internal", "data", "ent", "client.go"))
 	require.FileExists(t, filepath.Join(target, "internal", "data", "ent", "migrate", "schema.go"))
+	require.FileExists(t, filepath.Join(target, "go.sum"))
 	require.FileExists(t, filepath.Join(target, "internal", "data", "ent_client.go"))
 	require.FileExists(t, filepath.Join(target, "internal", "data", "tx.go"))
 	require.FileExists(t, filepath.Join(target, "configs", "config.yaml"))
@@ -74,6 +81,163 @@ func TestNewUsesReleaseCLIVersionWhenFrameworkVersionOmitted(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, "v1.2.3", version)
+}
+
+// TestCreateProjectPreparesDependenciesBeforeEntAndCommitsOnceComplete 验证项目仅在全部生成步骤成功后落入目标目录。
+func TestCreateProjectPreparesDependenciesBeforeEntAndCommitsOnceComplete(t *testing.T) {
+	parent := t.TempDir()
+	target := filepath.Join(parent, "demo")
+	var calls []string
+	var workDir string
+	runner := func(dir string, name string, args ...string) ([]byte, error) {
+		if workDir == "" {
+			workDir = dir
+		}
+		require.Equal(t, workDir, dir)
+		calls = append(calls, name+" "+strings.Join(args, " "))
+		if name == "go" && strings.Join(args, " ") == "mod download all" {
+			require.NoError(t, os.WriteFile(filepath.Join(dir, "go.sum"), []byte("prepared\n"), 0o644))
+		}
+		if name == "git" {
+			require.NoError(t, os.Mkdir(filepath.Join(dir, ".git"), 0o755))
+		}
+		return nil, nil
+	}
+
+	err := createProjectWithRunner(target, ioDiscard{}, "v1.2.3", newOptions{
+		projectType: "api",
+		modulePath:  "example.com/demo",
+	}, runner)
+
+	require.NoError(t, err)
+	require.Equal(t, []string{
+		"go mod download all",
+		"go run ./internal/data/entgenerate",
+		"go test ./... -count=1",
+		"git init",
+	}, calls)
+	require.NotEqual(t, target, workDir)
+	require.FileExists(t, filepath.Join(target, "go.sum"))
+	require.DirExists(t, filepath.Join(target, ".git"))
+	goMod := readFile(t, filepath.Join(target, "go.mod"))
+	require.Contains(t, goMod, "github.com/teamsillybees/initra v1.2.3")
+	require.NotContains(t, goMod, "replace github.com/teamsillybees/initra")
+	if runtime.GOOS != "windows" {
+		info, statErr := os.Stat(target)
+		require.NoError(t, statErr)
+		require.Equal(t, os.FileMode(0o755), info.Mode().Perm())
+	}
+	temporaryDirs, globErr := filepath.Glob(filepath.Join(parent, ".initra-new-*"))
+	require.NoError(t, globErr)
+	require.Empty(t, temporaryDirs)
+}
+
+// TestCreateProjectSupportsCurrentEmptyDirectory 验证 Windows 等平台可以把当前空目录安全替换为完整项目并恢复 cwd。
+func TestCreateProjectSupportsCurrentEmptyDirectory(t *testing.T) {
+	parent := t.TempDir()
+	target := filepath.Join(parent, "current-project")
+	require.NoError(t, os.Mkdir(target, 0o750))
+	require.NoError(t, os.Chmod(target, 0o750))
+	t.Chdir(target)
+	runner := func(dir string, name string, args ...string) ([]byte, error) {
+		if name == "go" && strings.Join(args, " ") == "mod download all" {
+			require.NoError(t, os.WriteFile(filepath.Join(dir, "go.sum"), []byte("prepared\n"), 0o644))
+		}
+		if name == "git" {
+			require.NoError(t, os.Mkdir(filepath.Join(dir, ".git"), 0o755))
+		}
+		return nil, nil
+	}
+
+	err := createProjectWithRunner(".", ioDiscard{}, "v1.2.3", newOptions{
+		projectType: "api",
+		modulePath:  "example.com/current-project",
+	}, runner)
+
+	require.NoError(t, err)
+	cwdInfo, statErr := os.Stat(".")
+	require.NoError(t, statErr)
+	targetInfo, statErr := os.Stat(target)
+	require.NoError(t, statErr)
+	require.True(t, os.SameFile(cwdInfo, targetInfo), "生成完成后必须恢复到新的目标目录")
+	require.Contains(t, readFile(t, filepath.Join(target, "README.md")), "# current-project")
+	require.FileExists(t, filepath.Join(target, "go.sum"))
+	if runtime.GOOS != "windows" {
+		require.Equal(t, os.FileMode(0o750), targetInfo.Mode().Perm())
+	}
+}
+
+// TestCreateProjectFailureDoesNotLeavePartialTarget 验证生成失败会清理临时目录并保留目标目录的原始状态。
+func TestCreateProjectFailureDoesNotLeavePartialTarget(t *testing.T) {
+	for _, existingTarget := range []bool{false, true} {
+		t.Run(fmt.Sprintf("existing_target_%t", existingTarget), func(t *testing.T) {
+			parent := t.TempDir()
+			target := filepath.Join(parent, "demo")
+			if existingTarget {
+				require.NoError(t, os.Mkdir(target, 0o755))
+			}
+			runner := func(_ string, name string, args ...string) ([]byte, error) {
+				if name == "go" && strings.Join(args, " ") == "test ./... -count=1" {
+					return []byte("project tests failed"), errors.New("exit status 1")
+				}
+				return nil, nil
+			}
+
+			err := createProjectWithRunner(target, ioDiscard{}, "v1.2.3", newOptions{
+				projectType: "api",
+				modulePath:  "example.com/demo",
+			}, runner)
+
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "验证生成项目失败")
+			if existingTarget {
+				require.DirExists(t, target)
+				entries, readErr := os.ReadDir(target)
+				require.NoError(t, readErr)
+				require.Empty(t, entries)
+			} else {
+				require.NoDirExists(t, target)
+			}
+			temporaryDirs, globErr := filepath.Glob(filepath.Join(parent, ".initra-new-*"))
+			require.NoError(t, globErr)
+			require.Empty(t, temporaryDirs)
+		})
+	}
+}
+
+// TestExecuteProjectCommandDisablesWorkspace 验证生成项目的 Go 命令不受调用方 go.work 影响。
+func TestExecuteProjectCommandDisablesWorkspace(t *testing.T) {
+	output, err := executeProjectCommand(t.TempDir(), "go", "env", "GOWORK")
+
+	require.NoError(t, err)
+	require.Equal(t, "off", strings.TrimSpace(string(output)))
+}
+
+// TestNewGeneratesPublishedProjectWithoutReplace 验证已发布框架版本在无本地 replace 时能完成端到端生成。
+func TestNewGeneratesPublishedProjectWithoutReplace(t *testing.T) {
+	frameworkVersion := strings.TrimSpace(os.Getenv("INITRA_RELEASE_INTEGRATION_VERSION"))
+	if frameworkVersion == "" {
+		t.Skip("设置 INITRA_RELEASE_INTEGRATION_VERSION=vX.Y.Z 后执行需要网络的发布版集成测试")
+	}
+	t.Setenv("GOWORK", "off")
+	target := filepath.Join(t.TempDir(), "demo")
+
+	err := run([]string{
+		"new", target,
+		"--type", "api",
+		"--module", "example.com/demo",
+		"--framework-version", frameworkVersion,
+	}, ioDiscard{}, frameworkVersion)
+	require.NoError(t, err)
+
+	goMod := readFile(t, filepath.Join(target, "go.mod"))
+	require.NotContains(t, goMod, "replace github.com/teamsillybees/initra")
+	require.FileExists(t, filepath.Join(target, "go.sum"))
+	command := exec.Command("go", "test", "./...")
+	command.Dir = target
+	command.Env = append(os.Environ(), "GOWORK=off")
+	output, testErr := command.CombinedOutput()
+	require.NoError(t, testErr, string(output))
 }
 
 func TestNewGeneratesAPIMigrationsWithoutPhysicalForeignKeys(t *testing.T) {
@@ -98,9 +262,10 @@ func TestNewGeneratesAPIMigrationsWithoutPhysicalForeignKeys(t *testing.T) {
 	diffGenerator := readFile(t, filepath.Join(target, "internal", "data", "migratediff", "main.go"))
 	require.Contains(t, diffGenerator, `_ "github.com/lib/pq"`)
 	require.Contains(t, diffGenerator, "boot.LoadConfig")
-	require.Contains(t, diffGenerator, "databaseURL")
+	require.Contains(t, diffGenerator, "data.SQLDBConfig")
 	require.Contains(t, diffGenerator, "migrate.WithForeignKeys(false)")
 	require.Contains(t, diffGenerator, "schema.WithMigrationMode(schema.ModeReplay)")
+	require.Contains(t, readFile(t, filepath.Join(target, "db", "atlas.hcl")), "docker://postgres/16/dev")
 
 	entSchema := readFile(t, filepath.Join(target, "internal", "data", "schema", "sys_user.go"))
 	require.Contains(t, entSchema, "entsql.WithComments(true)")
@@ -111,6 +276,16 @@ func TestNewGeneratesAPIMigrationsWithoutPhysicalForeignKeys(t *testing.T) {
 	require.Contains(t, migrateSchema, `Comment: "登录用户名，全局唯一。"`)
 
 	require.NoDirExists(t, filepath.Join(target, "scripts"))
+
+	smokeCommand := exec.Command(
+		"go", "run", "./internal/data/migratediff/main.go",
+		"smoke", "--unknown-option",
+	)
+	smokeCommand.Dir = target
+	smokeCommand.Env = append(os.Environ(), "GOWORK=off")
+	smokeOutput, smokeErr := smokeCommand.CombinedOutput()
+	require.Error(t, smokeErr)
+	require.Contains(t, string(smokeOutput), `unknown option "--unknown-option"`)
 }
 
 func TestAPITemplateExcludesEntGeneratedCode(t *testing.T) {
@@ -163,6 +338,7 @@ func TestSkillCodexCopiesInitraFrameworkSkill(t *testing.T) {
 	require.NoError(t, err)
 	skillDir := filepath.Join(target, ".agents", "skills", "initra-framework")
 	require.FileExists(t, filepath.Join(skillDir, "SKILL.md"))
+	require.FileExists(t, filepath.Join(skillDir, "references", "modules.md"))
 	require.FileExists(t, filepath.Join(skillDir, "references", "redisx.md"))
 	require.FileExists(t, filepath.Join(skillDir, "scripts", "check_initra_usage.go"))
 	require.NoDirExists(t, filepath.Join(skillDir, "agents"))
@@ -181,6 +357,7 @@ func TestSkillDefaultCopiesCodexInitraFrameworkSkill(t *testing.T) {
 	require.NoError(t, err)
 	skillDir := filepath.Join(target, ".agents", "skills", "initra-framework")
 	require.FileExists(t, filepath.Join(skillDir, "SKILL.md"))
+	require.FileExists(t, filepath.Join(skillDir, "references", "modules.md"))
 	require.FileExists(t, filepath.Join(skillDir, "references", "redisx.md"))
 	require.FileExists(t, filepath.Join(skillDir, "scripts", "check_initra_usage.go"))
 	require.NoDirExists(t, filepath.Join(skillDir, "agents"))
@@ -189,22 +366,18 @@ func TestSkillDefaultCopiesCodexInitraFrameworkSkill(t *testing.T) {
 	require.Contains(t, stdout.String(), "created skill")
 }
 
-func TestSkillClaudeCodeCopiesInitraFrameworkSkill(t *testing.T) {
-	target := t.TempDir()
-	t.Chdir(target)
+func TestSkillClaudeCodeTargetsRemoved(t *testing.T) {
+	for _, target := range []string{"cc", "claude", "claude-code"} {
+		t.Run(target, func(t *testing.T) {
+			workspace := t.TempDir()
+			t.Chdir(workspace)
 
-	var stdout bytes.Buffer
-	err := run([]string{"skill", "cc"}, &stdout, "dev")
+			err := run([]string{"skill", target}, ioDiscard{}, "dev")
 
-	require.NoError(t, err)
-	skillDir := filepath.Join(target, ".claude", "skills", "initra-framework")
-	require.FileExists(t, filepath.Join(skillDir, "SKILL.md"))
-	require.FileExists(t, filepath.Join(skillDir, "references", "redisx.md"))
-	require.FileExists(t, filepath.Join(skillDir, "scripts", "check_initra_usage.go"))
-	require.NoDirExists(t, filepath.Join(skillDir, "agents"))
-	require.NoDirExists(t, filepath.Join(skillDir, "assets"))
-	require.NoDirExists(t, filepath.Join(skillDir, "examples"))
-	require.Contains(t, stdout.String(), "created skill")
+			require.Error(t, err)
+			require.NoDirExists(t, filepath.Join(workspace, ".claude"))
+		})
+	}
 }
 
 func TestSkillInitCommandRemoved(t *testing.T) {
@@ -358,9 +531,13 @@ func TestModuleAddGeneratesVerticalSliceModule(t *testing.T) {
 	}
 	require.FileExists(t, filepath.Join(moduleDir, "providers.go"))
 	require.FileExists(t, filepath.Join(moduleDir, "order_test.go"))
+	require.NoFileExists(t, filepath.Join(moduleDir, "order.model.go"))
+	require.NoFileExists(t, filepath.Join(moduleDir, "order.repo.go"))
 	handlerContent := readFile(t, filepath.Join(moduleDir, "order.handler.go"))
 	require.NotContains(t, handlerContent, "type GetOrderInput")
 	require.NotContains(t, handlerContent, "type OrderResponse")
+	require.Contains(t, handlerContent, "response.OK(ctx, item)")
+	require.NotContains(t, handlerContent, "requestctx")
 	routesContent := readFile(t, filepath.Join(moduleDir, "order.routes.go"))
 	require.Contains(t, routesContent, "AccessMode: platformauth.AccessModePermission")
 	dtoContent := readFile(t, filepath.Join(moduleDir, "order.dto.go"))
@@ -371,6 +548,47 @@ func TestModuleAddGeneratesVerticalSliceModule(t *testing.T) {
 	require.NotContains(t, dtoContent, "Output")
 	require.NotContains(t, dtoContent, "type OrderResponse")
 	require.Contains(t, stdout.String(), "created module order")
+}
+
+// TestModuleAddGeneratedCodePassesProjectChecks 验证模块骨架通过格式、架构、编译和静态检查。
+func TestModuleAddGeneratedCodePassesProjectChecks(t *testing.T) {
+	root := repoRoot(t)
+	target := t.TempDir()
+	goMod := fmt.Sprintf(`module example.com/demo
+
+go 1.26.0
+
+require github.com/teamsillybees/initra v0.0.0
+
+replace github.com/teamsillybees/initra => %s
+`, filepath.ToSlash(root))
+	require.NoError(t, os.WriteFile(filepath.Join(target, "go.mod"), []byte(goMod), 0o644))
+	t.Chdir(target)
+	require.NoError(t, run([]string{"module", "add", "order"}, ioDiscard{}, "dev"))
+
+	moduleDir := filepath.Join(target, "internal", "modules", "order")
+	goFiles, err := filepath.Glob(filepath.Join(moduleDir, "*.go"))
+	require.NoError(t, err)
+	formatCommand := exec.Command("gofmt", append([]string{"-l"}, goFiles...)...)
+	formatOutput, err := formatCommand.CombinedOutput()
+	require.NoError(t, err, string(formatOutput))
+	require.Empty(t, strings.TrimSpace(string(formatOutput)), "生成的 Go 文件必须已经过 gofmt")
+
+	checkerCommand := exec.Command("go", "run", "./tools/skills/initra-framework/scripts/check_initra_usage.go", "--root", target)
+	checkerCommand.Dir = root
+	checkerOutput, err := checkerCommand.CombinedOutput()
+	require.NoError(t, err, string(checkerOutput))
+
+	for _, args := range [][]string{
+		{"test", "-mod=mod", "./internal/modules/order"},
+		{"vet", "-mod=mod", "./internal/modules/order"},
+	} {
+		command := exec.Command("go", args...)
+		command.Dir = target
+		command.Env = append(os.Environ(), "GOWORK=off")
+		output, commandErr := command.CombinedOutput()
+		require.NoError(t, commandErr, "%s\n%s", strings.Join(args, " "), string(output))
+	}
 }
 
 func TestCRUDAddGeneratesSampleForModule(t *testing.T) {

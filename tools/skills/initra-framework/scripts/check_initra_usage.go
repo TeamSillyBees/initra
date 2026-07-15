@@ -233,7 +233,7 @@ func defaultRules() []rule {
 		{
 			id:               "deprecated-module-layer",
 			severity:         "warning",
-			message:          "标准 API 模块不再新增 repo/model 层；service 直接承载 Ent 操作和业务逻辑",
+			message:          "标准 API 模块默认不创建 repo/model 层；需要数据库的 service 直接使用 Ent Client",
 			filenameSuffixes: []string{".repo.go", ".model.go"},
 			allowed:          allowFrameworkOrGenerated,
 		},
@@ -258,7 +258,7 @@ func matchesRule(text string, r rule) bool {
 // shouldSkipDir 判断扫描时应跳过的目录。
 func shouldSkipDir(name string) bool {
 	switch name {
-	case ".agents", ".claude", ".codex", ".git", ".idea", ".vscode", "node_modules", "vendor", "tmp", "var":
+	case ".agents", ".codex", ".git", ".idea", ".vscode", "node_modules", "vendor", "tmp", "var":
 		return true
 	default:
 		return false

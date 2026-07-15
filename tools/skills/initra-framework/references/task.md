@@ -25,7 +25,7 @@ result, err := publisher.Publish(ctx, task.Task{
 		Idempotent:     true,
 		TraceID:        traceID,
 	},
-}, task.WithQueue(task.QueueDefault), task.WithMaxRetry(3), task.WithBizKey(bizKey))
+}, task.WithQueue(task.QueueDefault), task.WithMaxRetry(3))
 ```
 
 任务类型必须是 `{module}:{action}`。
@@ -36,7 +36,9 @@ initra 任务按 at-least-once 设计，不承诺 exactly-once。`biz_key` 是�
 
 ## Worker 与 Scheduler
 
-Worker 侧注册 `task.Registry` handler；周期任务使用 `task.Scheduler`。handler 内先解析 payload，再执行业务 service。
+`asynqadapter.Register` 注册 Publisher、Worker、Registry 与 Scheduler。标准模板会根据 `task.worker.enabled` 和 `task.scheduler.enabled` 在 Application 生命周期中按需解析、启动和关闭对应组件；禁用时不会解析对应 provider。启用 Worker 时，`server.shutdown_timeout` 必须不小于 `task.worker.shutdown_timeout`。
+
+启用 Worker 前先向 `task.Registry` 注册 handler；启用 Scheduler 前通过 `task.Scheduler` 注册周期任务。两类注册都应在 `Run` 启动组件前完成，handler 先解析 payload，再调用业务 service。
 
 ## 禁止
 

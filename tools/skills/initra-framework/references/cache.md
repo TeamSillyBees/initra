@@ -38,4 +38,4 @@ Service 调用缓存适配器，不直接拼 key 或操作 jetcache 细节。
 ## 禁止
 
 - 不要在多个 service 方法里复制缓存 key 格式。
-- 不要把缓存命中失败当成业务错误；区分 miss 和底层故障。
+- `jetcache.ErrCacheMiss` 不是业务错误；其他底层故障应保留上下文并向上返回。

@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "v*"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            examples/go.sum
+
+      - name: Test and vet root module
+        env:
+          GOWORK: "off"
+        run: |
+          go test ./pkg/... ./cmd/initra/... ./internal/... -count=1
+          go vet ./pkg/... ./cmd/initra/... ./internal/...
+
+      - name: Test and vet example module
+        working-directory: examples
+        env:
+          GOWORK: "off"
+        run: |
+          go test ./... -count=1
+          go vet ./...
+
+      - name: Verify agent-ready framework conventions
+        env:
+          GOWORK: "off"
+        run: go run ./tools/skills/initra-framework/scripts/check_initra_usage.go --root examples
+
+      - name: Build CLI
+        env:
+          GOWORK: "off"
+        run: go build -o "${RUNNER_TEMP}/initra" ./cmd/initra
+
+      - name: Verify release-version generation
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GOWORK: "off"
+          GOPROXY: direct
+          INITRA_RELEASE_INTEGRATION_VERSION: ${{ github.ref_name }}
+        run: go test ./cmd/initra -run '^TestNewGeneratesPublishedProjectWithoutReplace$' -count=1
+
+      - name: Generate and verify API project
+        env:
+          GOWORK: "off"
+        run: |
+          set -euo pipefail
+          target="${RUNNER_TEMP}/initra-generated-api"
+          "${RUNNER_TEMP}/initra" new "${target}" \
+            --type api \
+            --module example.com/initra-generated-api \
+            --replace "${GITHUB_WORKSPACE}"
+
+          cd "${target}"
+          go test ./... -count=1
+          go vet ./...
+          go build ./...

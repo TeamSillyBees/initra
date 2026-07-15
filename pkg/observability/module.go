@@ -19,12 +19,13 @@ type BuildInfoVO struct {
 
 // Module 暴露健康检查、就绪检查与版本信息接口。
 type Module struct {
-	info BuildInfoVO
+	info      BuildInfoVO
+	readiness *ReadinessRegistry
 }
 
 // NewModule 创建 observability 模块。
-func NewModule(info BuildInfoVO) *Module {
-	return &Module{info: info}
+func NewModule(info BuildInfoVO, readiness *ReadinessRegistry) *Module {
+	return &Module{info: info, readiness: readiness}
 }
 
 // Register 将健康检查和版本信息接口注册到 Huma。
@@ -66,6 +67,9 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Description: "返回服务是否完成初始化并具备对外提供服务的能力。",
 		Tags:        []string{"系统观测"},
 	}, func(ctx context.Context, _ *emptyRequest) (*healthResponse, error) {
+		if err := m.readiness.Check(ctx); err != nil {
+			return nil, huma.Error503ServiceUnavailable("service is not ready", err)
+		}
 		return &healthResponse{
 			Body: response.OK(ctx, healthVO{Status: "ready"}),
 		}, nil

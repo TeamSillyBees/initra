@@ -58,6 +58,19 @@ func TestPublisherMapsDuplicateTask(t *testing.T) {
 	require.True(t, errors.Is(err, task.ErrDuplicateTask))
 }
 
+// TestPublisherCheckReadiness 验证任务发布器能反映 Redis 后端状态。
+func TestPublisherCheckReadiness(t *testing.T) {
+	redisServer := miniredis.RunT(t)
+	resolved, err := NewPublisher(testConfig(redisServer.Addr()), logx.NewNop())
+	require.NoError(t, err)
+	publisher := resolved.(*Publisher)
+	defer publisher.Close()
+
+	require.NoError(t, publisher.CheckReadiness(context.Background()))
+	redisServer.Close()
+	require.Error(t, publisher.CheckReadiness(context.Background()))
+}
+
 func TestWorkerConsumesPublishedTask(t *testing.T) {
 	redisServer := miniredis.RunT(t)
 	cfg := testConfig(redisServer.Addr())

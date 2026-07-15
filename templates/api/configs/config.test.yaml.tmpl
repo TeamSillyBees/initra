@@ -6,16 +6,22 @@ server:
 
 database:
   dbname: "initra_test"
+  ssl_mode: disable
   max_open_conns: 10
   max_idle_conns: 5
 
 redis:
+  enabled: false
   db: 2
 
 auth:
+  allow_memory_token_store: true
   access_token_ttl: 10m
   jwt:
     secret: "change-me-test"
+
+idgen:
+  node: 1
 
 log:
   level: debug

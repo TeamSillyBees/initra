@@ -3,7 +3,10 @@ package data
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"net"
+	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	"entgo.io/ent/dialect"
@@ -24,6 +27,7 @@ type DatabaseConfig struct {
 	User            string        `mapstructure:"user"`
 	Password        string        `mapstructure:"password"`
 	DBName          string        `mapstructure:"dbname"`
+	SSLMode         string        `mapstructure:"ssl_mode"`
 	MaxOpenConns    int           `mapstructure:"max_open_conns"`
 	MaxIdleConns    int           `mapstructure:"max_idle_conns"`
 	ConnMaxLifetime time.Duration `mapstructure:"conn_max_lifetime"`
@@ -31,17 +35,31 @@ type DatabaseConfig struct {
 
 // SQLDBConfig 将业务数据库配置转换为通用 SQL 连接池配置。
 func SQLDBConfig(cfg DatabaseConfig) platformdatabase.Config {
-	connStr := fmt.Sprintf(
-		"host=%s port=%d user=%s dbname=%s password=%s sslmode=disable",
-		cfg.Host, cfg.Port, cfg.User, cfg.DBName, cfg.Password,
-	)
+	databasePath := "/" + cfg.DBName
+	connectionURL := &url.URL{
+		Scheme:  "postgres",
+		User:    databaseUser(cfg.User, cfg.Password),
+		Host:    net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port)),
+		Path:    databasePath,
+		RawPath: "/" + url.PathEscape(cfg.DBName),
+	}
+	query := connectionURL.Query()
+	query.Set("sslmode", strings.ToLower(strings.TrimSpace(cfg.SSLMode)))
+	connectionURL.RawQuery = query.Encode()
 	return platformdatabase.Config{
 		DriverName:      "postgres",
-		DataSourceName:  connStr,
+		DataSourceName:  connectionURL.String(),
 		MaxOpenConns:    cfg.MaxOpenConns,
 		MaxIdleConns:    cfg.MaxIdleConns,
 		ConnMaxLifetime: cfg.ConnMaxLifetime,
 	}
+}
+
+func databaseUser(user string, password string) *url.Userinfo {
+	if password == "" {
+		return url.User(user)
+	}
+	return url.UserPassword(user, password)
 }
 
 // NewEntClientFromDB 基于已有 *sql.DB 创建 Ent Client 并注册 Hook，用于 sqlmock 等测试场景。

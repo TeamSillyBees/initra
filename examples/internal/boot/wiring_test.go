@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/teamsillybees/initra/examples/internal/data"
 	authmodule "github.com/teamsillybees/initra/examples/internal/modules/auth"
 	filemodule "github.com/teamsillybees/initra/examples/internal/modules/file"
 	httpdemomodule "github.com/teamsillybees/initra/examples/internal/modules/httpdemo"
@@ -39,8 +40,9 @@ func TestRegisterProvidersDoesNotConnectDuringRegistration(t *testing.T) {
 			Env:  "test",
 		},
 		Auth: AuthConfig{
-			AccessTokenTTL:  time.Minute,
-			RefreshTokenTTL: time.Hour,
+			AllowMemoryTokenStore: true,
+			AccessTokenTTL:        time.Minute,
+			RefreshTokenTTL:       time.Hour,
 			JWT: JWTConfig{
 				Issuer: "example-api",
 				Secret: "secret",
@@ -90,6 +92,7 @@ redis:
 
 auth:
   enabled: true
+  allow_memory_token_store: true
   access_token_ttl: 15m
   refresh_token_ttl: 720h
   allow_multiple_devices: true
@@ -191,9 +194,11 @@ auth:
 	require.Equal(t, ":18080", cfg.Server.Addr)
 	require.Equal(t, 20*time.Second, cfg.Server.ShutdownTimeout)
 	require.Equal(t, time.Hour, cfg.Database.ConnMaxLifetime)
+	require.Equal(t, "require", cfg.Database.SSLMode)
 	require.False(t, cfg.Redis.Enabled)
 	require.Equal(t, 10, cfg.Redis.Pool.Size)
 	require.True(t, cfg.Auth.Enabled)
+	require.True(t, cfg.Auth.AllowMemoryTokenStore)
 	require.Equal(t, 720*time.Hour, cfg.Auth.RefreshTokenTTL)
 	require.True(t, cfg.Auth.AllowMultipleDevices)
 	require.Equal(t, "example-api", cfg.Auth.JWT.Issuer)
@@ -210,9 +215,102 @@ auth:
 	require.Equal(t, "http://127.0.0.1:7891", cfg.HTTPClient.Services["httpbingo"].Proxy)
 	require.Equal(t, "httpbingo-app", cfg.HTTPClient.Services["httpbingo"].Properties["app_id"])
 	require.Equal(t, "example-api", cfg.HTTPClient.Services["httpbingo"].Headers["x-app-id"])
+	require.Equal(t, int64(1), cfg.IDGen.Node)
 
 	safe := cfg.SafeForLog()
 	auth := safe["auth"].(map[string]any)
 	jwt := auth["jwt"].(map[string]any)
 	require.Equal(t, "***", jwt["secret"])
+}
+
+// TestConfigValidateRequiresExplicitIDNode 验证缺少实例唯一节点时启动校验失败。
+func TestConfigValidateRequiresExplicitIDNode(t *testing.T) {
+	cfg := validConfigForValidation()
+	cfg.IDGen.Node = -1
+
+	require.ErrorContains(t, cfg.Validate(), "必须显式配置")
+}
+
+// TestConfigValidateRequiresTLSInSharedEnvironments 验证除本地开发和测试外的环境都必须启用安全 TLS。
+func TestConfigValidateRequiresTLSInSharedEnvironments(t *testing.T) {
+	for _, env := range []string{"prod", "production", "prd", "staging", "uat", "preview"} {
+		t.Run(env, func(t *testing.T) {
+			cfg := validConfigForValidation()
+			cfg.App.Env = env
+			cfg.Database.SSLMode = "disable"
+
+			require.ErrorContains(t, cfg.Validate(), "非 dev/local/test 环境的 database.ssl_mode")
+		})
+	}
+}
+
+// TestConfigValidateRequiresSharedTokenStoreInSharedEnvironments 验证除本地开发和测试外的环境不能退化为进程内状态。
+func TestConfigValidateRequiresSharedTokenStoreInSharedEnvironments(t *testing.T) {
+	for _, env := range []string{"prod", "production", "prd", "staging", "uat", "preview"} {
+		t.Run(env, func(t *testing.T) {
+			cfg := validConfigForValidation()
+			cfg.App.Env = env
+			cfg.Database.SSLMode = "require"
+
+			require.ErrorContains(t, cfg.Validate(), "Redis 共享 token store")
+		})
+	}
+}
+
+// TestConfigValidateAllowsLocalSecurityExceptions 验证只有明确的本地开发和测试环境可使用弱 TLS 与内存 token store。
+func TestConfigValidateAllowsLocalSecurityExceptions(t *testing.T) {
+	for _, env := range []string{"dev", "local", "test"} {
+		t.Run(env, func(t *testing.T) {
+			cfg := validConfigForValidation()
+			cfg.App.Env = env
+
+			require.NoError(t, cfg.Validate())
+		})
+	}
+}
+
+// TestConfigValidateRequiresWorkerShutdownBudget 验证应用关闭预算足以覆盖 Worker 的优雅关闭时间。
+func TestConfigValidateRequiresWorkerShutdownBudget(t *testing.T) {
+	cfg := validConfigForValidation()
+	cfg.Task.Enabled = true
+	cfg.Task.Worker.Enabled = true
+	cfg.Task.Worker.ShutdownTimeout = 2 * time.Second
+	cfg.Server.ShutdownTimeout = time.Second
+
+	require.ErrorContains(t, cfg.Validate(), "server.shutdown_timeout 不能小于 task.worker.shutdown_timeout")
+
+	cfg.Server.ShutdownTimeout = 2 * time.Second
+	require.NoError(t, cfg.Validate())
+}
+
+func validConfigForValidation() *Config {
+	return &Config{
+		App: AppConfig{Name: "example-api", Env: "test"},
+		Server: ServerConfig{
+			Addr:            ":8080",
+			ReadTimeout:     time.Second,
+			WriteTimeout:    time.Second,
+			IdleTimeout:     time.Second,
+			ShutdownTimeout: time.Second,
+		},
+		Database: data.DatabaseConfig{
+			Host:    "127.0.0.1",
+			Port:    5432,
+			User:    "postgres",
+			DBName:  "example",
+			SSLMode: "disable",
+		},
+		Auth: AuthConfig{
+			Enabled:               true,
+			AllowMemoryTokenStore: true,
+			AccessTokenTTL:        time.Minute,
+			RefreshTokenTTL:       time.Hour,
+			JWT: JWTConfig{
+				Issuer: "example-api",
+				Secret: "secret",
+			},
+		},
+		Casbin: CasbinConfig{ModelPath: "model.conf", PolicyPath: "policy.csv"},
+		IDGen:  IDGenConfig{Node: 1},
+	}
 }

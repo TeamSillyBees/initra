@@ -1,6 +1,9 @@
 package auth
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/casbin/casbin/v2"
 	"github.com/samber/do"
 	"github.com/teamsillybees/initra/pkg/redisx"
@@ -13,6 +16,7 @@ type RegisterOptions struct {
 	PasswordCost     int
 	JWT              JWTConfig
 	RedisEnabled     bool
+	AllowMemoryStore bool
 	CasbinModelPath  string
 	CasbinPolicyPath string
 }
@@ -24,7 +28,11 @@ func Register(injector *do.Injector, opts RegisterOptions) {
 	})
 	do.Provide(injector, func(i *do.Injector) (*JWTManager, error) {
 		cfg := opts.JWT
-		cfg.Store = tokenStoreFromInjector(i, opts)
+		store, err := tokenStoreFromInjector(i, opts)
+		if err != nil {
+			return nil, err
+		}
+		cfg.Store = store
 		return NewJWTManager(cfg)
 	})
 	do.Provide(injector, func(i *do.Injector) (*casbin.Enforcer, error) {
@@ -32,10 +40,31 @@ func Register(injector *do.Injector, opts RegisterOptions) {
 	})
 }
 
-func tokenStoreFromInjector(injector *do.Injector, opts RegisterOptions) TokenStore {
+func tokenStoreFromInjector(injector *do.Injector, opts RegisterOptions) (TokenStore, error) {
 	if !opts.RedisEnabled {
-		return NewMemoryTokenStore()
+		if !opts.AllowMemoryStore {
+			return nil, fmt.Errorf("auth memory token store 未显式启用；请配置 Redis 共享存储")
+		}
+		if !isMemoryStoreAllowedEnvironment(opts.Env) {
+			return nil, fmt.Errorf("auth memory token store 只允许用于 dev、local 或 test 环境")
+		}
+		return NewMemoryTokenStore(), nil
 	}
-	client := do.MustInvoke[redisx.UniversalClient](injector)
-	return NewRedisTokenStoreWithEnv(opts.AppName, opts.Env, client)
+	client, err := do.Invoke[redisx.UniversalClient](injector)
+	if err != nil {
+		return nil, fmt.Errorf("解析 auth Redis client 失败: %w", err)
+	}
+	if client == nil {
+		return nil, fmt.Errorf("auth Redis client 不能为空")
+	}
+	return NewRedisTokenStoreWithEnv(opts.AppName, opts.Env, client), nil
+}
+
+func isMemoryStoreAllowedEnvironment(env string) bool {
+	switch strings.ToLower(strings.TrimSpace(env)) {
+	case "dev", "local", "test":
+		return true
+	default:
+		return false
+	}
 }

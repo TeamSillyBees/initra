@@ -7,14 +7,20 @@ auth.Register(injector, auth.RegisterOptions{
 	AppName:          cfg.App.Name,
 	Env:              cfg.App.Env,
 	RedisEnabled:     cfg.Redis.Enabled,
-	JWT:              cfg.Auth.JWT,
+	AllowMemoryStore: cfg.Auth.AllowMemoryTokenStore,
+	JWT: auth.JWTConfig{
+		Issuer:          cfg.Auth.JWT.Issuer,
+		Secret:          cfg.Auth.JWT.Secret,
+		AccessTokenTTL:  cfg.Auth.AccessTokenTTL,
+		RefreshTokenTTL: cfg.Auth.RefreshTokenTTL,
+	},
 	CasbinModelPath:  cfg.Casbin.ModelPath,
 	CasbinPolicyPath: cfg.Casbin.PolicyPath,
 })
 server.Register(injector, server.Options{Title: cfg.App.Name, Version: version, Env: cfg.App.Env})
 ```
 
-Redis 启用时 refresh token store 使用 Redis；否则退化为内存 store。
+Redis 启用时 refresh token store 使用 Redis。Redis 关闭时不会隐式退化：只有 `AllowMemoryStore=true` 且环境是 dev、local 或 test 才允许进程内 store，其他任何环境都 fail-closed。标准模板默认启用 Redis，仅 test 配置显式允许内存状态；共享环境和多副本部署必须使用共享 Redis。
 
 ## RouteSecurity
 

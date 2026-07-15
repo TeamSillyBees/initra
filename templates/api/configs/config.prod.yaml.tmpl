@@ -6,10 +6,12 @@ database:
   user: ""
   password: ""
   dbname: ""
+  ssl_mode: verify-full
   max_open_conns: 50
   max_idle_conns: 20
 
 redis:
+  enabled: true
   addr: ""
   db: 0
   pool:

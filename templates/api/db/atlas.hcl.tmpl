@@ -5,7 +5,7 @@ variable "local_url" {
 
 variable "dev_url" {
   type    = string
-  default = "postgres://initra:QRD5jmc9nex3qxw-kez@192.168.100.2:5432/initra_dev?sslmode=disable"
+  default = "postgres://initra:QRD5jmc9nex3qxw-kez@192.168.100.2:5432/initra_dev?sslmode=require"
 }
 
 variable "test_url" {
@@ -15,7 +15,7 @@ variable "test_url" {
 
 variable "prod_url" {
   type    = string
-  default = "postgres://postgres:postgres@127.0.0.1:5432/initra?sslmode=disable"
+  default = "postgres://postgres:postgres@127.0.0.1:5432/initra?sslmode=verify-full"
 }
 
 env "local" {
