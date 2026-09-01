@@ -35,6 +35,8 @@ Service 参数按用例选择现有 Body/Query、`idgen.ID`、必要的基础参
 
 需要数据库的 Service 直接依赖 `*ent.Client`。缓存、密码、HTTP Client、任务 Publisher 等可替换能力由模块定义最小私有接口。跨模块调用也由调用方定义小接口，不 import 对方具体实现。
 
+数据库关系使用逻辑外键：Ent edge 仅用于代码生成和查询，禁止生成物理外键或数据库级联。关联写入必须在同一事务内检查有效父记录并使用 `FOR SHARE`，父记录软删除或影响关系有效性的更新使用 `FOR UPDATE`，随后显式处理全部有效子关系。
+
 ## 装配与路由
 
 模块 `providers.go` 注册 cache、service、handler、module；允许 `Handler -> *Service` 和 `Module -> *Handler` 的模块内具体依赖。service/handler 不访问 injector。

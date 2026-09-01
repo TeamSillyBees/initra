@@ -513,7 +513,7 @@ func (c *SysDictCollectionClient) QueryItems(_m *SysDictCollection) *SysDictItem
 		step := sqlgraph.NewStep(
 			sqlgraph.From(sysdictcollection.Table, sysdictcollection.FieldID, id),
 			sqlgraph.To(sysdictitem.Table, sysdictitem.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, sysdictcollection.ItemsTable, sysdictcollection.ItemsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, true, sysdictcollection.ItemsTable, sysdictcollection.ItemsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -662,7 +662,7 @@ func (c *SysDictItemClient) QueryCollection(_m *SysDictItem) *SysDictCollectionQ
 		step := sqlgraph.NewStep(
 			sqlgraph.From(sysdictitem.Table, sysdictitem.FieldID, id),
 			sqlgraph.To(sysdictcollection.Table, sysdictcollection.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, sysdictitem.CollectionTable, sysdictitem.CollectionColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, sysdictitem.CollectionTable, sysdictitem.CollectionColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -803,6 +803,38 @@ func (c *SysMenuClient) GetX(ctx context.Context, id idgen.ID) *SysMenu {
 	return obj
 }
 
+// QueryParent queries the parent edge of a SysMenu.
+func (c *SysMenuClient) QueryParent(_m *SysMenu) *SysMenuQuery {
+	query := (&SysMenuClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(sysmenu.Table, sysmenu.FieldID, id),
+			sqlgraph.To(sysmenu.Table, sysmenu.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, sysmenu.ParentTable, sysmenu.ParentColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChildren queries the children edge of a SysMenu.
+func (c *SysMenuClient) QueryChildren(_m *SysMenu) *SysMenuQuery {
+	query := (&SysMenuClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(sysmenu.Table, sysmenu.FieldID, id),
+			sqlgraph.To(sysmenu.Table, sysmenu.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, sysmenu.ChildrenTable, sysmenu.ChildrenColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryRoleMenus queries the role_menus edge of a SysMenu.
 func (c *SysMenuClient) QueryRoleMenus(_m *SysMenu) *SysRoleMenuQuery {
 	query := (&SysRoleMenuClient{config: c.config}).Query()
@@ -811,7 +843,7 @@ func (c *SysMenuClient) QueryRoleMenus(_m *SysMenu) *SysRoleMenuQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(sysmenu.Table, sysmenu.FieldID, id),
 			sqlgraph.To(sysrolemenu.Table, sysrolemenu.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, sysmenu.RoleMenusTable, sysmenu.RoleMenusColumn),
+			sqlgraph.Edge(sqlgraph.O2M, true, sysmenu.RoleMenusTable, sysmenu.RoleMenusColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -960,7 +992,7 @@ func (c *SysRoleClient) QueryUserRoles(_m *SysRole) *SysUserRoleQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(sysrole.Table, sysrole.FieldID, id),
 			sqlgraph.To(sysuserrole.Table, sysuserrole.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, sysrole.UserRolesTable, sysrole.UserRolesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, true, sysrole.UserRolesTable, sysrole.UserRolesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -976,7 +1008,7 @@ func (c *SysRoleClient) QueryRoleMenus(_m *SysRole) *SysRoleMenuQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(sysrole.Table, sysrole.FieldID, id),
 			sqlgraph.To(sysrolemenu.Table, sysrolemenu.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, sysrole.RoleMenusTable, sysrole.RoleMenusColumn),
+			sqlgraph.Edge(sqlgraph.O2M, true, sysrole.RoleMenusTable, sysrole.RoleMenusColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1125,7 +1157,7 @@ func (c *SysRoleMenuClient) QueryRole(_m *SysRoleMenu) *SysRoleQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(sysrolemenu.Table, sysrolemenu.FieldID, id),
 			sqlgraph.To(sysrole.Table, sysrole.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, sysrolemenu.RoleTable, sysrolemenu.RoleColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, sysrolemenu.RoleTable, sysrolemenu.RoleColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1141,7 +1173,7 @@ func (c *SysRoleMenuClient) QueryMenu(_m *SysRoleMenu) *SysMenuQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(sysrolemenu.Table, sysrolemenu.FieldID, id),
 			sqlgraph.To(sysmenu.Table, sysmenu.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, sysrolemenu.MenuTable, sysrolemenu.MenuColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, sysrolemenu.MenuTable, sysrolemenu.MenuColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1290,7 +1322,7 @@ func (c *SysUserClient) QueryUserRoles(_m *SysUser) *SysUserRoleQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(sysuser.Table, sysuser.FieldID, id),
 			sqlgraph.To(sysuserrole.Table, sysuserrole.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, sysuser.UserRolesTable, sysuser.UserRolesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, true, sysuser.UserRolesTable, sysuser.UserRolesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1439,7 +1471,7 @@ func (c *SysUserRoleClient) QueryUser(_m *SysUserRole) *SysUserQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(sysuserrole.Table, sysuserrole.FieldID, id),
 			sqlgraph.To(sysuser.Table, sysuser.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, sysuserrole.UserTable, sysuserrole.UserColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, sysuserrole.UserTable, sysuserrole.UserColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1455,7 +1487,7 @@ func (c *SysUserRoleClient) QueryRole(_m *SysUserRole) *SysRoleQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(sysuserrole.Table, sysuserrole.FieldID, id),
 			sqlgraph.To(sysrole.Table, sysrole.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, sysuserrole.RoleTable, sysuserrole.RoleColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, sysuserrole.RoleTable, sysuserrole.RoleColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

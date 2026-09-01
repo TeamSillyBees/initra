@@ -86,6 +86,8 @@ var (
 	NameValidator func(string) error
 	// DefaultIsEnable holds the default value on creation for the "is_enable" field.
 	DefaultIsEnable bool
+	// ItemLengthValidator is a validator for the "item_length" field. It is called by the builders before save.
+	ItemLengthValidator func(int32) error
 	// DefaultIsBuiltin holds the default value on creation for the "is_builtin" field.
 	DefaultIsBuiltin bool
 	// DefaultSortID holds the default value on creation for the "sort_id" field.
@@ -187,6 +189,6 @@ func newItemsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ItemsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, ItemsTable, ItemsColumn),
+		sqlgraph.Edge(sqlgraph.O2M, true, ItemsTable, ItemsColumn),
 	)
 }

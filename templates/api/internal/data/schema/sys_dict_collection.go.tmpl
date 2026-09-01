@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+
 	"github.com/teamsillybees/initra/pkg/entx/fieldx"
 )
 
@@ -26,7 +27,7 @@ func (SysDictCollection) Fields() []ent.Field {
 			Comment("字典集是否启用。"),
 		field.Text("description").Optional().Nillable().
 			Comment("字典集说明。"),
-		field.Int32("item_length").Optional().Nillable().
+		field.Int32("item_length").Optional().Nillable().Positive().
 			Comment("字典值推荐长度上限。"),
 		field.Bool("is_builtin").Default(false).
 			Comment("是否为系统内置字典集。"),
@@ -43,14 +44,20 @@ func (SysDictCollection) Fields() []ent.Field {
 // Edges 返回系统字典集表关系定义。
 func (SysDictCollection) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("items", SysDictItem.Type),
+		edge.From("items", SysDictItem.Type).
+			Ref("collection"),
 	}
 }
 
 // Annotations 返回系统字典集表数据库元信息。
 func (SysDictCollection) Annotations() []schema.Annotation {
 	return []schema.Annotation{
-		entsql.Annotation{Table: "sys_dict_collection"},
+		entsql.Annotation{
+			Table: "sys_dict_collection",
+			Checks: map[string]string{
+				"ck_sys_dict_collection_item_length": "item_length IS NULL OR item_length > 0",
+			},
+		},
 		entsql.WithComments(true),
 		schema.Comment("系统字典集表，用于定义一类字典的元信息。"),
 	}

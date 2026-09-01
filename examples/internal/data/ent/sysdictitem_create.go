@@ -422,7 +422,7 @@ func (_c *SysDictItemCreate) createSpec() (*SysDictItem, *sqlgraph.CreateSpec) {
 	if nodes := _c.mutation.CollectionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysdictitem.CollectionTable,
 			Columns: []string{sysdictitem.CollectionColumn},
 			Bidi:    false,

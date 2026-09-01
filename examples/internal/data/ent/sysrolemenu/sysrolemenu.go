@@ -150,13 +150,13 @@ func newRoleStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(RoleInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, RoleTable, RoleColumn),
+		sqlgraph.Edge(sqlgraph.M2O, false, RoleTable, RoleColumn),
 	)
 }
 func newMenuStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(MenuInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, MenuTable, MenuColumn),
+		sqlgraph.Edge(sqlgraph.M2O, false, MenuTable, MenuColumn),
 	)
 }

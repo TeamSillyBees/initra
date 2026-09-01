@@ -265,7 +265,7 @@ func (_u *SysRoleMenuUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	if _u.mutation.RoleCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysrolemenu.RoleTable,
 			Columns: []string{sysrolemenu.RoleColumn},
 			Bidi:    false,
@@ -278,7 +278,7 @@ func (_u *SysRoleMenuUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	if nodes := _u.mutation.RoleIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysrolemenu.RoleTable,
 			Columns: []string{sysrolemenu.RoleColumn},
 			Bidi:    false,
@@ -294,7 +294,7 @@ func (_u *SysRoleMenuUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	if _u.mutation.MenuCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysrolemenu.MenuTable,
 			Columns: []string{sysrolemenu.MenuColumn},
 			Bidi:    false,
@@ -307,7 +307,7 @@ func (_u *SysRoleMenuUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	if nodes := _u.mutation.MenuIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysrolemenu.MenuTable,
 			Columns: []string{sysrolemenu.MenuColumn},
 			Bidi:    false,
@@ -604,7 +604,7 @@ func (_u *SysRoleMenuUpdateOne) sqlSave(ctx context.Context) (_node *SysRoleMenu
 	if _u.mutation.RoleCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysrolemenu.RoleTable,
 			Columns: []string{sysrolemenu.RoleColumn},
 			Bidi:    false,
@@ -617,7 +617,7 @@ func (_u *SysRoleMenuUpdateOne) sqlSave(ctx context.Context) (_node *SysRoleMenu
 	if nodes := _u.mutation.RoleIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysrolemenu.RoleTable,
 			Columns: []string{sysrolemenu.RoleColumn},
 			Bidi:    false,
@@ -633,7 +633,7 @@ func (_u *SysRoleMenuUpdateOne) sqlSave(ctx context.Context) (_node *SysRoleMenu
 	if _u.mutation.MenuCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysrolemenu.MenuTable,
 			Columns: []string{sysrolemenu.MenuColumn},
 			Bidi:    false,
@@ -646,7 +646,7 @@ func (_u *SysRoleMenuUpdateOne) sqlSave(ctx context.Context) (_node *SysRoleMenu
 	if nodes := _u.mutation.MenuIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysrolemenu.MenuTable,
 			Columns: []string{sysrolemenu.MenuColumn},
 			Bidi:    false,

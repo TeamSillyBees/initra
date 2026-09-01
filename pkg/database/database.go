@@ -18,6 +18,7 @@ type Config struct {
 	DataSourceName  string
 	MaxOpenConns    int
 	MaxIdleConns    int
+	ConnMaxIdleTime time.Duration
 	ConnMaxLifetime time.Duration
 	PingTimeout     time.Duration
 }
@@ -33,6 +34,10 @@ func (c Config) Validate() error {
 		return fmt.Errorf("database max open conns 不能小于 0")
 	case c.MaxIdleConns < 0:
 		return fmt.Errorf("database max idle conns 不能小于 0")
+	case c.MaxOpenConns > 0 && c.MaxIdleConns > c.MaxOpenConns:
+		return fmt.Errorf("database max idle conns 不能大于 max open conns")
+	case c.ConnMaxIdleTime < 0:
+		return fmt.Errorf("database conn max idle time 不能小于 0")
 	case c.ConnMaxLifetime < 0:
 		return fmt.Errorf("database conn max lifetime 不能小于 0")
 	case c.PingTimeout < 0:
@@ -53,6 +58,7 @@ func Open(ctx context.Context, cfg Config) (*sql.DB, error) {
 	}
 	db.SetMaxOpenConns(cfg.MaxOpenConns)
 	db.SetMaxIdleConns(cfg.MaxIdleConns)
+	db.SetConnMaxIdleTime(cfg.ConnMaxIdleTime)
 	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 
 	pingCtx, cancel := context.WithTimeout(ctx, cfg.pingTimeout())

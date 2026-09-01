@@ -10,7 +10,7 @@
 - 增加 golangci-lint v2 基础配置。
 - 补齐存量导出声明注释，并增加基于 Go AST 的架构测试，阻止新增不规范注释。
 - CLI 增加 `snippet add`、可加载的事务化 `config add`、`doctor --json`，以及可检查和安全升级的 Codex skill。
-- API 模板增加随机 JWT secret、一次性管理员密码、安全 `app.slug`、数据库外键和 nonroot 容器基线。
+- API 模板增加随机 JWT secret、一次性管理员密码、安全 `app.slug`、事务化逻辑外键检查和 nonroot 容器基线。
 - API 模板增加数据库 RBAC adapter、角色/权限/分配管理接口、Redis 身份缓存失效和 Casbin 多实例策略重载。
 
 ### 变更

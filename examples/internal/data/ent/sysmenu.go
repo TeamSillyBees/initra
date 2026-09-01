@@ -59,17 +59,41 @@ type SysMenu struct {
 
 // SysMenuEdges holds the relations/edges for other nodes in the graph.
 type SysMenuEdges struct {
+	// Parent holds the value of the parent edge.
+	Parent *SysMenu `json:"parent,omitempty"`
+	// Children holds the value of the children edge.
+	Children []*SysMenu `json:"children,omitempty"`
 	// RoleMenus holds the value of the role_menus edge.
 	RoleMenus []*SysRoleMenu `json:"role_menus,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [3]bool
+}
+
+// ParentOrErr returns the Parent value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e SysMenuEdges) ParentOrErr() (*SysMenu, error) {
+	if e.Parent != nil {
+		return e.Parent, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: sysmenu.Label}
+	}
+	return nil, &NotLoadedError{edge: "parent"}
+}
+
+// ChildrenOrErr returns the Children value or an error if the edge
+// was not loaded in eager-loading.
+func (e SysMenuEdges) ChildrenOrErr() ([]*SysMenu, error) {
+	if e.loadedTypes[1] {
+		return e.Children, nil
+	}
+	return nil, &NotLoadedError{edge: "children"}
 }
 
 // RoleMenusOrErr returns the RoleMenus value or an error if the edge
 // was not loaded in eager-loading.
 func (e SysMenuEdges) RoleMenusOrErr() ([]*SysRoleMenu, error) {
-	if e.loadedTypes[0] {
+	if e.loadedTypes[2] {
 		return e.RoleMenus, nil
 	}
 	return nil, &NotLoadedError{edge: "role_menus"}
@@ -225,6 +249,16 @@ func (_m *SysMenu) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *SysMenu) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryParent queries the "parent" edge of the SysMenu entity.
+func (_m *SysMenu) QueryParent() *SysMenuQuery {
+	return NewSysMenuClient(_m.config).QueryParent(_m)
+}
+
+// QueryChildren queries the "children" edge of the SysMenu entity.
+func (_m *SysMenu) QueryChildren() *SysMenuQuery {
+	return NewSysMenuClient(_m.config).QueryChildren(_m)
 }
 
 // QueryRoleMenus queries the "role_menus" edge of the SysMenu entity.

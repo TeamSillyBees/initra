@@ -3575,8 +3575,6 @@ type SysMenuMutation struct {
 	op                Op
 	typ               string
 	id                *idgen.ID
-	parent_id         *idgen.ID
-	addparent_id      *idgen.ID
 	app_id            *string
 	title             *string
 	menu_type         *int16
@@ -3597,6 +3595,11 @@ type SysMenuMutation struct {
 	updated_by        *idgen.ID
 	addupdated_by     *idgen.ID
 	clearedFields     map[string]struct{}
+	parent            *idgen.ID
+	clearedparent     bool
+	children          map[idgen.ID]struct{}
+	removedchildren   map[idgen.ID]struct{}
+	clearedchildren   bool
 	role_menus        map[idgen.ID]struct{}
 	removedrole_menus map[idgen.ID]struct{}
 	clearedrole_menus bool
@@ -3711,13 +3714,12 @@ func (m *SysMenuMutation) IDs(ctx context.Context) ([]idgen.ID, error) {
 
 // SetParentID sets the "parent_id" field.
 func (m *SysMenuMutation) SetParentID(i idgen.ID) {
-	m.parent_id = &i
-	m.addparent_id = nil
+	m.parent = &i
 }
 
 // ParentID returns the value of the "parent_id" field in the mutation.
 func (m *SysMenuMutation) ParentID() (r idgen.ID, exists bool) {
-	v := m.parent_id
+	v := m.parent
 	if v == nil {
 		return
 	}
@@ -3741,28 +3743,9 @@ func (m *SysMenuMutation) OldParentID(ctx context.Context) (v *idgen.ID, err err
 	return oldValue.ParentID, nil
 }
 
-// AddParentID adds i to the "parent_id" field.
-func (m *SysMenuMutation) AddParentID(i idgen.ID) {
-	if m.addparent_id != nil {
-		*m.addparent_id += i
-	} else {
-		m.addparent_id = &i
-	}
-}
-
-// AddedParentID returns the value that was added to the "parent_id" field in this mutation.
-func (m *SysMenuMutation) AddedParentID() (r idgen.ID, exists bool) {
-	v := m.addparent_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
 // ClearParentID clears the value of the "parent_id" field.
 func (m *SysMenuMutation) ClearParentID() {
-	m.parent_id = nil
-	m.addparent_id = nil
+	m.parent = nil
 	m.clearedFields[sysmenu.FieldParentID] = struct{}{}
 }
 
@@ -3774,8 +3757,7 @@ func (m *SysMenuMutation) ParentIDCleared() bool {
 
 // ResetParentID resets all changes to the "parent_id" field.
 func (m *SysMenuMutation) ResetParentID() {
-	m.parent_id = nil
-	m.addparent_id = nil
+	m.parent = nil
 	delete(m.clearedFields, sysmenu.FieldParentID)
 }
 
@@ -4505,6 +4487,87 @@ func (m *SysMenuMutation) ResetUpdatedBy() {
 	delete(m.clearedFields, sysmenu.FieldUpdatedBy)
 }
 
+// ClearParent clears the "parent" edge to the SysMenu entity.
+func (m *SysMenuMutation) ClearParent() {
+	m.clearedparent = true
+	m.clearedFields[sysmenu.FieldParentID] = struct{}{}
+}
+
+// ParentCleared reports if the "parent" edge to the SysMenu entity was cleared.
+func (m *SysMenuMutation) ParentCleared() bool {
+	return m.ParentIDCleared() || m.clearedparent
+}
+
+// ParentIDs returns the "parent" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ParentID instead. It exists only for internal usage by the builders.
+func (m *SysMenuMutation) ParentIDs() (ids []idgen.ID) {
+	if id := m.parent; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetParent resets all changes to the "parent" edge.
+func (m *SysMenuMutation) ResetParent() {
+	m.parent = nil
+	m.clearedparent = false
+}
+
+// AddChildIDs adds the "children" edge to the SysMenu entity by ids.
+func (m *SysMenuMutation) AddChildIDs(ids ...idgen.ID) {
+	if m.children == nil {
+		m.children = make(map[idgen.ID]struct{})
+	}
+	for i := range ids {
+		m.children[ids[i]] = struct{}{}
+	}
+}
+
+// ClearChildren clears the "children" edge to the SysMenu entity.
+func (m *SysMenuMutation) ClearChildren() {
+	m.clearedchildren = true
+}
+
+// ChildrenCleared reports if the "children" edge to the SysMenu entity was cleared.
+func (m *SysMenuMutation) ChildrenCleared() bool {
+	return m.clearedchildren
+}
+
+// RemoveChildIDs removes the "children" edge to the SysMenu entity by IDs.
+func (m *SysMenuMutation) RemoveChildIDs(ids ...idgen.ID) {
+	if m.removedchildren == nil {
+		m.removedchildren = make(map[idgen.ID]struct{})
+	}
+	for i := range ids {
+		delete(m.children, ids[i])
+		m.removedchildren[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedChildren returns the removed IDs of the "children" edge to the SysMenu entity.
+func (m *SysMenuMutation) RemovedChildrenIDs() (ids []idgen.ID) {
+	for id := range m.removedchildren {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ChildrenIDs returns the "children" edge IDs in the mutation.
+func (m *SysMenuMutation) ChildrenIDs() (ids []idgen.ID) {
+	for id := range m.children {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetChildren resets all changes to the "children" edge.
+func (m *SysMenuMutation) ResetChildren() {
+	m.children = nil
+	m.clearedchildren = false
+	m.removedchildren = nil
+}
+
 // AddRoleMenuIDs adds the "role_menus" edge to the SysRoleMenu entity by ids.
 func (m *SysMenuMutation) AddRoleMenuIDs(ids ...idgen.ID) {
 	if m.role_menus == nil {
@@ -4594,7 +4657,7 @@ func (m *SysMenuMutation) Type() string {
 // AddedFields().
 func (m *SysMenuMutation) Fields() []string {
 	fields := make([]string, 0, 16)
-	if m.parent_id != nil {
+	if m.parent != nil {
 		fields = append(fields, sysmenu.FieldParentID)
 	}
 	if m.app_id != nil {
@@ -4852,9 +4915,6 @@ func (m *SysMenuMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *SysMenuMutation) AddedFields() []string {
 	var fields []string
-	if m.addparent_id != nil {
-		fields = append(fields, sysmenu.FieldParentID)
-	}
 	if m.addmenu_type != nil {
 		fields = append(fields, sysmenu.FieldMenuType)
 	}
@@ -4875,8 +4935,6 @@ func (m *SysMenuMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *SysMenuMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
-	case sysmenu.FieldParentID:
-		return m.AddedParentID()
 	case sysmenu.FieldMenuType:
 		return m.AddedMenuType()
 	case sysmenu.FieldSortID:
@@ -4894,13 +4952,6 @@ func (m *SysMenuMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *SysMenuMutation) AddField(name string, value ent.Value) error {
 	switch name {
-	case sysmenu.FieldParentID:
-		v, ok := value.(idgen.ID)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddParentID(v)
-		return nil
 	case sysmenu.FieldMenuType:
 		v, ok := value.(int16)
 		if !ok {
@@ -5067,7 +5118,13 @@ func (m *SysMenuMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SysMenuMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 3)
+	if m.parent != nil {
+		edges = append(edges, sysmenu.EdgeParent)
+	}
+	if m.children != nil {
+		edges = append(edges, sysmenu.EdgeChildren)
+	}
 	if m.role_menus != nil {
 		edges = append(edges, sysmenu.EdgeRoleMenus)
 	}
@@ -5078,6 +5135,16 @@ func (m *SysMenuMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *SysMenuMutation) AddedIDs(name string) []ent.Value {
 	switch name {
+	case sysmenu.EdgeParent:
+		if id := m.parent; id != nil {
+			return []ent.Value{*id}
+		}
+	case sysmenu.EdgeChildren:
+		ids := make([]ent.Value, 0, len(m.children))
+		for id := range m.children {
+			ids = append(ids, id)
+		}
+		return ids
 	case sysmenu.EdgeRoleMenus:
 		ids := make([]ent.Value, 0, len(m.role_menus))
 		for id := range m.role_menus {
@@ -5090,7 +5157,10 @@ func (m *SysMenuMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *SysMenuMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 3)
+	if m.removedchildren != nil {
+		edges = append(edges, sysmenu.EdgeChildren)
+	}
 	if m.removedrole_menus != nil {
 		edges = append(edges, sysmenu.EdgeRoleMenus)
 	}
@@ -5101,6 +5171,12 @@ func (m *SysMenuMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *SysMenuMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
+	case sysmenu.EdgeChildren:
+		ids := make([]ent.Value, 0, len(m.removedchildren))
+		for id := range m.removedchildren {
+			ids = append(ids, id)
+		}
+		return ids
 	case sysmenu.EdgeRoleMenus:
 		ids := make([]ent.Value, 0, len(m.removedrole_menus))
 		for id := range m.removedrole_menus {
@@ -5113,7 +5189,13 @@ func (m *SysMenuMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SysMenuMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 3)
+	if m.clearedparent {
+		edges = append(edges, sysmenu.EdgeParent)
+	}
+	if m.clearedchildren {
+		edges = append(edges, sysmenu.EdgeChildren)
+	}
 	if m.clearedrole_menus {
 		edges = append(edges, sysmenu.EdgeRoleMenus)
 	}
@@ -5124,6 +5206,10 @@ func (m *SysMenuMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *SysMenuMutation) EdgeCleared(name string) bool {
 	switch name {
+	case sysmenu.EdgeParent:
+		return m.clearedparent
+	case sysmenu.EdgeChildren:
+		return m.clearedchildren
 	case sysmenu.EdgeRoleMenus:
 		return m.clearedrole_menus
 	}
@@ -5134,6 +5220,9 @@ func (m *SysMenuMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *SysMenuMutation) ClearEdge(name string) error {
 	switch name {
+	case sysmenu.EdgeParent:
+		m.ClearParent()
+		return nil
 	}
 	return fmt.Errorf("unknown SysMenu unique edge %s", name)
 }
@@ -5142,6 +5231,12 @@ func (m *SysMenuMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *SysMenuMutation) ResetEdge(name string) error {
 	switch name {
+	case sysmenu.EdgeParent:
+		m.ResetParent()
+		return nil
+	case sysmenu.EdgeChildren:
+		m.ResetChildren()
+		return nil
 	case sysmenu.EdgeRoleMenus:
 		m.ResetRoleMenus()
 		return nil

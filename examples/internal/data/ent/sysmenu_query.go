@@ -9,6 +9,7 @@ import (
 	"math"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -25,7 +26,10 @@ type SysMenuQuery struct {
 	order         []sysmenu.OrderOption
 	inters        []Interceptor
 	predicates    []predicate.SysMenu
+	withParent    *SysMenuQuery
+	withChildren  *SysMenuQuery
 	withRoleMenus *SysRoleMenuQuery
+	modifiers     []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -62,6 +66,50 @@ func (_q *SysMenuQuery) Order(o ...sysmenu.OrderOption) *SysMenuQuery {
 	return _q
 }
 
+// QueryParent chains the current query on the "parent" edge.
+func (_q *SysMenuQuery) QueryParent() *SysMenuQuery {
+	query := (&SysMenuClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(sysmenu.Table, sysmenu.FieldID, selector),
+			sqlgraph.To(sysmenu.Table, sysmenu.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, sysmenu.ParentTable, sysmenu.ParentColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChildren chains the current query on the "children" edge.
+func (_q *SysMenuQuery) QueryChildren() *SysMenuQuery {
+	query := (&SysMenuClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(sysmenu.Table, sysmenu.FieldID, selector),
+			sqlgraph.To(sysmenu.Table, sysmenu.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, sysmenu.ChildrenTable, sysmenu.ChildrenColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // QueryRoleMenus chains the current query on the "role_menus" edge.
 func (_q *SysMenuQuery) QueryRoleMenus() *SysRoleMenuQuery {
 	query := (&SysRoleMenuClient{config: _q.config}).Query()
@@ -76,7 +124,7 @@ func (_q *SysMenuQuery) QueryRoleMenus() *SysRoleMenuQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(sysmenu.Table, sysmenu.FieldID, selector),
 			sqlgraph.To(sysrolemenu.Table, sysrolemenu.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, sysmenu.RoleMenusTable, sysmenu.RoleMenusColumn),
+			sqlgraph.Edge(sqlgraph.O2M, true, sysmenu.RoleMenusTable, sysmenu.RoleMenusColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -276,11 +324,35 @@ func (_q *SysMenuQuery) Clone() *SysMenuQuery {
 		order:         append([]sysmenu.OrderOption{}, _q.order...),
 		inters:        append([]Interceptor{}, _q.inters...),
 		predicates:    append([]predicate.SysMenu{}, _q.predicates...),
+		withParent:    _q.withParent.Clone(),
+		withChildren:  _q.withChildren.Clone(),
 		withRoleMenus: _q.withRoleMenus.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
+}
+
+// WithParent tells the query-builder to eager-load the nodes that are connected to
+// the "parent" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SysMenuQuery) WithParent(opts ...func(*SysMenuQuery)) *SysMenuQuery {
+	query := (&SysMenuClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withParent = query
+	return _q
+}
+
+// WithChildren tells the query-builder to eager-load the nodes that are connected to
+// the "children" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SysMenuQuery) WithChildren(opts ...func(*SysMenuQuery)) *SysMenuQuery {
+	query := (&SysMenuClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChildren = query
+	return _q
 }
 
 // WithRoleMenus tells the query-builder to eager-load the nodes that are connected to
@@ -372,7 +444,9 @@ func (_q *SysMenuQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*SysM
 	var (
 		nodes       = []*SysMenu{}
 		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [3]bool{
+			_q.withParent != nil,
+			_q.withChildren != nil,
 			_q.withRoleMenus != nil,
 		}
 	)
@@ -385,6 +459,9 @@ func (_q *SysMenuQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*SysM
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
+	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
@@ -393,6 +470,19 @@ func (_q *SysMenuQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*SysM
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
+	}
+	if query := _q.withParent; query != nil {
+		if err := _q.loadParent(ctx, query, nodes, nil,
+			func(n *SysMenu, e *SysMenu) { n.Edges.Parent = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withChildren; query != nil {
+		if err := _q.loadChildren(ctx, query, nodes,
+			func(n *SysMenu) { n.Edges.Children = []*SysMenu{} },
+			func(n *SysMenu, e *SysMenu) { n.Edges.Children = append(n.Edges.Children, e) }); err != nil {
+			return nil, err
+		}
 	}
 	if query := _q.withRoleMenus; query != nil {
 		if err := _q.loadRoleMenus(ctx, query, nodes,
@@ -404,6 +494,71 @@ func (_q *SysMenuQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*SysM
 	return nodes, nil
 }
 
+func (_q *SysMenuQuery) loadParent(ctx context.Context, query *SysMenuQuery, nodes []*SysMenu, init func(*SysMenu), assign func(*SysMenu, *SysMenu)) error {
+	ids := make([]idgen.ID, 0, len(nodes))
+	nodeids := make(map[idgen.ID][]*SysMenu)
+	for i := range nodes {
+		if nodes[i].ParentID == nil {
+			continue
+		}
+		fk := *nodes[i].ParentID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(sysmenu.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "parent_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *SysMenuQuery) loadChildren(ctx context.Context, query *SysMenuQuery, nodes []*SysMenu, init func(*SysMenu), assign func(*SysMenu, *SysMenu)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[idgen.ID]*SysMenu)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(sysmenu.FieldParentID)
+	}
+	query.Where(predicate.SysMenu(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(sysmenu.ChildrenColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ParentID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "parent_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "parent_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
 func (_q *SysMenuQuery) loadRoleMenus(ctx context.Context, query *SysRoleMenuQuery, nodes []*SysMenu, init func(*SysMenu), assign func(*SysMenu, *SysRoleMenu)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[idgen.ID]*SysMenu)
@@ -437,6 +592,9 @@ func (_q *SysMenuQuery) loadRoleMenus(ctx context.Context, query *SysRoleMenuQue
 
 func (_q *SysMenuQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
+	}
 	_spec.Node.Columns = _q.ctx.Fields
 	if len(_q.ctx.Fields) > 0 {
 		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
@@ -459,6 +617,9 @@ func (_q *SysMenuQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != sysmenu.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withParent != nil {
+			_spec.Node.AddColumnOnce(sysmenu.FieldParentID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
@@ -499,6 +660,9 @@ func (_q *SysMenuQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
+	for _, m := range _q.modifiers {
+		m(selector)
+	}
 	for _, p := range _q.predicates {
 		p(selector)
 	}
@@ -514,6 +678,32 @@ func (_q *SysMenuQuery) sqlQuery(ctx context.Context) *sql.Selector {
 		selector.Limit(*limit)
 	}
 	return selector
+}
+
+// ForUpdate locks the selected rows against concurrent updates, and prevent them from being
+// updated, deleted or "selected ... for update" by other sessions, until the transaction is
+// either committed or rolled-back.
+func (_q *SysMenuQuery) ForUpdate(opts ...sql.LockOption) *SysMenuQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
+	}
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
+		s.ForUpdate(opts...)
+	})
+	return _q
+}
+
+// ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
+// on any rows that are read. Other sessions can read the rows, but cannot modify them
+// until your transaction commits.
+func (_q *SysMenuQuery) ForShare(opts ...sql.LockOption) *SysMenuQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
+	}
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
+		s.ForShare(opts...)
+	})
+	return _q
 }
 
 // SysMenuGroupBy is the group-by builder for SysMenu entities.

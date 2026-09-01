@@ -7,9 +7,9 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+
 	"github.com/teamsillybees/initra/pkg/entx/fieldx"
 	"github.com/teamsillybees/initra/pkg/entx/indexx"
-
 	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
@@ -22,13 +22,13 @@ type SysMenu struct {
 func (SysMenu) Fields() []ent.Field {
 	fields := []ent.Field{
 		fieldx.ID(),
-		field.Int64("parent_id").GoType(idgen.ID(0)).Optional().Nillable().
+		field.Int64("parent_id").GoType(idgen.ID(0)).Optional().Nillable().Positive().
 			Comment("父级菜单 ID，NULL 表示顶级目录。"),
 		field.String("app_id").MaxLen(64).Optional().Nillable().
 			Comment("所属应用编码，用于多应用场景区分菜单树。"),
 		field.String("title").MaxLen(128).NotEmpty().
 			Comment("菜单或按钮展示标题。"),
-		field.Int16("menu_type").
+		field.Int16("menu_type").Min(0).Max(2).
 			Comment("资源类型：0-菜单，1-按钮，2-目录。"),
 		field.Text("route_path").Optional().Nillable().
 			Comment("前端路由路径。"),
@@ -55,7 +55,12 @@ func (SysMenu) Fields() []ent.Field {
 // Edges 返回系统菜单表关系定义。
 func (SysMenu) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("role_menus", SysRoleMenu.Type),
+		edge.To("children", SysMenu.Type).
+			From("parent").
+			Unique().
+			Field("parent_id"),
+		edge.From("role_menus", SysRoleMenu.Type).
+			Ref("menu"),
 	}
 }
 
@@ -70,7 +75,13 @@ func (SysMenu) Indexes() []ent.Index {
 // Annotations 返回系统菜单表数据库元信息。
 func (SysMenu) Annotations() []schema.Annotation {
 	return []schema.Annotation{
-		entsql.Annotation{Table: "sys_menu"},
+		entsql.Annotation{
+			Table: "sys_menu",
+			Checks: map[string]string{
+				"ck_sys_menu_parent_not_self": "parent_id IS NULL OR parent_id <> id",
+				"ck_sys_menu_type":            "menu_type IN (0, 1, 2)",
+			},
+		},
 		entsql.WithComments(true),
 		schema.Comment("系统菜单与按钮权限表，统一承载菜单、目录、按钮三类资源。"),
 	}

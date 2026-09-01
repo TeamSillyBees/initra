@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+
 	"github.com/teamsillybees/initra/pkg/entx/fieldx"
 )
 
@@ -47,7 +48,8 @@ func (SysUser) Fields() []ent.Field {
 // Edges 返回系统用户表关系定义。
 func (SysUser) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("user_roles", SysUserRole.Type),
+		edge.From("user_roles", SysUserRole.Type).
+			Ref("user"),
 	}
 }
 

@@ -696,7 +696,7 @@ func HasItems() predicate.SysDictCollection {
 	return predicate.SysDictCollection(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, ItemsTable, ItemsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, true, ItemsTable, ItemsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

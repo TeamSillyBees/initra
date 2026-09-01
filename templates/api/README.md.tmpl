@@ -80,7 +80,7 @@ go build ./cmd/server
 
 常用配置分组：
 
-- `app`、`server`、`database`、`redis`、`auth`、`log`：基础运行配置。数据库通过 `ssl_mode` 控制 TLS；认证默认使用 Redis 共享 token store，内存 store 仅允许 dev/local/test 环境显式 opt-in，其他环境 fail-closed。
+- `app`、`server`、`database`、`redis`、`auth`、`log`：基础运行配置。数据库配置包含 `application_name`、连接超时、连接池空闲回收和最长生命周期；共享环境的 `ssl_mode` 必须为 `verify-full`。认证默认使用 Redis 共享 token store，内存 store 仅允许 dev/local/test 环境显式 opt-in，其他环境 fail-closed。
 - `observability.health.enabled`：控制 `/health`、`/ready`、`/version` 的注册。`/health` 只检查进程存活，`/ready` 对数据库及已启用的 Redis、任务后端执行独立超时检查。
 - `casbin`：权限模型和策略文件。
 - `cache`、`idgen`、`storage`、`task`、`http_client`：缓存、雪花 ID、文件存储、任务队列和命名 HTTP Client。
@@ -114,7 +114,7 @@ internal/modules/<module>/
 
 ## 数据库与迁移
 
-`internal/data/schema` 是数据库结构主源；`db/migrations` 是版本化迁移历史；`db/seeds` 保存初始化数据。应用数据库连接通过结构化 PostgreSQL URL 编码用户名、密码和数据库名；只有 dev/local/test 环境允许弱 TLS 配置，其他环境必须使用 `require`、`verify-ca` 或 `verify-full`。当前 schema 组合 `pkg/entx/fieldx.ID()`、`fieldx.SoftDelete()` 和 `fieldx.Audit()`，需要软删除索引时使用 `pkg/entx/indexx.SoftDelete()`；关系表迁移默认创建物理外键。Ent Client 在 `internal/data/ent_client.go` 注册 `entx.AuditHook` 和 `entx.RejectDeleteHook`；当前 schema 未使用乐观锁。
+`internal/data/schema` 是数据库结构主源；`db/migrations` 是版本化迁移历史；`db/seeds` 保存初始化数据。应用数据库连接通过结构化 PostgreSQL URL 编码用户名、密码和数据库名；只有 dev/local/test 环境允许弱 TLS 配置，其他环境必须使用 `verify-full`。当前 schema 组合 `pkg/entx/fieldx.ID()`、`fieldx.SoftDelete()` 和 `fieldx.Audit()`，需要软删除索引时使用 `pkg/entx/indexx.SoftDelete()`。项目禁止物理外键与数据库级联，Ent edge 只表达逻辑关系；关联写入必须在同一事务内校验并以 `FOR SHARE` 锁定有效父记录，父记录删除或影响关系有效性的更新使用 `FOR UPDATE` 并显式处理子关系。Ent Client 在 `internal/data/ent_client.go` 注册 `entx.AuditHook` 和 `entx.RejectDeleteHook`；当前 schema 未使用乐观锁。
 
 ```powershell
 go generate ./internal/data

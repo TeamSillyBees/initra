@@ -383,7 +383,7 @@ func (_c *SysRoleCreate) createSpec() (*SysRole, *sqlgraph.CreateSpec) {
 	if nodes := _c.mutation.UserRolesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysrole.UserRolesTable,
 			Columns: []string{sysrole.UserRolesColumn},
 			Bidi:    false,
@@ -399,7 +399,7 @@ func (_c *SysRoleCreate) createSpec() (*SysRole, *sqlgraph.CreateSpec) {
 	if nodes := _c.mutation.RoleMenusIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysrole.RoleMenusTable,
 			Columns: []string{sysrole.RoleMenusColumn},
 			Bidi:    false,

@@ -812,7 +812,7 @@ func HasCollection() predicate.SysDictItem {
 	return predicate.SysDictItem(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, CollectionTable, CollectionColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, CollectionTable, CollectionColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

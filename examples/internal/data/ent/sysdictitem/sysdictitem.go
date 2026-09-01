@@ -204,6 +204,6 @@ func newCollectionStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CollectionInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, CollectionTable, CollectionColumn),
+		sqlgraph.Edge(sqlgraph.M2O, false, CollectionTable, CollectionColumn),
 	)
 }

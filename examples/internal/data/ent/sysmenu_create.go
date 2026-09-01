@@ -244,6 +244,26 @@ func (_c *SysMenuCreate) SetNillableID(v *idgen.ID) *SysMenuCreate {
 	return _c
 }
 
+// SetParent sets the "parent" edge to the SysMenu entity.
+func (_c *SysMenuCreate) SetParent(v *SysMenu) *SysMenuCreate {
+	return _c.SetParentID(v.ID)
+}
+
+// AddChildIDs adds the "children" edge to the SysMenu entity by IDs.
+func (_c *SysMenuCreate) AddChildIDs(ids ...idgen.ID) *SysMenuCreate {
+	_c.mutation.AddChildIDs(ids...)
+	return _c
+}
+
+// AddChildren adds the "children" edges to the SysMenu entity.
+func (_c *SysMenuCreate) AddChildren(v ...*SysMenu) *SysMenuCreate {
+	ids := make([]idgen.ID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChildIDs(ids...)
+}
+
 // AddRoleMenuIDs adds the "role_menus" edge to the SysRoleMenu entity by IDs.
 func (_c *SysMenuCreate) AddRoleMenuIDs(ids ...idgen.ID) *SysMenuCreate {
 	_c.mutation.AddRoleMenuIDs(ids...)
@@ -322,6 +342,11 @@ func (_c *SysMenuCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *SysMenuCreate) check() error {
+	if v, ok := _c.mutation.ParentID(); ok {
+		if err := sysmenu.ParentIDValidator(int64(v)); err != nil {
+			return &ValidationError{Name: "parent_id", err: fmt.Errorf(`ent: validator failed for field "SysMenu.parent_id": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.AppID(); ok {
 		if err := sysmenu.AppIDValidator(v); err != nil {
 			return &ValidationError{Name: "app_id", err: fmt.Errorf(`ent: validator failed for field "SysMenu.app_id": %w`, err)}
@@ -337,6 +362,11 @@ func (_c *SysMenuCreate) check() error {
 	}
 	if _, ok := _c.mutation.MenuType(); !ok {
 		return &ValidationError{Name: "menu_type", err: errors.New(`ent: missing required field "SysMenu.menu_type"`)}
+	}
+	if v, ok := _c.mutation.MenuType(); ok {
+		if err := sysmenu.MenuTypeValidator(v); err != nil {
+			return &ValidationError{Name: "menu_type", err: fmt.Errorf(`ent: validator failed for field "SysMenu.menu_type": %w`, err)}
+		}
 	}
 	if v, ok := _c.mutation.PermissionCode(); ok {
 		if err := sysmenu.PermissionCodeValidator(v); err != nil {
@@ -400,10 +430,6 @@ func (_c *SysMenuCreate) createSpec() (*SysMenu, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := _c.mutation.ParentID(); ok {
-		_spec.SetField(sysmenu.FieldParentID, field.TypeInt64, value)
-		_node.ParentID = &value
-	}
 	if value, ok := _c.mutation.AppID(); ok {
 		_spec.SetField(sysmenu.FieldAppID, field.TypeString, value)
 		_node.AppID = &value
@@ -464,10 +490,43 @@ func (_c *SysMenuCreate) createSpec() (*SysMenu, *sqlgraph.CreateSpec) {
 		_spec.SetField(sysmenu.FieldUpdatedBy, field.TypeInt64, value)
 		_node.UpdatedBy = &value
 	}
-	if nodes := _c.mutation.RoleMenusIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.ParentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   sysmenu.ParentTable,
+			Columns: []string{sysmenu.ParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sysmenu.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.ParentID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChildrenIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
+			Table:   sysmenu.ChildrenTable,
+			Columns: []string{sysmenu.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sysmenu.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.RoleMenusIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
 			Table:   sysmenu.RoleMenusTable,
 			Columns: []string{sysmenu.RoleMenusColumn},
 			Bidi:    false,

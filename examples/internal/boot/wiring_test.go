@@ -81,8 +81,11 @@ database:
   user: "postgres"
   password: "postgres"
   dbname: "example"
+  application_name: "example-api"
+  connect_timeout: 5s
   max_open_conns: 20
   max_idle_conns: 10
+  conn_max_idle_time: 15m
   conn_max_lifetime: 1h
   ping_timeout: 5s
 
@@ -190,6 +193,9 @@ auth:
 	require.Equal(t, "local-1", cfg.App.InstanceID)
 	require.Equal(t, ":18080", cfg.Server.Addr)
 	require.Equal(t, 20*time.Second, cfg.Server.ShutdownTimeout)
+	require.Equal(t, "example-api", cfg.Database.ApplicationName)
+	require.Equal(t, 5*time.Second, cfg.Database.ConnectTimeout)
+	require.Equal(t, 15*time.Minute, cfg.Database.ConnMaxIdleTime)
 	require.Equal(t, time.Hour, cfg.Database.ConnMaxLifetime)
 	require.Equal(t, 5*time.Second, cfg.Database.PingTimeout)
 	require.Equal(t, "require", cfg.Database.SSLMode)
@@ -248,16 +254,18 @@ func TestConfigValidateRejectsShortJWTSecret(t *testing.T) {
 	require.ErrorContains(t, cfg.Validate(), "32 字节")
 }
 
-// TestConfigValidateRequiresTLSInSharedEnvironments 验证除本地开发和测试外的环境都必须启用安全 TLS。
-func TestConfigValidateRequiresTLSInSharedEnvironments(t *testing.T) {
+// TestConfigValidateRequiresVerifiedTLSInSharedEnvironments 验证共享环境必须同时校验证书与主机名。
+func TestConfigValidateRequiresVerifiedTLSInSharedEnvironments(t *testing.T) {
 	for _, env := range []string{"prod", "production", "prd", "staging", "uat", "preview"} {
-		t.Run(env, func(t *testing.T) {
-			cfg := validConfigForValidation()
-			cfg.App.Env = env
-			cfg.Database.SSLMode = "disable"
+		for _, mode := range []string{"disable", "allow", "prefer", "require", "verify-ca"} {
+			t.Run(env+"/"+mode, func(t *testing.T) {
+				cfg := validConfigForValidation()
+				cfg.App.Env = env
+				cfg.Database.SSLMode = mode
 
-			require.ErrorContains(t, cfg.Validate(), "非 dev/local/test 环境的 database.ssl_mode")
-		})
+				require.ErrorContains(t, cfg.Validate(), "必须是 verify-full")
+			})
+		}
 	}
 }
 
@@ -267,7 +275,7 @@ func TestConfigValidateRequiresSharedTokenStoreInSharedEnvironments(t *testing.T
 		t.Run(env, func(t *testing.T) {
 			cfg := validConfigForValidation()
 			cfg.App.Env = env
-			cfg.Database.SSLMode = "require"
+			cfg.Database.SSLMode = "verify-full"
 
 			require.ErrorContains(t, cfg.Validate(), "Redis 共享 token store")
 		})
@@ -311,11 +319,17 @@ func validConfigForValidation() *Config {
 			ShutdownTimeout: time.Second,
 		},
 		Database: data.DatabaseConfig{
-			Host:    "127.0.0.1",
-			Port:    5432,
-			User:    "postgres",
-			DBName:  "example",
-			SSLMode: "disable",
+			Host:            "127.0.0.1",
+			Port:            5432,
+			User:            "postgres",
+			DBName:          "example",
+			SSLMode:         "disable",
+			ConnectTimeout:  5 * time.Second,
+			MaxOpenConns:    20,
+			MaxIdleConns:    10,
+			ConnMaxIdleTime: 15 * time.Minute,
+			ConnMaxLifetime: time.Hour,
+			PingTimeout:     5 * time.Second,
 		},
 		Auth: AuthConfig{
 			Enabled:               true,

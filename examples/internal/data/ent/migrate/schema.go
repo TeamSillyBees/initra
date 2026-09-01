@@ -79,7 +79,7 @@ var (
 		PrimaryKey: []*schema.Column{SysDictItemColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "sys_dict_item_sys_dict_collection_items",
+				Symbol:     "sys_dict_item_sys_dict_collection_collection",
 				Columns:    []*schema.Column{SysDictItemColumns[14]},
 				RefColumns: []*schema.Column{SysDictCollectionColumns[0]},
 				OnDelete:   schema.NoAction,
@@ -111,7 +111,6 @@ var (
 	// SysMenuColumns holds the columns for the "sys_menu" table.
 	SysMenuColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true, Comment: "雪花算法生成的主键 ID。"},
-		{Name: "parent_id", Type: field.TypeInt64, Nullable: true, Comment: "父级菜单 ID，NULL 表示顶级目录。"},
 		{Name: "app_id", Type: field.TypeString, Nullable: true, Size: 64, Comment: "所属应用编码，用于多应用场景区分菜单树。"},
 		{Name: "title", Type: field.TypeString, Size: 128, Comment: "菜单或按钮展示标题。"},
 		{Name: "menu_type", Type: field.TypeInt16, Comment: "资源类型：0-菜单，1-按钮，2-目录。"},
@@ -127,6 +126,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
 		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
 		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
+		{Name: "parent_id", Type: field.TypeInt64, Nullable: true, Comment: "父级菜单 ID，NULL 表示顶级目录。"},
 	}
 	// SysMenuTable holds the schema information for the "sys_menu" table.
 	SysMenuTable = &schema.Table{
@@ -134,16 +134,24 @@ var (
 		Comment:    "系统菜单与按钮权限表，统一承载菜单、目录、按钮三类资源。",
 		Columns:    SysMenuColumns,
 		PrimaryKey: []*schema.Column{SysMenuColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "sys_menu_sys_menu_children",
+				Columns:    []*schema.Column{SysMenuColumns[16]},
+				RefColumns: []*schema.Column{SysMenuColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "sysmenu_parent_id",
 				Unique:  false,
-				Columns: []*schema.Column{SysMenuColumns[1]},
+				Columns: []*schema.Column{SysMenuColumns[16]},
 			},
 			{
 				Name:    "sysmenu_deleted_at",
 				Unique:  false,
-				Columns: []*schema.Column{SysMenuColumns[12]},
+				Columns: []*schema.Column{SysMenuColumns[11]},
 			},
 		},
 	}
@@ -189,8 +197,8 @@ var (
 		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
 		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
 		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
-		{Name: "menu_id", Type: field.TypeInt64, Comment: "系统菜单资源 ID，关联 sys_menu.id。"},
 		{Name: "role_id", Type: field.TypeInt64, Comment: "系统角色 ID，关联 sys_role.id。"},
+		{Name: "menu_id", Type: field.TypeInt64, Comment: "系统菜单资源 ID，关联 sys_menu.id。"},
 	}
 	// SysRoleMenuTable holds the schema information for the "sys_role_menu" table.
 	SysRoleMenuTable = &schema.Table{
@@ -200,33 +208,28 @@ var (
 		PrimaryKey: []*schema.Column{SysRoleMenuColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "sys_role_menu_sys_menu_role_menus",
+				Symbol:     "sys_role_menu_sys_role_role",
 				Columns:    []*schema.Column{SysRoleMenuColumns[6]},
-				RefColumns: []*schema.Column{SysMenuColumns[0]},
+				RefColumns: []*schema.Column{SysRoleColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "sys_role_menu_sys_role_role_menus",
+				Symbol:     "sys_role_menu_sys_menu_menu",
 				Columns:    []*schema.Column{SysRoleMenuColumns[7]},
-				RefColumns: []*schema.Column{SysRoleColumns[0]},
+				RefColumns: []*schema.Column{SysMenuColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "sysrolemenu_role_id",
+				Name:    "sysrolemenu_menu_id",
 				Unique:  false,
 				Columns: []*schema.Column{SysRoleMenuColumns[7]},
 			},
 			{
-				Name:    "sysrolemenu_menu_id",
-				Unique:  false,
-				Columns: []*schema.Column{SysRoleMenuColumns[6]},
-			},
-			{
 				Name:    "sysrolemenu_role_id_menu_id",
 				Unique:  true,
-				Columns: []*schema.Column{SysRoleMenuColumns[7], SysRoleMenuColumns[6]},
+				Columns: []*schema.Column{SysRoleMenuColumns[6], SysRoleMenuColumns[7]},
 			},
 			{
 				Name:    "sysrolemenu_deleted_at",
@@ -275,8 +278,8 @@ var (
 		{Name: "updated_at", Type: field.TypeTime, Comment: "最后更新时间。"},
 		{Name: "created_by", Type: field.TypeInt64, Nullable: true, Comment: "创建人用户 ID。"},
 		{Name: "updated_by", Type: field.TypeInt64, Nullable: true, Comment: "最后更新人用户 ID。"},
-		{Name: "role_id", Type: field.TypeInt64, Comment: "系统角色 ID，关联 sys_role.id。"},
 		{Name: "user_id", Type: field.TypeInt64, Comment: "系统用户 ID，关联 sys_user.id。"},
+		{Name: "role_id", Type: field.TypeInt64, Comment: "系统角色 ID，关联 sys_role.id。"},
 	}
 	// SysUserRoleTable holds the schema information for the "sys_user_role" table.
 	SysUserRoleTable = &schema.Table{
@@ -286,33 +289,28 @@ var (
 		PrimaryKey: []*schema.Column{SysUserRoleColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "sys_user_role_sys_role_user_roles",
+				Symbol:     "sys_user_role_sys_user_user",
 				Columns:    []*schema.Column{SysUserRoleColumns[6]},
-				RefColumns: []*schema.Column{SysRoleColumns[0]},
+				RefColumns: []*schema.Column{SysUserColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "sys_user_role_sys_user_user_roles",
+				Symbol:     "sys_user_role_sys_role_role",
 				Columns:    []*schema.Column{SysUserRoleColumns[7]},
-				RefColumns: []*schema.Column{SysUserColumns[0]},
+				RefColumns: []*schema.Column{SysRoleColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "sysuserrole_user_id",
+				Name:    "sysuserrole_role_id",
 				Unique:  false,
 				Columns: []*schema.Column{SysUserRoleColumns[7]},
 			},
 			{
-				Name:    "sysuserrole_role_id",
-				Unique:  false,
-				Columns: []*schema.Column{SysUserRoleColumns[6]},
-			},
-			{
 				Name:    "sysuserrole_user_id_role_id",
 				Unique:  true,
-				Columns: []*schema.Column{SysUserRoleColumns[7], SysUserRoleColumns[6]},
+				Columns: []*schema.Column{SysUserRoleColumns[6], SysUserRoleColumns[7]},
 			},
 			{
 				Name:    "sysuserrole_deleted_at",
@@ -341,26 +339,34 @@ func init() {
 	SysDictCollectionTable.Annotation = &entsql.Annotation{
 		Table: "sys_dict_collection",
 	}
+	SysDictCollectionTable.Annotation.Checks = map[string]string{
+		"ck_sys_dict_collection_item_length": "item_length IS NULL OR item_length > 0",
+	}
 	SysDictItemTable.ForeignKeys[0].RefTable = SysDictCollectionTable
 	SysDictItemTable.Annotation = &entsql.Annotation{
 		Table: "sys_dict_item",
 	}
+	SysMenuTable.ForeignKeys[0].RefTable = SysMenuTable
 	SysMenuTable.Annotation = &entsql.Annotation{
 		Table: "sys_menu",
+	}
+	SysMenuTable.Annotation.Checks = map[string]string{
+		"ck_sys_menu_parent_not_self": "parent_id IS NULL OR parent_id <> id",
+		"ck_sys_menu_type":            "menu_type IN (0, 1, 2)",
 	}
 	SysRoleTable.Annotation = &entsql.Annotation{
 		Table: "sys_role",
 	}
-	SysRoleMenuTable.ForeignKeys[0].RefTable = SysMenuTable
-	SysRoleMenuTable.ForeignKeys[1].RefTable = SysRoleTable
+	SysRoleMenuTable.ForeignKeys[0].RefTable = SysRoleTable
+	SysRoleMenuTable.ForeignKeys[1].RefTable = SysMenuTable
 	SysRoleMenuTable.Annotation = &entsql.Annotation{
 		Table: "sys_role_menu",
 	}
 	SysUserTable.Annotation = &entsql.Annotation{
 		Table: "sys_user",
 	}
-	SysUserRoleTable.ForeignKeys[0].RefTable = SysRoleTable
-	SysUserRoleTable.ForeignKeys[1].RefTable = SysUserTable
+	SysUserRoleTable.ForeignKeys[0].RefTable = SysUserTable
+	SysUserRoleTable.ForeignKeys[1].RefTable = SysRoleTable
 	SysUserRoleTable.Annotation = &entsql.Annotation{
 		Table: "sys_user_role",
 	}

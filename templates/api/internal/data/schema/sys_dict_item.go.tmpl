@@ -7,9 +7,9 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+
 	"github.com/teamsillybees/initra/pkg/entx/fieldx"
 	"github.com/teamsillybees/initra/pkg/entx/indexx"
-
 	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
@@ -51,8 +51,7 @@ func (SysDictItem) Fields() []ent.Field {
 // Edges 返回系统字典项表关系定义。
 func (SysDictItem) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("collection", SysDictCollection.Type).
-			Ref("items").
+		edge.To("collection", SysDictCollection.Type).
 			Field("collection_id").
 			Required().
 			Unique(),

@@ -99,6 +99,7 @@ func TestTransformTemplateContentPreservesGeneratedProjectValues(t *testing.T) {
 database:
   user: "initra"
   dbname: "initra"
+  application_name: initra
 auth:
   jwt:
     issuer: initra
@@ -119,6 +120,7 @@ httpclient:
 		"slug: {{ .AppSlug }}",
 		`user: "{{ .AppSlug }}"`,
 		`dbname: "{{ .AppSlug }}"`,
+		"application_name: {{ .AppSlug }}",
 		"issuer: {{ .AppSlug }}",
 		`secret: "{{ .LocalJWTSecret }}"`,
 	} {
@@ -141,5 +143,19 @@ func TestTransformTemplateContentRejectsMissingCriticalAnchor(t *testing.T) {
 	_, err := transformTemplateContent("configs/config.yaml", "app:\n  name: initra\n")
 	if err == nil || !strings.Contains(err.Error(), "expected exactly once") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestTransformHistoricalForeignKeyMigrationToNoOp(t *testing.T) {
+	source := strings.Repeat("ALTER TABLE x ADD FOREIGN KEY (id) REFERENCES y (id);\n", 5)
+	rendered, err := transformTemplateContent("db/migrations/20260715000000_add_relationship_foreign_keys.sql", source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(strings.ToUpper(rendered), "FOREIGN KEY (") {
+		t.Fatalf("rendered migration still creates a physical foreign key: %s", rendered)
+	}
+	if !strings.Contains(rendered, "新生成项目不建立物理外键") {
+		t.Fatalf("rendered migration does not explain the compatibility no-op: %s", rendered)
 	}
 }

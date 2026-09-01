@@ -402,7 +402,7 @@ func (_u *SysRoleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.UserRolesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysrole.UserRolesTable,
 			Columns: []string{sysrole.UserRolesColumn},
 			Bidi:    false,
@@ -415,7 +415,7 @@ func (_u *SysRoleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if nodes := _u.mutation.RemovedUserRolesIDs(); len(nodes) > 0 && !_u.mutation.UserRolesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysrole.UserRolesTable,
 			Columns: []string{sysrole.UserRolesColumn},
 			Bidi:    false,
@@ -431,7 +431,7 @@ func (_u *SysRoleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if nodes := _u.mutation.UserRolesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysrole.UserRolesTable,
 			Columns: []string{sysrole.UserRolesColumn},
 			Bidi:    false,
@@ -447,7 +447,7 @@ func (_u *SysRoleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.RoleMenusCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysrole.RoleMenusTable,
 			Columns: []string{sysrole.RoleMenusColumn},
 			Bidi:    false,
@@ -460,7 +460,7 @@ func (_u *SysRoleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if nodes := _u.mutation.RemovedRoleMenusIDs(); len(nodes) > 0 && !_u.mutation.RoleMenusCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysrole.RoleMenusTable,
 			Columns: []string{sysrole.RoleMenusColumn},
 			Bidi:    false,
@@ -476,7 +476,7 @@ func (_u *SysRoleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if nodes := _u.mutation.RoleMenusIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysrole.RoleMenusTable,
 			Columns: []string{sysrole.RoleMenusColumn},
 			Bidi:    false,
@@ -910,7 +910,7 @@ func (_u *SysRoleUpdateOne) sqlSave(ctx context.Context) (_node *SysRole, err er
 	if _u.mutation.UserRolesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysrole.UserRolesTable,
 			Columns: []string{sysrole.UserRolesColumn},
 			Bidi:    false,
@@ -923,7 +923,7 @@ func (_u *SysRoleUpdateOne) sqlSave(ctx context.Context) (_node *SysRole, err er
 	if nodes := _u.mutation.RemovedUserRolesIDs(); len(nodes) > 0 && !_u.mutation.UserRolesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysrole.UserRolesTable,
 			Columns: []string{sysrole.UserRolesColumn},
 			Bidi:    false,
@@ -939,7 +939,7 @@ func (_u *SysRoleUpdateOne) sqlSave(ctx context.Context) (_node *SysRole, err er
 	if nodes := _u.mutation.UserRolesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysrole.UserRolesTable,
 			Columns: []string{sysrole.UserRolesColumn},
 			Bidi:    false,
@@ -955,7 +955,7 @@ func (_u *SysRoleUpdateOne) sqlSave(ctx context.Context) (_node *SysRole, err er
 	if _u.mutation.RoleMenusCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysrole.RoleMenusTable,
 			Columns: []string{sysrole.RoleMenusColumn},
 			Bidi:    false,
@@ -968,7 +968,7 @@ func (_u *SysRoleUpdateOne) sqlSave(ctx context.Context) (_node *SysRole, err er
 	if nodes := _u.mutation.RemovedRoleMenusIDs(); len(nodes) > 0 && !_u.mutation.RoleMenusCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysrole.RoleMenusTable,
 			Columns: []string{sysrole.RoleMenusColumn},
 			Bidi:    false,
@@ -984,7 +984,7 @@ func (_u *SysRoleUpdateOne) sqlSave(ctx context.Context) (_node *SysRole, err er
 	if nodes := _u.mutation.RoleMenusIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysrole.RoleMenusTable,
 			Columns: []string{sysrole.RoleMenusColumn},
 			Bidi:    false,

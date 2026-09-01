@@ -85,7 +85,7 @@ func (s *Service) UpdateRole(ctx context.Context, id idgen.ID, body UpdateRoleBo
 	var updated *appent.SysRole
 	var affectedUsers []idgen.ID
 	err := data.WithinTx(ctx, s.client, func(txCtx context.Context, tx *appent.Client) error {
-		role, err := s.findRole(txCtx, tx, id)
+		role, err := s.findRoleForUpdate(txCtx, tx, id)
 		if err != nil {
 			return err
 		}
@@ -131,7 +131,7 @@ func (s *Service) UpdateRole(ctx context.Context, id idgen.ID, body UpdateRoleBo
 // DeleteRole 软删除未被用户引用的非内置角色及其权限关系。
 func (s *Service) DeleteRole(ctx context.Context, id idgen.ID) error {
 	err := data.WithinTx(ctx, s.client, func(txCtx context.Context, tx *appent.Client) error {
-		role, err := s.findRole(txCtx, tx, id)
+		role, err := s.findRoleForUpdate(txCtx, tx, id)
 		if err != nil {
 			return err
 		}
@@ -257,7 +257,7 @@ func (s *Service) UpdatePermission(ctx context.Context, id idgen.ID, body Update
 // DeletePermission 软删除权限资源和全部角色授权关系。
 func (s *Service) DeletePermission(ctx context.Context, id idgen.ID) error {
 	err := data.WithinTx(ctx, s.client, func(txCtx context.Context, tx *appent.Client) error {
-		menu, err := s.findPermission(txCtx, tx, id)
+		menu, err := s.findPermissionForUpdate(txCtx, tx, id)
 		if err != nil {
 			return err
 		}
@@ -307,12 +307,12 @@ func (s *Service) GetUserRoles(ctx context.Context, userID idgen.ID) ([]RoleVO, 
 func (s *Service) ReplaceUserRoles(ctx context.Context, userID idgen.ID, codes []string) ([]RoleVO, error) {
 	normalized := normalizeStrings(codes)
 	err := data.WithinTx(ctx, s.client, func(txCtx context.Context, tx *appent.Client) error {
-		exists, err := tx.SysUser.Query().Where(sysuser.ID(userID), sysuser.DeletedAtIsNil()).Exist(txCtx)
+		_, err := tx.SysUser.Query().Where(sysuser.ID(userID), sysuser.DeletedAtIsNil()).ForShare().Only(txCtx)
+		if appent.IsNotFound(err) {
+			return bizerrors.UserNotFound(userID)
+		}
 		if err != nil {
 			return bizerrors.WrapDBContext(txCtx, err, "query user failed")
-		}
-		if !exists {
-			return bizerrors.UserNotFound(userID)
 		}
 		roles, err := rolesByCodes(txCtx, tx, normalized)
 		if err != nil {
@@ -358,7 +358,7 @@ func (s *Service) GetRolePermissions(ctx context.Context, roleID idgen.ID) ([]Pe
 func (s *Service) ReplaceRolePermissions(ctx context.Context, roleID idgen.ID, codes []string) ([]PermissionVO, error) {
 	normalized := normalizeStrings(codes)
 	err := data.WithinTx(ctx, s.client, func(txCtx context.Context, tx *appent.Client) error {
-		role, err := s.findRole(txCtx, tx, roleID)
+		role, err := s.findRoleForShare(txCtx, tx, roleID)
 		if err != nil {
 			return err
 		}
@@ -395,8 +395,41 @@ func (s *Service) findRole(ctx context.Context, client *appent.Client, id idgen.
 	return role, nil
 }
 
+func (s *Service) findRoleForShare(ctx context.Context, client *appent.Client, id idgen.ID) (*appent.SysRole, error) {
+	role, err := client.SysRole.Query().Where(sysrole.ID(id), sysrole.DeletedAtIsNil()).ForShare().Only(ctx)
+	if appent.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, bizerrors.WrapDBContext(ctx, err, "query role failed")
+	}
+	return role, nil
+}
+
+func (s *Service) findRoleForUpdate(ctx context.Context, client *appent.Client, id idgen.ID) (*appent.SysRole, error) {
+	role, err := client.SysRole.Query().Where(sysrole.ID(id), sysrole.DeletedAtIsNil()).ForUpdate().Only(ctx)
+	if appent.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, bizerrors.WrapDBContext(ctx, err, "query role failed")
+	}
+	return role, nil
+}
+
 func (s *Service) findPermission(ctx context.Context, client *appent.Client, id idgen.ID) (*appent.SysMenu, error) {
 	menu, err := client.SysMenu.Query().Where(sysmenu.ID(id), sysmenu.DeletedAtIsNil(), sysmenu.PermissionCodeNotNil()).Only(ctx)
+	if appent.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, bizerrors.WrapDBContext(ctx, err, "query permission failed")
+	}
+	return menu, nil
+}
+
+func (s *Service) findPermissionForUpdate(ctx context.Context, client *appent.Client, id idgen.ID) (*appent.SysMenu, error) {
+	menu, err := client.SysMenu.Query().Where(sysmenu.ID(id), sysmenu.DeletedAtIsNil(), sysmenu.PermissionCodeNotNil()).ForUpdate().Only(ctx)
 	if appent.IsNotFound(err) {
 		return nil, nil
 	}
@@ -410,7 +443,8 @@ func rolesByCodes(ctx context.Context, client *appent.Client, codes []string) ([
 	if len(codes) == 0 {
 		return nil, nil
 	}
-	roles, err := client.SysRole.Query().Where(sysrole.CodeIn(codes...), sysrole.DeletedAtIsNil(), sysrole.IsEnable(true)).All(ctx)
+	roles, err := client.SysRole.Query().Where(sysrole.CodeIn(codes...), sysrole.DeletedAtIsNil(), sysrole.IsEnable(true)).
+		Order(appent.Asc(sysrole.FieldID)).ForShare().All(ctx)
 	if err != nil {
 		return nil, bizerrors.WrapDBContext(ctx, err, "query roles failed")
 	}
@@ -424,7 +458,8 @@ func permissionsByCodes(ctx context.Context, client *appent.Client, codes []stri
 	if len(codes) == 0 {
 		return nil, nil
 	}
-	menus, err := client.SysMenu.Query().Where(sysmenu.PermissionCodeIn(codes...), sysmenu.DeletedAtIsNil()).All(ctx)
+	menus, err := client.SysMenu.Query().Where(sysmenu.PermissionCodeIn(codes...), sysmenu.DeletedAtIsNil()).
+		Order(appent.Asc(sysmenu.FieldID)).ForShare().All(ctx)
 	if err != nil {
 		return nil, bizerrors.WrapDBContext(ctx, err, "query permissions failed")
 	}

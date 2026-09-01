@@ -30,7 +30,7 @@ func main() {
 			Target:  target,
 			Package: entPackage,
 		},
-		entc.FeatureNames("sql/versioned-migration"),
+		entc.FeatureNames("sql/versioned-migration", "sql/lock"),
 	)
 	if err != nil {
 		fatal("generate ent code", err)

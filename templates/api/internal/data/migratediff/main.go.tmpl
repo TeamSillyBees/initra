@@ -45,7 +45,7 @@ func main() {
 		schema.WithMigrationMode(schema.ModeReplay),
 		schema.WithDialect(dialect.Postgres),
 		schema.WithFormatter(atlas.DefaultFormatter),
-		migrate.WithForeignKeys(true),
+		migrate.WithForeignKeys(false),
 	}
 	if err := migrate.NamedDiff(context.Background(), devURL, options.name, opts...); err != nil {
 		fatal("failed generating migration file", err)

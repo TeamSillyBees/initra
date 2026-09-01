@@ -418,7 +418,7 @@ func HasRole() predicate.SysRoleMenu {
 	return predicate.SysRoleMenu(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, RoleTable, RoleColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, RoleTable, RoleColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -441,7 +441,7 @@ func HasMenu() predicate.SysRoleMenu {
 	return predicate.SysRoleMenu(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, MenuTable, MenuColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, MenuTable, MenuColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

@@ -7,9 +7,9 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+
 	"github.com/teamsillybees/initra/pkg/entx/fieldx"
 	"github.com/teamsillybees/initra/pkg/entx/indexx"
-
 	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
@@ -36,13 +36,11 @@ func (SysUserRole) Fields() []ent.Field {
 // Edges 返回用户角色关系表关系定义。
 func (SysUserRole) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("user", SysUser.Type).
-			Ref("user_roles").
+		edge.To("user", SysUser.Type).
 			Field("user_id").
 			Required().
 			Unique(),
-		edge.From("role", SysRole.Type).
-			Ref("user_roles").
+		edge.To("role", SysRole.Type).
 			Field("role_id").
 			Required().
 			Unique(),
@@ -52,7 +50,6 @@ func (SysUserRole) Edges() []ent.Edge {
 // Indexes 返回用户角色关系表索引定义。
 func (SysUserRole) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("user_id"),
 		index.Fields("role_id"),
 		index.Fields("user_id", "role_id").Unique(),
 		indexx.SoftDelete(),

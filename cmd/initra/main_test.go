@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	atlasmigrate "ariga.io/atlas/sql/migrate"
 	"github.com/stretchr/testify/require"
 )
 
@@ -240,7 +241,7 @@ func TestNewGeneratesPublishedProjectWithoutReplace(t *testing.T) {
 	require.NoError(t, testErr, string(output))
 }
 
-func TestNewGeneratesAPIMigrationsWithPhysicalForeignKeys(t *testing.T) {
+func TestNewGeneratesAPIMigrationsWithLogicalForeignKeys(t *testing.T) {
 	target := filepath.Join(t.TempDir(), "demo")
 
 	err := run([]string{
@@ -255,21 +256,45 @@ func TestNewGeneratesAPIMigrationsWithPhysicalForeignKeys(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, migrations, 1)
 	migrationContent := readFile(t, migrations[0])
-	require.Contains(t, migrationContent, `CONSTRAINT "fk_sys_user_role_user" FOREIGN KEY ("user_id") REFERENCES "sys_user" ("id")`)
-	require.Contains(t, migrationContent, `CONSTRAINT "fk_sys_role_menu_role" FOREIGN KEY ("role_id") REFERENCES "sys_role" ("id")`)
+	require.Contains(t, migrationContent, "新生成项目不建立物理外键")
+	require.NotContains(t, strings.ToUpper(migrationContent), "FOREIGN KEY (")
+	hardeningMigrations, err := filepath.Glob(filepath.Join(target, "db", "migrations", "*_harden_database_constraints.sql"))
+	require.NoError(t, err)
+	require.Len(t, hardeningMigrations, 1)
+	hardeningContent := readFile(t, hardeningMigrations[0])
+	require.Contains(t, hardeningContent, `CONSTRAINT "ck_sys_menu_type" CHECK ("menu_type" IN (0, 1, 2))`)
+	require.Contains(t, hardeningContent, `DROP CONSTRAINT IF EXISTS "fk_sys_dict_item_collection"`)
+	require.Contains(t, hardeningContent, `DROP CONSTRAINT IF EXISTS "fk_sys_role_menu_menu"`)
+	require.Contains(t, hardeningContent, `DROP CONSTRAINT IF EXISTS "fk_sys_user_role_user"`)
+	require.NotContains(t, hardeningContent, `FOREIGN KEY`)
+	require.Contains(t, hardeningContent, `DROP INDEX IF EXISTS "sysrolemenu_role_id"`)
+	require.Contains(t, hardeningContent, `DROP INDEX IF EXISTS "sysuserrole_user_id"`)
+	allMigrations, err := filepath.Glob(filepath.Join(target, "db", "migrations", "*.sql"))
+	require.NoError(t, err)
+	for _, migration := range allMigrations {
+		require.NotContains(t, strings.ToUpper(readFile(t, migration)), "FOREIGN KEY (", migration)
+	}
+	migrationDir, err := atlasmigrate.NewLocalDir(filepath.Join(target, "db", "migrations"))
+	require.NoError(t, err)
+	require.NoError(t, atlasmigrate.Validate(migrationDir))
 
 	require.NoFileExists(t, filepath.Join(target, "internal", "data", "ent", "migrate", "main.go"))
 	diffGenerator := readFile(t, filepath.Join(target, "internal", "data", "migratediff", "main.go"))
 	require.Contains(t, diffGenerator, `_ "github.com/lib/pq"`)
 	require.Contains(t, diffGenerator, "boot.LoadConfig")
 	require.Contains(t, diffGenerator, "data.SQLDBConfig")
-	require.Contains(t, diffGenerator, "migrate.WithForeignKeys(true)")
+	require.Contains(t, diffGenerator, "migrate.WithForeignKeys(false)")
 	require.Contains(t, diffGenerator, "schema.WithMigrationMode(schema.ModeReplay)")
-	require.Contains(t, readFile(t, filepath.Join(target, "db", "atlas.hcl")), "docker://postgres/16/dev")
+	entGenerator := readFile(t, filepath.Join(target, "internal", "data", "entgenerate", "main.go"))
+	require.Contains(t, entGenerator, `"sql/lock"`)
+	atlasConfig := readFile(t, filepath.Join(target, "db", "atlas.hcl"))
+	require.Contains(t, atlasConfig, "docker://postgres/16/dev")
+	require.NotContains(t, atlasConfig, "schema {")
 
 	entSchema := readFile(t, filepath.Join(target, "internal", "data", "schema", "sys_user.go"))
 	require.Contains(t, entSchema, "entsql.WithComments(true)")
 	require.Contains(t, entSchema, `schema.Comment("系统后台用户表，用于后台登录、审计和权限归属。")`)
+	require.Contains(t, entSchema, `edge.From("user_roles", SysUserRole.Type)`) // 关系仅用于代码生成与查询，不生成物理外键。
 
 	migrateSchema := readFile(t, filepath.Join(target, "internal", "data", "ent", "migrate", "schema.go"))
 	require.Contains(t, migrateSchema, `"系统后台用户表，用于后台登录、审计和权限归属。"`)

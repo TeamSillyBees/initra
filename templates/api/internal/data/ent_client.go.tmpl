@@ -27,9 +27,13 @@ type DatabaseConfig struct {
 	User            string        `mapstructure:"user"`
 	Password        string        `mapstructure:"password"`
 	DBName          string        `mapstructure:"dbname"`
+	ApplicationName string        `mapstructure:"application_name"`
 	SSLMode         string        `mapstructure:"ssl_mode"`
+	SSLRootCert     string        `mapstructure:"ssl_root_cert"`
+	ConnectTimeout  time.Duration `mapstructure:"connect_timeout"`
 	MaxOpenConns    int           `mapstructure:"max_open_conns"`
 	MaxIdleConns    int           `mapstructure:"max_idle_conns"`
+	ConnMaxIdleTime time.Duration `mapstructure:"conn_max_idle_time"`
 	ConnMaxLifetime time.Duration `mapstructure:"conn_max_lifetime"`
 	PingTimeout     time.Duration `mapstructure:"ping_timeout"`
 }
@@ -46,15 +50,29 @@ func SQLDBConfig(cfg DatabaseConfig) platformdatabase.Config {
 	}
 	query := connectionURL.Query()
 	query.Set("sslmode", strings.ToLower(strings.TrimSpace(cfg.SSLMode)))
+	if applicationName := strings.TrimSpace(cfg.ApplicationName); applicationName != "" {
+		query.Set("application_name", applicationName)
+	}
+	if rootCert := strings.TrimSpace(cfg.SSLRootCert); rootCert != "" {
+		query.Set("sslrootcert", rootCert)
+	}
+	if cfg.ConnectTimeout > 0 {
+		query.Set("connect_timeout", strconv.FormatInt(durationSecondsCeil(cfg.ConnectTimeout), 10))
+	}
 	connectionURL.RawQuery = query.Encode()
 	return platformdatabase.Config{
 		DriverName:      "postgres",
 		DataSourceName:  connectionURL.String(),
 		MaxOpenConns:    cfg.MaxOpenConns,
 		MaxIdleConns:    cfg.MaxIdleConns,
+		ConnMaxIdleTime: cfg.ConnMaxIdleTime,
 		ConnMaxLifetime: cfg.ConnMaxLifetime,
 		PingTimeout:     cfg.PingTimeout,
 	}
+}
+
+func durationSecondsCeil(duration time.Duration) int64 {
+	return int64((duration-1)/time.Second + 1)
 }
 
 func databaseUser(user string, password string) *url.Userinfo {

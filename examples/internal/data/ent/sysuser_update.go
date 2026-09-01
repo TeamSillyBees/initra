@@ -458,7 +458,7 @@ func (_u *SysUserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.UserRolesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysuser.UserRolesTable,
 			Columns: []string{sysuser.UserRolesColumn},
 			Bidi:    false,
@@ -471,7 +471,7 @@ func (_u *SysUserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if nodes := _u.mutation.RemovedUserRolesIDs(); len(nodes) > 0 && !_u.mutation.UserRolesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysuser.UserRolesTable,
 			Columns: []string{sysuser.UserRolesColumn},
 			Bidi:    false,
@@ -487,7 +487,7 @@ func (_u *SysUserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if nodes := _u.mutation.UserRolesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysuser.UserRolesTable,
 			Columns: []string{sysuser.UserRolesColumn},
 			Bidi:    false,
@@ -978,7 +978,7 @@ func (_u *SysUserUpdateOne) sqlSave(ctx context.Context) (_node *SysUser, err er
 	if _u.mutation.UserRolesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysuser.UserRolesTable,
 			Columns: []string{sysuser.UserRolesColumn},
 			Bidi:    false,
@@ -991,7 +991,7 @@ func (_u *SysUserUpdateOne) sqlSave(ctx context.Context) (_node *SysUser, err er
 	if nodes := _u.mutation.RemovedUserRolesIDs(); len(nodes) > 0 && !_u.mutation.UserRolesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysuser.UserRolesTable,
 			Columns: []string{sysuser.UserRolesColumn},
 			Bidi:    false,
@@ -1007,7 +1007,7 @@ func (_u *SysUserUpdateOne) sqlSave(ctx context.Context) (_node *SysUser, err er
 	if nodes := _u.mutation.UserRolesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysuser.UserRolesTable,
 			Columns: []string{sysuser.UserRolesColumn},
 			Bidi:    false,

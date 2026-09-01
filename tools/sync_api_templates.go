@@ -14,6 +14,8 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+
+	"ariga.io/atlas/sql/migrate"
 )
 
 const (
@@ -151,7 +153,12 @@ func syncTemplates(opts syncOptions) ([]action, error) {
 		if err != nil {
 			return err
 		}
-		rendered, err := transformTemplateContent(rel, normalizeLineEndingsString(string(content)))
+		var rendered string
+		if rel == "db/migrations/atlas.sum" {
+			rendered, err = templateMigrationHash(opts.source)
+		} else {
+			rendered, err = transformTemplateContent(rel, normalizeLineEndingsString(string(content)))
+		}
 		if err != nil {
 			return err
 		}
@@ -256,11 +263,12 @@ func transformTemplateContent(rel string, content string) (string, error) {
 	case "configs/config.yaml":
 		var err error
 		content, err = replaceTemplateValues(rel, content, map[string]string{
-			"  name: initra":       `  name: {{ printf "%q" .AppName }}`,
-			"  slug: initra":       "  slug: {{ .AppSlug }}",
-			"  user: \"initra\"":   "  user: \"{{ .AppSlug }}\"",
-			"  dbname: \"initra\"": "  dbname: \"{{ .AppSlug }}\"",
-			"    issuer: initra":   "    issuer: {{ .AppSlug }}",
+			"  name: initra":             `  name: {{ printf "%q" .AppName }}`,
+			"  slug: initra":             "  slug: {{ .AppSlug }}",
+			"  user: \"initra\"":         "  user: \"{{ .AppSlug }}\"",
+			"  dbname: \"initra\"":       "  dbname: \"{{ .AppSlug }}\"",
+			"  application_name: initra": "  application_name: {{ .AppSlug }}",
+			"    issuer: initra":         "    issuer: {{ .AppSlug }}",
 			"    secret: \"local-only-change-me-0123456789abcdef\"": "    secret: \"{{ .LocalJWTSecret }}\"",
 			"        app_id: initra-httpdemo":                       "        app_id: {{ .AppSlug }}-httpdemo",
 			"        X-App-Id: initra":                              "        X-App-Id: {{ .AppSlug }}",
@@ -315,6 +323,11 @@ func transformTemplateContent(rel string, content string) (string, error) {
 		if err != nil {
 			return "", err
 		}
+	case "db/migrations/20260715000000_add_relationship_foreign_keys.sql":
+		if count := strings.Count(strings.ToUpper(content), "FOREIGN KEY"); count != 5 {
+			return "", fmt.Errorf("transform %s: physical foreign key count = %d, expected 5", rel, count)
+		}
+		content = "-- 兼容保留历史迁移版本号；新生成项目不建立物理外键，关系由应用事务校验。\n"
 	case "db/seeds/001_seed_admin.sql":
 		var err error
 		content, err = replaceExactlyOnce(
@@ -339,6 +352,42 @@ func transformTemplateContent(rel string, content string) (string, error) {
 	}
 
 	return content, nil
+}
+
+// templateMigrationHash 依据模板实际生成的 SQL 内容计算 Atlas 完整性文件。
+// examples 保留已发布迁移，而新项目会把旧外键迁移渲染为 no-op，因此不能直接复制 examples 的 atlas.sum。
+func templateMigrationHash(sourceDir string) (string, error) {
+	migrationDir := filepath.Join(sourceDir, "db", "migrations")
+	entries, err := os.ReadDir(migrationDir)
+	if err != nil {
+		return "", fmt.Errorf("read migration dir %s: %w", migrationDir, err)
+	}
+	files := make([]migrate.File, 0, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".sql" {
+			continue
+		}
+		filePath := filepath.Join(migrationDir, entry.Name())
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			return "", fmt.Errorf("read migration %s: %w", filePath, err)
+		}
+		rel := path.Join("db/migrations", entry.Name())
+		transformed, err := transformTemplateContent(rel, normalizeLineEndingsString(string(content)))
+		if err != nil {
+			return "", err
+		}
+		files = append(files, migrate.NewLocalFile(entry.Name(), []byte(transformed)))
+	}
+	hashFile, err := migrate.NewHashFile(files)
+	if err != nil {
+		return "", fmt.Errorf("hash template migrations: %w", err)
+	}
+	content, err := hashFile.MarshalText()
+	if err != nil {
+		return "", fmt.Errorf("marshal template migration hash: %w", err)
+	}
+	return string(content), nil
 }
 
 func replaceTemplateValues(rel string, content string, replacements map[string]string) (string, error) {

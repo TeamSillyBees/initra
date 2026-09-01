@@ -111,6 +111,10 @@ func init() {
 	sysdictcollectionDescIsEnable := sysdictcollectionFields[3].Descriptor()
 	// sysdictcollection.DefaultIsEnable holds the default value on creation for the is_enable field.
 	sysdictcollection.DefaultIsEnable = sysdictcollectionDescIsEnable.Default.(bool)
+	// sysdictcollectionDescItemLength is the schema descriptor for item_length field.
+	sysdictcollectionDescItemLength := sysdictcollectionFields[5].Descriptor()
+	// sysdictcollection.ItemLengthValidator is a validator for the "item_length" field. It is called by the builders before save.
+	sysdictcollection.ItemLengthValidator = sysdictcollectionDescItemLength.Validators[0].(func(int32) error)
 	// sysdictcollectionDescIsBuiltin is the schema descriptor for is_builtin field.
 	sysdictcollectionDescIsBuiltin := sysdictcollectionFields[6].Descriptor()
 	// sysdictcollection.DefaultIsBuiltin holds the default value on creation for the is_builtin field.
@@ -231,6 +235,10 @@ func init() {
 	sysdictitem.IDValidator = sysdictitemDescID.Validators[0].(func(int64) error)
 	sysmenuFields := schema.SysMenu{}.Fields()
 	_ = sysmenuFields
+	// sysmenuDescParentID is the schema descriptor for parent_id field.
+	sysmenuDescParentID := sysmenuFields[1].Descriptor()
+	// sysmenu.ParentIDValidator is a validator for the "parent_id" field. It is called by the builders before save.
+	sysmenu.ParentIDValidator = sysmenuDescParentID.Validators[0].(func(int64) error)
 	// sysmenuDescAppID is the schema descriptor for app_id field.
 	sysmenuDescAppID := sysmenuFields[2].Descriptor()
 	// sysmenu.AppIDValidator is a validator for the "app_id" field. It is called by the builders before save.
@@ -247,6 +255,24 @@ func init() {
 		return func(title string) error {
 			for _, fn := range fns {
 				if err := fn(title); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// sysmenuDescMenuType is the schema descriptor for menu_type field.
+	sysmenuDescMenuType := sysmenuFields[4].Descriptor()
+	// sysmenu.MenuTypeValidator is a validator for the "menu_type" field. It is called by the builders before save.
+	sysmenu.MenuTypeValidator = func() func(int16) error {
+		validators := sysmenuDescMenuType.Validators
+		fns := [...]func(int16) error{
+			validators[0].(func(int16) error),
+			validators[1].(func(int16) error),
+		}
+		return func(menu_type int16) error {
+			for _, fn := range fns {
+				if err := fn(menu_type); err != nil {
 					return err
 				}
 			}

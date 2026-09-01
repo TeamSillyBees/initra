@@ -38,7 +38,8 @@ func (s *Service) resolveRoleIDs(ctx context.Context, client *appent.Client, rol
 			sysrole.DeletedAtIsNil(),
 			sysrole.IsEnable(true),
 		).
-		Order(appent.Asc(sysrole.FieldSortID), appent.Asc(sysrole.FieldID)).
+		Order(appent.Asc(sysrole.FieldID)).
+		ForShare().
 		Select(sysrole.FieldID, sysrole.FieldCode).
 		Scan(ctx, &rows)
 	if err != nil {

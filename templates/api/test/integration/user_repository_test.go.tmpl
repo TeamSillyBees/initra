@@ -39,7 +39,7 @@ func TestUserServiceCreateUsesEntHooks(t *testing.T) {
 
 	service := user.NewService(client, stubUserCache{}, stubPasswordManager{})
 	mock.ExpectBegin()
-	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
+	mock.ExpectQuery(`SELECT .*FROM "sys_role".*FOR SHARE`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "code"}).AddRow(int64(1002), "admin"))
 	mock.ExpectExec(`INSERT INTO "sys_user" \(.*"id".*\)`).
 		WillReturnResult(sqlmock.NewResult(0, 1))
@@ -128,14 +128,14 @@ func TestUserServicePageLoadsRolesInBatch(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
-// TestUserServiceDeleteSoftDeletesUserAndRoles 验证删除用户使用软删除并同步软删除关系。
+// TestUserServiceDeleteSoftDeletesUserAndRoles 验证删除用户先锁定父记录，再同步软删除关系。
 func TestUserServiceDeleteSoftDeletesUserAndRoles(t *testing.T) {
 	db, mock, client := newMockEntClient(t)
 	defer db.Close()
 
 	service := user.NewService(client, stubUserCache{}, stubPasswordManager{})
 	mock.ExpectBegin()
-	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
+	mock.ExpectQuery(`SELECT .*FROM "sys_user".*FOR UPDATE`).
 		WillReturnRows(sysUserRows().AddRow(
 			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
 			"alice", "hashed:secret-123", "Alice", nil, nil, nil, false, true, 1,

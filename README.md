@@ -35,7 +35,9 @@ docs/               架构与工程规范文档
 
 ## 项目模板
 
-`api` 模板生成 Go Web API 基础项目，当前包含 Gin + Huma、统一响应/错误、JWT/Casbin、配置、日志、health/ready/version，以及 `auth`、`user`、`rbac`、`file`、`httpdemo`、`taskdemo` 示例模块、Ent schema、seed 和 Atlas migrations。RBAC 以数据库中的角色、权限资源和授权关系为唯一事实源，access JWT 不保存角色；请求时从共享缓存或数据库解析当前身份。Schema 使用 `pkg/entx/fieldx` 组合 ID、审计、软删除等字段，按需使用 `pkg/entx/indexx`；运行时在 Ent Client 注册 `entx.AuditHook` 和 `entx.RejectDeleteHook`。模板不保存 Ent 生成代码，`initra new` 渲染后会执行 `go run ./internal/data/entgenerate`。
+`api` 模板生成 Go Web API 基础项目，当前包含 Gin + Huma、统一响应/错误、JWT/Casbin、配置、日志、health/ready/version，以及 `auth`、`user`、`rbac`、`file`、`httpdemo`、`taskdemo` 示例模块、Ent schema、seed 和 Atlas migrations。RBAC 以数据库中的角色、权限资源和授权关系为唯一事实源，access JWT 不保存角色；请求时从共享缓存或数据库解析当前身份。Schema 使用 `pkg/entx/fieldx` 组合 ID、审计、软删除等字段，按需使用 `pkg/entx/indexx`；Ent edge 仅表达逻辑关系，物理外键生成被关闭，关联写入通过事务内有效性检查和行锁保持一致。运行时在 Ent Client 注册 `entx.AuditHook` 和 `entx.RejectDeleteHook`。模板不保存 Ent 生成代码，`initra new` 渲染后会执行 `go run ./internal/data/entgenerate`。
+
+`examples` 保留已发布的旧外键迁移原文以兼容存量数据库升级，最新迁移会删除这些约束；模板同步时会把旧版本渲染为 no-op 并重算 `atlas.sum`，因此新生成项目的完整迁移链也不会创建物理外键。
 
 模板生成的业务项目是独立 Go module，通过 `go.mod` 引入 `github.com/teamsillybees/initra` 的可复用 Go package，不复制根仓库 `pkg/` 源码，也不依赖根仓库 `internal/`。
 
@@ -46,7 +48,7 @@ docs/               架构与工程规范文档
 ## 可复用 Go package
 
 - `pkg/config`：泛型配置加载，不绑定业务项目配置结构。
-- `pkg/logx`、`pkg/cache`、`pkg/idgen`、`pkg/database`：基础设施封装；`pkg/logx` 统一封装 zap 初始化、console 终端可读输出、JSONL stdout/文件日志、按日期与大小滚动、oops 错误字段提取和脱敏策略。其中 `pkg/idgen.ID` 是业务 ID 专用类型，底层为 int64、JSON/OpenAPI 为 string；包级 ID 生成器没有默认节点，应用必须显式注册实例唯一的 Snowflake node。`pkg/database` 提供 SQL 连接池注册与启动 Ping 检查。
+- `pkg/logx`、`pkg/cache`、`pkg/idgen`、`pkg/database`：基础设施封装；`pkg/logx` 统一封装 zap 初始化、console 终端可读输出、JSONL stdout/文件日志、按日期与大小滚动、oops 错误字段提取和脱敏策略。其中 `pkg/idgen.ID` 是业务 ID 专用类型，底层为 int64、JSON/OpenAPI 为 string；包级 ID 生成器没有默认节点，应用必须显式注册实例唯一的 Snowflake node。`pkg/database` 提供带连接数、空闲回收和最长生命周期配置的 SQL 连接池注册与启动 Ping 检查。
 - `pkg/redisx`：Redis 基础能力封装，支持 standalone/sentinel client、Ping/readiness、Key Builder、JSON/Msgpack 缓存、TTL jitter、空值缓存、singleflight、SCAN+UNLINK、Lua script registry、基于 `github.com/bsm/redislock` 的短时间分布式锁，以及 OpenTelemetry/zap hook；不支持 cluster，不封装 KEYS。
 - `pkg/entx`：Ent 通用 Hook、上下文工具，以及 `fieldx`/`indexx` schema 字段和索引助手；不依赖具体项目生成的 `internal/data/ent`。
 - `pkg/errors`、`pkg/response`、`pkg/requestctx`：统一错误、响应、trace/request id。
@@ -64,7 +66,7 @@ docs/               架构与工程规范文档
 - 配置加载支持默认值、可选 `configs/config.yaml` 初始值、可选 `configs/config.<env>.yaml` 覆盖、环境变量覆盖和启动校验；配置文件不存在时会跳过，环境变量可独立完成配置，配置文件中的未知字段会导致启动失败。
 - 服务进程通过无前缀环境变量 `APP_ENV` 选择运行环境，未设置时使用 `dev`；迁移 diff 默认通过 `--env` 和 `--config-dir` 读取对应业务数据库配置，也可用 `--dev-url` 覆盖，apply/hash 通过 `--env` 选择 Atlas 环境。其他配置环境变量默认使用 `INITRA_` 前缀。
 - 标准模板默认启用 Redis 作为共享 token store；只有 dev/local/test 环境显式设置 `auth.allow_memory_token_store: true` 才允许关闭 Redis，其他环境一律 fail-closed。`idgen.node` 没有可用于生产的默认值，每个实例必须配置唯一的 0–1023 节点号。
-- 数据库连接使用结构化 PostgreSQL URL 安全编码凭据；只有 dev/local/test 环境允许弱 TLS 配置，其他环境必须使用 `require`、`verify-ca` 或 `verify-full`。
+- 数据库连接使用结构化 PostgreSQL URL 安全编码凭据并配置连接超时与连接池生命周期；只有 dev/local/test 环境允许弱 TLS 配置，其他环境必须使用 `verify-full`。
 - API 模板的基础配置启用 `storage.provider: local`，默认路径统一为 `./var/uploads`；可通过 `storage` 配置分组切换云厂商 provider。
 
 ## 工程化 CLI

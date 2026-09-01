@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+
 	"github.com/teamsillybees/initra/pkg/entx/fieldx"
 	"github.com/teamsillybees/initra/pkg/entx/indexx"
 )
@@ -43,8 +44,10 @@ func (SysRole) Fields() []ent.Field {
 // Edges 返回系统角色表关系定义。
 func (SysRole) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("user_roles", SysUserRole.Type),
-		edge.To("role_menus", SysRoleMenu.Type),
+		edge.From("user_roles", SysUserRole.Type).
+			Ref("role"),
+		edge.From("role_menus", SysRoleMenu.Type).
+			Ref("role"),
 	}
 }
 

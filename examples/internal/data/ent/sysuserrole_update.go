@@ -265,7 +265,7 @@ func (_u *SysUserRoleUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	if _u.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysuserrole.UserTable,
 			Columns: []string{sysuserrole.UserColumn},
 			Bidi:    false,
@@ -278,7 +278,7 @@ func (_u *SysUserRoleUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	if nodes := _u.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysuserrole.UserTable,
 			Columns: []string{sysuserrole.UserColumn},
 			Bidi:    false,
@@ -294,7 +294,7 @@ func (_u *SysUserRoleUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	if _u.mutation.RoleCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysuserrole.RoleTable,
 			Columns: []string{sysuserrole.RoleColumn},
 			Bidi:    false,
@@ -307,7 +307,7 @@ func (_u *SysUserRoleUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	if nodes := _u.mutation.RoleIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysuserrole.RoleTable,
 			Columns: []string{sysuserrole.RoleColumn},
 			Bidi:    false,
@@ -604,7 +604,7 @@ func (_u *SysUserRoleUpdateOne) sqlSave(ctx context.Context) (_node *SysUserRole
 	if _u.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysuserrole.UserTable,
 			Columns: []string{sysuserrole.UserColumn},
 			Bidi:    false,
@@ -617,7 +617,7 @@ func (_u *SysUserRoleUpdateOne) sqlSave(ctx context.Context) (_node *SysUserRole
 	if nodes := _u.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysuserrole.UserTable,
 			Columns: []string{sysuserrole.UserColumn},
 			Bidi:    false,
@@ -633,7 +633,7 @@ func (_u *SysUserRoleUpdateOne) sqlSave(ctx context.Context) (_node *SysUserRole
 	if _u.mutation.RoleCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysuserrole.RoleTable,
 			Columns: []string{sysuserrole.RoleColumn},
 			Bidi:    false,
@@ -646,7 +646,7 @@ func (_u *SysUserRoleUpdateOne) sqlSave(ctx context.Context) (_node *SysUserRole
 	if nodes := _u.mutation.RoleIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysuserrole.RoleTable,
 			Columns: []string{sysuserrole.RoleColumn},
 			Bidi:    false,

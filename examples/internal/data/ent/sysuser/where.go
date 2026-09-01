@@ -881,7 +881,7 @@ func HasUserRoles() predicate.SysUser {
 	return predicate.SysUser(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, UserRolesTable, UserRolesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, true, UserRolesTable, UserRolesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

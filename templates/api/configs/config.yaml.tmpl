@@ -17,9 +17,13 @@ database:
   user: "{{ .AppSlug }}"
   password: "QRD5jmc9nex3qxw-kez"
   dbname: "{{ .AppSlug }}"
+  application_name: {{ .AppSlug }}
   ssl_mode: require
+  ssl_root_cert: ""
+  connect_timeout: 5s
   max_open_conns: 20
   max_idle_conns: 10
+  conn_max_idle_time: 15m
   conn_max_lifetime: 1h
   ping_timeout: 5s
 

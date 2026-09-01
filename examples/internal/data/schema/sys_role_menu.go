@@ -7,9 +7,9 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+
 	"github.com/teamsillybees/initra/pkg/entx/fieldx"
 	"github.com/teamsillybees/initra/pkg/entx/indexx"
-
 	"github.com/teamsillybees/initra/pkg/idgen"
 )
 
@@ -36,13 +36,11 @@ func (SysRoleMenu) Fields() []ent.Field {
 // Edges 返回角色菜单关系表关系定义。
 func (SysRoleMenu) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("role", SysRole.Type).
-			Ref("role_menus").
+		edge.To("role", SysRole.Type).
 			Field("role_id").
 			Required().
 			Unique(),
-		edge.From("menu", SysMenu.Type).
-			Ref("role_menus").
+		edge.To("menu", SysMenu.Type).
 			Field("menu_id").
 			Required().
 			Unique(),
@@ -52,7 +50,6 @@ func (SysRoleMenu) Edges() []ent.Edge {
 // Indexes 返回角色菜单关系表索引定义。
 func (SysRoleMenu) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("role_id"),
 		index.Fields("menu_id"),
 		index.Fields("role_id", "menu_id").Unique(),
 		indexx.SoftDelete(),

@@ -406,7 +406,7 @@ func (_u *SysDictItemUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	if _u.mutation.CollectionCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysdictitem.CollectionTable,
 			Columns: []string{sysdictitem.CollectionColumn},
 			Bidi:    false,
@@ -419,7 +419,7 @@ func (_u *SysDictItemUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	if nodes := _u.mutation.CollectionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysdictitem.CollectionTable,
 			Columns: []string{sysdictitem.CollectionColumn},
 			Bidi:    false,
@@ -858,7 +858,7 @@ func (_u *SysDictItemUpdateOne) sqlSave(ctx context.Context) (_node *SysDictItem
 	if _u.mutation.CollectionCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysdictitem.CollectionTable,
 			Columns: []string{sysdictitem.CollectionColumn},
 			Bidi:    false,
@@ -871,7 +871,7 @@ func (_u *SysDictItemUpdateOne) sqlSave(ctx context.Context) (_node *SysDictItem
 	if nodes := _u.mutation.CollectionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysdictitem.CollectionTable,
 			Columns: []string{sysdictitem.CollectionColumn},
 			Bidi:    false,

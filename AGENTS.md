@@ -59,6 +59,8 @@ go run ./cmd/initra new $target --type api --module example.com/demo-api --repla
 - 共享能力放入 `pkg/*`，不要通过业务模块之间互相 import 来复用逻辑。
 - 业务 ID 统一使用 `pkg/idgen.ID`。Ent 主键、外键、auth user ID、REST path params、service 入参和 JSON VO 不使用 `int64` 或 `string` 表达业务 ID；对外 JSON/OpenAPI ID 暴露为字符串。`pkg/idgen` 没有固定默认节点，每个运行实例必须显式配置唯一的 0–1023 Snowflake node。仅在对接雪花 ID 生成器、第三方库、手写 SQL 参数或极少数底层基础设施场景调用 `Int64()`。
 - Ent schema 使用 `pkg/entx/fieldx` 的 `ID()`、`Audit()`、`SoftDelete()` 等字段助手，按需使用仅定义版本字段的 `fieldx.OptimisticLockVersion()` 和 `pkg/entx/indexx`；审计操作人和物理删除保护由 Ent Client 注册 `entx.AuditHook`、`entx.RejectDeleteHook`。不要复制本地 schema helper，也不要把版本字段助手描述成完整的自动乐观锁实现。
+- 标准模板彻底禁止物理外键与数据库级联，Ent edge 只表达代码生成、查询和业务建模所需的逻辑关系，迁移 diff 必须保持 `migrate.WithForeignKeys(false)`。关联写入必须在同一事务内校验父记录仍有效，并通过 `FOR SHARE` 与父记录软删除/状态更新的 `FOR UPDATE` 协作消除并发竞态；删除父记录时必须显式拒绝、软删除或迁移全部有效子关系。逻辑外键列仍必须由单列索引或以该列为最左前缀的复合索引覆盖，禁止保留被复合索引完全覆盖的重复索引。
+- `examples` 为兼容已发布的 Atlas 迁移校验保留旧外键迁移原文，并由后续迁移删除已有外键；`tools/sync_api_templates.go` 必须把该历史版本渲染为 no-op 并重新计算模板 `atlas.sum`，确保新生成项目从未创建物理外键。禁止直接改写已发布的 examples 迁移历史。
 - Redis 业务能力优先使用 `pkg/redisx` 的 client、Key Builder、缓存、Lua registry、SCAN+UNLINK 和 redislock 短锁；禁止生产使用 `KEYS`，禁止记录密码、token、验证码、session value。
 - 认证 token store 默认使用 Redis；内存 store 必须显式 opt-in 且仅允许用于 dev/local/test。其他任何环境关闭 Redis 或启用内存 store 时都必须启动失败。
 - 文件与对象存储业务能力优先使用 `pkg/storage` 的统一接口和 `pkg/storage/provider` 工厂；业务模块不要直接依赖云厂商 SDK。
@@ -125,7 +127,7 @@ internal/modules/<module>/
 - 配置规范使用结构体定义，必须支持默认值、环境变量覆盖配置文件、启动校验和敏感配置脱敏打印。
 - 运行环境统一环境变量 `APP_ENV` 表示；其他配置环境变量默认使用 `INITRA_` 前缀。
 - 密码、Token、Secret、Access Key、Authorization、带密码的 DSN 禁止明文输出到日志。
-- PostgreSQL 连接使用结构化 URL 安全编码凭据和数据库名；只有 dev/local/test 环境允许弱 TLS 配置，其他任何环境都必须使用安全 TLS。`migrate diff` 默认按 `--env` 和 `--config-dir` 读取业务数据库配置，也可通过 `--dev-url` 临时覆盖。
+- PostgreSQL 连接使用结构化 URL 安全编码凭据和数据库名，并配置 `application_name`、连接超时、连接池上限、空闲回收时间和最长生命周期；只有 dev/local/test 环境允许弱 TLS 配置，其他任何环境必须使用 `verify-full` 同时校验证书和主机名。`migrate diff` 默认按 `--env` 和 `--config-dir` 读取业务数据库配置，也可通过 `--dev-url` 临时覆盖。
 
 ## 测试要求
 

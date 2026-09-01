@@ -115,7 +115,7 @@ func (s *Service) page(ctx context.Context, input PageUsersQuery) ([]*User, int3
 
 func (s *Service) updateEnt(ctx context.Context, user *User) error {
 	return data.WithinTx(ctx, s.client, func(txCtx context.Context, txClient *appent.Client) error {
-		current, err := txClient.SysUser.Query().Where(sysuser.ID(user.ID), sysuser.DeletedAtIsNil()).Only(txCtx)
+		current, err := txClient.SysUser.Query().Where(sysuser.ID(user.ID), sysuser.DeletedAtIsNil()).ForUpdate().Only(txCtx)
 		if appent.IsNotFound(err) {
 			return nil
 		}
@@ -164,7 +164,7 @@ func (s *Service) updateEnt(ctx context.Context, user *User) error {
 
 func (s *Service) deleteEnt(ctx context.Context, id idgen.ID) error {
 	return data.WithinTx(ctx, s.client, func(txCtx context.Context, txClient *appent.Client) error {
-		current, err := txClient.SysUser.Query().Where(sysuser.ID(id), sysuser.DeletedAtIsNil()).Only(txCtx)
+		current, err := txClient.SysUser.Query().Where(sysuser.ID(id), sysuser.DeletedAtIsNil()).ForUpdate().Only(txCtx)
 		if appent.IsNotFound(err) {
 			return nil
 		}

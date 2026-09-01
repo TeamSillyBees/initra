@@ -29,6 +29,39 @@ func TestOpenPingsDatabase(t *testing.T) {
 	})
 }
 
+func TestConfigValidateRejectsInvalidPoolLimits(t *testing.T) {
+	base := Config{DriverName: "postgres", DataSourceName: "postgres://example"}
+	tests := []struct {
+		name    string
+		mutate  func(*Config)
+		message string
+	}{
+		{
+			name: "idle exceeds open",
+			mutate: func(cfg *Config) {
+				cfg.MaxOpenConns = 5
+				cfg.MaxIdleConns = 6
+			},
+			message: "max idle conns 不能大于 max open conns",
+		},
+		{
+			name: "negative idle lifetime",
+			mutate: func(cfg *Config) {
+				cfg.ConnMaxIdleTime = -time.Second
+			},
+			message: "conn max idle time 不能小于 0",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := base
+			tt.mutate(&cfg)
+
+			require.ErrorContains(t, cfg.Validate(), tt.message)
+		})
+	}
+}
+
 func TestOpenReturnsPingError(t *testing.T) {
 	name := registerTestDriver(errors.New("database unavailable"))
 

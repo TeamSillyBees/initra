@@ -106,7 +106,8 @@ internal/modules/<module>/
 
 - `internal/data/schema` 是数据库结构主源；`db/migrations` 是版本化迁移历史；`db/seeds` 保存种子数据。
 - 手动修改 Ent schema 后运行 `go generate ./internal/data`，再生成迁移。
+- 禁止物理外键和数据库级联；Ent edge 只表达逻辑关系，迁移 diff 必须保持 `migrate.WithForeignKeys(false)`。关联写入必须在同一事务内校验父记录有效并使用 `FOR SHARE`，父记录软删除或影响关系有效性的状态更新使用 `FOR UPDATE`，删除逻辑必须显式处理全部有效子关系。逻辑外键列仍需由单列索引或最左前缀复合索引覆盖，禁止重复索引。
 - 数据库集成测试优先使用 `go-sqlmock` 或项目已有测试辅助验证 SQL、事务和参数。
 - 新增或修改业务模块必须在模块单元测试、`test/integration` 或 `test/e2e` 中提供与风险匹配的覆盖。
 - 架构边界相关改动必须保留或补充测试，确保业务项目不 import `github.com/teamsillybees/initra/internal/*`。
-- PostgreSQL 连接使用结构化 URL 安全编码凭据和数据库名；只有 dev/local/test 环境允许弱 TLS 配置，其他环境必须使用安全 TLS。迁移 diff 默认按 `--env` 和 `--config-dir` 读取业务数据库配置，也可通过 `--dev-url` 临时覆盖。
+- PostgreSQL 连接使用结构化 URL 安全编码凭据和数据库名，并配置应用名、连接超时、连接池上限、空闲回收时间和最长生命周期；只有 dev/local/test 环境允许弱 TLS 配置，其他环境必须使用 `verify-full`。迁移 diff 默认按 `--env` 和 `--config-dir` 读取业务数据库配置，也可通过 `--dev-url` 临时覆盖。

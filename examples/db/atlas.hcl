@@ -26,9 +26,6 @@ env "local" {
     dir = "file://db/migrations"
   }
 
-  schema {
-    src = "ent://internal/data/schema"
-  }
 }
 
 env "dev" {
@@ -39,9 +36,6 @@ env "dev" {
     dir = "file://db/migrations"
   }
 
-  schema {
-    src = "ent://internal/data/schema"
-  }
 }
 
 env "test" {
@@ -52,9 +46,6 @@ env "test" {
     dir = "file://db/migrations"
   }
 
-  schema {
-    src = "ent://internal/data/schema"
-  }
 }
 
 env "prod" {
@@ -64,7 +55,4 @@ env "prod" {
     dir = "file://db/migrations"
   }
 
-  schema {
-    src = "ent://internal/data/schema"
-  }
 }

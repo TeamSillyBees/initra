@@ -137,10 +137,24 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("database.user 不能为空")
 	case c.Database.DBName == "":
 		return fmt.Errorf("database.dbname 不能为空")
+	case c.Database.ConnectTimeout <= 0:
+		return fmt.Errorf("database.connect_timeout 必须大于 0")
+	case c.Database.MaxOpenConns <= 0:
+		return fmt.Errorf("database.max_open_conns 必须大于 0")
+	case c.Database.MaxIdleConns < 0:
+		return fmt.Errorf("database.max_idle_conns 不能小于 0")
+	case c.Database.MaxIdleConns > c.Database.MaxOpenConns:
+		return fmt.Errorf("database.max_idle_conns 不能大于 database.max_open_conns")
+	case c.Database.ConnMaxIdleTime <= 0:
+		return fmt.Errorf("database.conn_max_idle_time 必须大于 0")
+	case c.Database.ConnMaxLifetime <= 0:
+		return fmt.Errorf("database.conn_max_lifetime 必须大于 0")
+	case c.Database.PingTimeout <= 0:
+		return fmt.Errorf("database.ping_timeout 必须大于 0")
 	case !isValidDatabaseSSLMode(c.Database.SSLMode):
 		return fmt.Errorf("database.ssl_mode 必须是 disable、allow、prefer、require、verify-ca 或 verify-full")
 	case requiresSecureInfrastructure(c.App.Env) && !isSecureDatabaseSSLMode(c.Database.SSLMode):
-		return fmt.Errorf("非 dev/local/test 环境的 database.ssl_mode 必须是 require、verify-ca 或 verify-full")
+		return fmt.Errorf("非 dev/local/test 环境的 database.ssl_mode 必须是 verify-full")
 	case requiresSecureInfrastructure(c.App.Env) && !c.Redis.Enabled:
 		return fmt.Errorf("非 dev/local/test 环境的认证必须启用 Redis 共享 token store")
 	case requiresSecureInfrastructure(c.App.Env) && c.Auth.AllowMemoryTokenStore:
@@ -194,9 +208,13 @@ func configDefaults() map[string]any {
 		"database.user":                                      "",
 		"database.password":                                  "",
 		"database.dbname":                                    "",
+		"database.application_name":                          "",
 		"database.ssl_mode":                                  "require",
+		"database.ssl_root_cert":                             "",
+		"database.connect_timeout":                           "5s",
 		"database.max_open_conns":                            20,
 		"database.max_idle_conns":                            10,
+		"database.conn_max_idle_time":                        "15m",
 		"database.conn_max_lifetime":                         "1h",
 		"database.ping_timeout":                              "5s",
 		"redis.enabled":                                      false,
@@ -310,12 +328,7 @@ func isValidDatabaseSSLMode(mode string) bool {
 }
 
 func isSecureDatabaseSSLMode(mode string) bool {
-	switch strings.ToLower(strings.TrimSpace(mode)) {
-	case "require", "verify-ca", "verify-full":
-		return true
-	default:
-		return false
-	}
+	return strings.EqualFold(strings.TrimSpace(mode), "verify-full")
 }
 
 func requiresSecureInfrastructure(env string) bool {

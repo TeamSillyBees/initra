@@ -285,6 +285,11 @@ func (_c *SysDictCollectionCreate) check() error {
 	if _, ok := _c.mutation.IsEnable(); !ok {
 		return &ValidationError{Name: "is_enable", err: errors.New(`ent: missing required field "SysDictCollection.is_enable"`)}
 	}
+	if v, ok := _c.mutation.ItemLength(); ok {
+		if err := sysdictcollection.ItemLengthValidator(v); err != nil {
+			return &ValidationError{Name: "item_length", err: fmt.Errorf(`ent: validator failed for field "SysDictCollection.item_length": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.IsBuiltin(); !ok {
 		return &ValidationError{Name: "is_builtin", err: errors.New(`ent: missing required field "SysDictCollection.is_builtin"`)}
 	}
@@ -385,7 +390,7 @@ func (_c *SysDictCollectionCreate) createSpec() (*SysDictCollection, *sqlgraph.C
 	if nodes := _c.mutation.ItemsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysdictcollection.ItemsTable,
 			Columns: []string{sysdictcollection.ItemsColumn},
 			Bidi:    false,

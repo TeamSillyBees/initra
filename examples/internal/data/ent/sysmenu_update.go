@@ -32,7 +32,6 @@ func (_u *SysMenuUpdate) Where(ps ...predicate.SysMenu) *SysMenuUpdate {
 
 // SetParentID sets the "parent_id" field.
 func (_u *SysMenuUpdate) SetParentID(v idgen.ID) *SysMenuUpdate {
-	_u.mutation.ResetParentID()
 	_u.mutation.SetParentID(v)
 	return _u
 }
@@ -42,12 +41,6 @@ func (_u *SysMenuUpdate) SetNillableParentID(v *idgen.ID) *SysMenuUpdate {
 	if v != nil {
 		_u.SetParentID(*v)
 	}
-	return _u
-}
-
-// AddParentID adds value to the "parent_id" field.
-func (_u *SysMenuUpdate) AddParentID(v idgen.ID) *SysMenuUpdate {
-	_u.mutation.AddParentID(v)
 	return _u
 }
 
@@ -321,6 +314,26 @@ func (_u *SysMenuUpdate) ClearUpdatedBy() *SysMenuUpdate {
 	return _u
 }
 
+// SetParent sets the "parent" edge to the SysMenu entity.
+func (_u *SysMenuUpdate) SetParent(v *SysMenu) *SysMenuUpdate {
+	return _u.SetParentID(v.ID)
+}
+
+// AddChildIDs adds the "children" edge to the SysMenu entity by IDs.
+func (_u *SysMenuUpdate) AddChildIDs(ids ...idgen.ID) *SysMenuUpdate {
+	_u.mutation.AddChildIDs(ids...)
+	return _u
+}
+
+// AddChildren adds the "children" edges to the SysMenu entity.
+func (_u *SysMenuUpdate) AddChildren(v ...*SysMenu) *SysMenuUpdate {
+	ids := make([]idgen.ID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChildIDs(ids...)
+}
+
 // AddRoleMenuIDs adds the "role_menus" edge to the SysRoleMenu entity by IDs.
 func (_u *SysMenuUpdate) AddRoleMenuIDs(ids ...idgen.ID) *SysMenuUpdate {
 	_u.mutation.AddRoleMenuIDs(ids...)
@@ -339,6 +352,33 @@ func (_u *SysMenuUpdate) AddRoleMenus(v ...*SysRoleMenu) *SysMenuUpdate {
 // Mutation returns the SysMenuMutation object of the builder.
 func (_u *SysMenuUpdate) Mutation() *SysMenuMutation {
 	return _u.mutation
+}
+
+// ClearParent clears the "parent" edge to the SysMenu entity.
+func (_u *SysMenuUpdate) ClearParent() *SysMenuUpdate {
+	_u.mutation.ClearParent()
+	return _u
+}
+
+// ClearChildren clears all "children" edges to the SysMenu entity.
+func (_u *SysMenuUpdate) ClearChildren() *SysMenuUpdate {
+	_u.mutation.ClearChildren()
+	return _u
+}
+
+// RemoveChildIDs removes the "children" edge to SysMenu entities by IDs.
+func (_u *SysMenuUpdate) RemoveChildIDs(ids ...idgen.ID) *SysMenuUpdate {
+	_u.mutation.RemoveChildIDs(ids...)
+	return _u
+}
+
+// RemoveChildren removes "children" edges to SysMenu entities.
+func (_u *SysMenuUpdate) RemoveChildren(v ...*SysMenu) *SysMenuUpdate {
+	ids := make([]idgen.ID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChildIDs(ids...)
 }
 
 // ClearRoleMenus clears all "role_menus" edges to the SysRoleMenu entity.
@@ -400,6 +440,11 @@ func (_u *SysMenuUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *SysMenuUpdate) check() error {
+	if v, ok := _u.mutation.ParentID(); ok {
+		if err := sysmenu.ParentIDValidator(int64(v)); err != nil {
+			return &ValidationError{Name: "parent_id", err: fmt.Errorf(`ent: validator failed for field "SysMenu.parent_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.AppID(); ok {
 		if err := sysmenu.AppIDValidator(v); err != nil {
 			return &ValidationError{Name: "app_id", err: fmt.Errorf(`ent: validator failed for field "SysMenu.app_id": %w`, err)}
@@ -408,6 +453,11 @@ func (_u *SysMenuUpdate) check() error {
 	if v, ok := _u.mutation.Title(); ok {
 		if err := sysmenu.TitleValidator(v); err != nil {
 			return &ValidationError{Name: "title", err: fmt.Errorf(`ent: validator failed for field "SysMenu.title": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.MenuType(); ok {
+		if err := sysmenu.MenuTypeValidator(v); err != nil {
+			return &ValidationError{Name: "menu_type", err: fmt.Errorf(`ent: validator failed for field "SysMenu.menu_type": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.PermissionCode(); ok {
@@ -434,15 +484,6 @@ func (_u *SysMenuUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := _u.mutation.ParentID(); ok {
-		_spec.SetField(sysmenu.FieldParentID, field.TypeInt64, value)
-	}
-	if value, ok := _u.mutation.AddedParentID(); ok {
-		_spec.AddField(sysmenu.FieldParentID, field.TypeInt64, value)
-	}
-	if _u.mutation.ParentIDCleared() {
-		_spec.ClearField(sysmenu.FieldParentID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.AppID(); ok {
 		_spec.SetField(sysmenu.FieldAppID, field.TypeString, value)
@@ -522,10 +563,84 @@ func (_u *SysMenuUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.UpdatedByCleared() {
 		_spec.ClearField(sysmenu.FieldUpdatedBy, field.TypeInt64)
 	}
-	if _u.mutation.RoleMenusCleared() {
+	if _u.mutation.ParentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   sysmenu.ParentTable,
+			Columns: []string{sysmenu.ParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sysmenu.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ParentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   sysmenu.ParentTable,
+			Columns: []string{sysmenu.ParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sysmenu.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChildrenCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
+			Table:   sysmenu.ChildrenTable,
+			Columns: []string{sysmenu.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sysmenu.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChildrenIDs(); len(nodes) > 0 && !_u.mutation.ChildrenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   sysmenu.ChildrenTable,
+			Columns: []string{sysmenu.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sysmenu.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChildrenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   sysmenu.ChildrenTable,
+			Columns: []string{sysmenu.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sysmenu.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.RoleMenusCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
 			Table:   sysmenu.RoleMenusTable,
 			Columns: []string{sysmenu.RoleMenusColumn},
 			Bidi:    false,
@@ -538,7 +653,7 @@ func (_u *SysMenuUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if nodes := _u.mutation.RemovedRoleMenusIDs(); len(nodes) > 0 && !_u.mutation.RoleMenusCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysmenu.RoleMenusTable,
 			Columns: []string{sysmenu.RoleMenusColumn},
 			Bidi:    false,
@@ -554,7 +669,7 @@ func (_u *SysMenuUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if nodes := _u.mutation.RoleMenusIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysmenu.RoleMenusTable,
 			Columns: []string{sysmenu.RoleMenusColumn},
 			Bidi:    false,
@@ -589,7 +704,6 @@ type SysMenuUpdateOne struct {
 
 // SetParentID sets the "parent_id" field.
 func (_u *SysMenuUpdateOne) SetParentID(v idgen.ID) *SysMenuUpdateOne {
-	_u.mutation.ResetParentID()
 	_u.mutation.SetParentID(v)
 	return _u
 }
@@ -599,12 +713,6 @@ func (_u *SysMenuUpdateOne) SetNillableParentID(v *idgen.ID) *SysMenuUpdateOne {
 	if v != nil {
 		_u.SetParentID(*v)
 	}
-	return _u
-}
-
-// AddParentID adds value to the "parent_id" field.
-func (_u *SysMenuUpdateOne) AddParentID(v idgen.ID) *SysMenuUpdateOne {
-	_u.mutation.AddParentID(v)
 	return _u
 }
 
@@ -878,6 +986,26 @@ func (_u *SysMenuUpdateOne) ClearUpdatedBy() *SysMenuUpdateOne {
 	return _u
 }
 
+// SetParent sets the "parent" edge to the SysMenu entity.
+func (_u *SysMenuUpdateOne) SetParent(v *SysMenu) *SysMenuUpdateOne {
+	return _u.SetParentID(v.ID)
+}
+
+// AddChildIDs adds the "children" edge to the SysMenu entity by IDs.
+func (_u *SysMenuUpdateOne) AddChildIDs(ids ...idgen.ID) *SysMenuUpdateOne {
+	_u.mutation.AddChildIDs(ids...)
+	return _u
+}
+
+// AddChildren adds the "children" edges to the SysMenu entity.
+func (_u *SysMenuUpdateOne) AddChildren(v ...*SysMenu) *SysMenuUpdateOne {
+	ids := make([]idgen.ID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChildIDs(ids...)
+}
+
 // AddRoleMenuIDs adds the "role_menus" edge to the SysRoleMenu entity by IDs.
 func (_u *SysMenuUpdateOne) AddRoleMenuIDs(ids ...idgen.ID) *SysMenuUpdateOne {
 	_u.mutation.AddRoleMenuIDs(ids...)
@@ -896,6 +1024,33 @@ func (_u *SysMenuUpdateOne) AddRoleMenus(v ...*SysRoleMenu) *SysMenuUpdateOne {
 // Mutation returns the SysMenuMutation object of the builder.
 func (_u *SysMenuUpdateOne) Mutation() *SysMenuMutation {
 	return _u.mutation
+}
+
+// ClearParent clears the "parent" edge to the SysMenu entity.
+func (_u *SysMenuUpdateOne) ClearParent() *SysMenuUpdateOne {
+	_u.mutation.ClearParent()
+	return _u
+}
+
+// ClearChildren clears all "children" edges to the SysMenu entity.
+func (_u *SysMenuUpdateOne) ClearChildren() *SysMenuUpdateOne {
+	_u.mutation.ClearChildren()
+	return _u
+}
+
+// RemoveChildIDs removes the "children" edge to SysMenu entities by IDs.
+func (_u *SysMenuUpdateOne) RemoveChildIDs(ids ...idgen.ID) *SysMenuUpdateOne {
+	_u.mutation.RemoveChildIDs(ids...)
+	return _u
+}
+
+// RemoveChildren removes "children" edges to SysMenu entities.
+func (_u *SysMenuUpdateOne) RemoveChildren(v ...*SysMenu) *SysMenuUpdateOne {
+	ids := make([]idgen.ID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChildIDs(ids...)
 }
 
 // ClearRoleMenus clears all "role_menus" edges to the SysRoleMenu entity.
@@ -970,6 +1125,11 @@ func (_u *SysMenuUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *SysMenuUpdateOne) check() error {
+	if v, ok := _u.mutation.ParentID(); ok {
+		if err := sysmenu.ParentIDValidator(int64(v)); err != nil {
+			return &ValidationError{Name: "parent_id", err: fmt.Errorf(`ent: validator failed for field "SysMenu.parent_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.AppID(); ok {
 		if err := sysmenu.AppIDValidator(v); err != nil {
 			return &ValidationError{Name: "app_id", err: fmt.Errorf(`ent: validator failed for field "SysMenu.app_id": %w`, err)}
@@ -978,6 +1138,11 @@ func (_u *SysMenuUpdateOne) check() error {
 	if v, ok := _u.mutation.Title(); ok {
 		if err := sysmenu.TitleValidator(v); err != nil {
 			return &ValidationError{Name: "title", err: fmt.Errorf(`ent: validator failed for field "SysMenu.title": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.MenuType(); ok {
+		if err := sysmenu.MenuTypeValidator(v); err != nil {
+			return &ValidationError{Name: "menu_type", err: fmt.Errorf(`ent: validator failed for field "SysMenu.menu_type": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.PermissionCode(); ok {
@@ -1021,15 +1186,6 @@ func (_u *SysMenuUpdateOne) sqlSave(ctx context.Context) (_node *SysMenu, err er
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := _u.mutation.ParentID(); ok {
-		_spec.SetField(sysmenu.FieldParentID, field.TypeInt64, value)
-	}
-	if value, ok := _u.mutation.AddedParentID(); ok {
-		_spec.AddField(sysmenu.FieldParentID, field.TypeInt64, value)
-	}
-	if _u.mutation.ParentIDCleared() {
-		_spec.ClearField(sysmenu.FieldParentID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.AppID(); ok {
 		_spec.SetField(sysmenu.FieldAppID, field.TypeString, value)
@@ -1109,10 +1265,84 @@ func (_u *SysMenuUpdateOne) sqlSave(ctx context.Context) (_node *SysMenu, err er
 	if _u.mutation.UpdatedByCleared() {
 		_spec.ClearField(sysmenu.FieldUpdatedBy, field.TypeInt64)
 	}
-	if _u.mutation.RoleMenusCleared() {
+	if _u.mutation.ParentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   sysmenu.ParentTable,
+			Columns: []string{sysmenu.ParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sysmenu.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ParentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   sysmenu.ParentTable,
+			Columns: []string{sysmenu.ParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sysmenu.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChildrenCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
+			Table:   sysmenu.ChildrenTable,
+			Columns: []string{sysmenu.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sysmenu.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChildrenIDs(); len(nodes) > 0 && !_u.mutation.ChildrenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   sysmenu.ChildrenTable,
+			Columns: []string{sysmenu.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sysmenu.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChildrenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   sysmenu.ChildrenTable,
+			Columns: []string{sysmenu.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sysmenu.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.RoleMenusCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
 			Table:   sysmenu.RoleMenusTable,
 			Columns: []string{sysmenu.RoleMenusColumn},
 			Bidi:    false,
@@ -1125,7 +1355,7 @@ func (_u *SysMenuUpdateOne) sqlSave(ctx context.Context) (_node *SysMenu, err er
 	if nodes := _u.mutation.RemovedRoleMenusIDs(); len(nodes) > 0 && !_u.mutation.RoleMenusCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysmenu.RoleMenusTable,
 			Columns: []string{sysmenu.RoleMenusColumn},
 			Bidi:    false,
@@ -1141,7 +1371,7 @@ func (_u *SysMenuUpdateOne) sqlSave(ctx context.Context) (_node *SysMenu, err er
 	if nodes := _u.mutation.RoleMenusIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysmenu.RoleMenusTable,
 			Columns: []string{sysmenu.RoleMenusColumn},
 			Bidi:    false,

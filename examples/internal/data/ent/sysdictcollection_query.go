@@ -9,6 +9,7 @@ import (
 	"math"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -26,6 +27,7 @@ type SysDictCollectionQuery struct {
 	inters     []Interceptor
 	predicates []predicate.SysDictCollection
 	withItems  *SysDictItemQuery
+	modifiers  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -76,7 +78,7 @@ func (_q *SysDictCollectionQuery) QueryItems() *SysDictItemQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(sysdictcollection.Table, sysdictcollection.FieldID, selector),
 			sqlgraph.To(sysdictitem.Table, sysdictitem.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, sysdictcollection.ItemsTable, sysdictcollection.ItemsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, true, sysdictcollection.ItemsTable, sysdictcollection.ItemsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -385,6 +387,9 @@ func (_q *SysDictCollectionQuery) sqlAll(ctx context.Context, hooks ...queryHook
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
+	}
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
@@ -437,6 +442,9 @@ func (_q *SysDictCollectionQuery) loadItems(ctx context.Context, query *SysDictI
 
 func (_q *SysDictCollectionQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
+	if len(_q.modifiers) > 0 {
+		_spec.Modifiers = _q.modifiers
+	}
 	_spec.Node.Columns = _q.ctx.Fields
 	if len(_q.ctx.Fields) > 0 {
 		_spec.Unique = _q.ctx.Unique != nil && *_q.ctx.Unique
@@ -499,6 +507,9 @@ func (_q *SysDictCollectionQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if _q.ctx.Unique != nil && *_q.ctx.Unique {
 		selector.Distinct()
 	}
+	for _, m := range _q.modifiers {
+		m(selector)
+	}
 	for _, p := range _q.predicates {
 		p(selector)
 	}
@@ -514,6 +525,32 @@ func (_q *SysDictCollectionQuery) sqlQuery(ctx context.Context) *sql.Selector {
 		selector.Limit(*limit)
 	}
 	return selector
+}
+
+// ForUpdate locks the selected rows against concurrent updates, and prevent them from being
+// updated, deleted or "selected ... for update" by other sessions, until the transaction is
+// either committed or rolled-back.
+func (_q *SysDictCollectionQuery) ForUpdate(opts ...sql.LockOption) *SysDictCollectionQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
+	}
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
+		s.ForUpdate(opts...)
+	})
+	return _q
+}
+
+// ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
+// on any rows that are read. Other sessions can read the rows, but cannot modify them
+// until your transaction commits.
+func (_q *SysDictCollectionQuery) ForShare(opts ...sql.LockOption) *SysDictCollectionQuery {
+	if _q.driver.Dialect() == dialect.Postgres {
+		_q.Unique(false)
+	}
+	_q.modifiers = append(_q.modifiers, func(s *sql.Selector) {
+		s.ForShare(opts...)
+	})
+	return _q
 }
 
 // SysDictCollectionGroupBy is the group-by builder for SysDictCollection entities.

@@ -47,7 +47,7 @@
 - **[已修复] HTTP Client 默认记录上游错误正文。** 默认正文预览可能泄露 token 或 PII。**修复方式：** 默认仅记录状态信息，新增显式 `error_body_preview` opt-in，并验证默认日志不包含响应正文。
 - **[已修复] Retry 无法关闭任意 5xx 重试。** 原逻辑在配置未命中时仍重试全部 5xx。**修复方式：** 默认严格服从状态码集合，仅在显式 `RetryAll5xx` 时扩大范围。
 - **[已修复] 数据库启动 Ping 没有 deadline。** 网络异常可能长期阻塞启动。**修复方式：** 新增并校验 `PingTimeout`，注册数据库时使用 `context.WithTimeout`，并同步示例和模板。
-- **[已修复] 数据库关系缺少外键约束。** user-role、role-menu 等关系可能产生孤儿数据。**修复方式：** Atlas diff 启用 `WithForeignKeys(true)`，新增独立迁移为现有关系表补充 RESTRICT 外键，并增加生成模板断言。
+- **[已按后续架构决策调整] 数据库关系缺少一致性保护。** user-role、role-menu 等关系可能产生孤儿数据。项目曾通过 RESTRICT 物理外键修复，现改为逻辑外键：Atlas diff 固定关闭物理外键，关联写入在事务内校验并锁定有效父记录，父记录删除显式处理子关系；兼容迁移会移除已部署的历史外键，新项目则把该历史迁移版本渲染为 no-op。
 - **[已修复] 乐观锁字段助手容易被误解为完整锁能力。** 当前能力仍只定义 version 字段。**修复方式：** 将入口改名为 `OptimisticLockVersion`，并在注释、文档和 skill 中明确不包含 CAS、递增或冲突检测。
 - **[已修复] AuditHook 依赖错误字符串判断字段能力。** 真实 Ent mutation 错误与该字符串约定不一致。**修复方式：** 改用 typed mutation capability 接口设置审计字段，并增加支持/缺失能力回归测试。
 - **[已修复] 本地上传 overwrite 检查存在竞态。** 先检查再创建会在并发下覆盖文件。**修复方式：** `Overwrite=false` 时使用 `O_CREATE|O_EXCL` 原子创建，并增加并发覆盖保护测试。

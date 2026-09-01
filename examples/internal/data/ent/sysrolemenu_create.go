@@ -268,7 +268,7 @@ func (_c *SysRoleMenuCreate) createSpec() (*SysRoleMenu, *sqlgraph.CreateSpec) {
 	if nodes := _c.mutation.RoleIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysrolemenu.RoleTable,
 			Columns: []string{sysrolemenu.RoleColumn},
 			Bidi:    false,
@@ -285,7 +285,7 @@ func (_c *SysRoleMenuCreate) createSpec() (*SysRoleMenu, *sqlgraph.CreateSpec) {
 	if nodes := _c.mutation.MenuIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   sysrolemenu.MenuTable,
 			Columns: []string{sysrolemenu.MenuColumn},
 			Bidi:    false,

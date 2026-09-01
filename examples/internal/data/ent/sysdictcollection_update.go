@@ -323,6 +323,11 @@ func (_u *SysDictCollectionUpdate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "SysDictCollection.name": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.ItemLength(); ok {
+		if err := sysdictcollection.ItemLengthValidator(v); err != nil {
+			return &ValidationError{Name: "item_length", err: fmt.Errorf(`ent: validator failed for field "SysDictCollection.item_length": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -401,7 +406,7 @@ func (_u *SysDictCollectionUpdate) sqlSave(ctx context.Context) (_node int, err 
 	if _u.mutation.ItemsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysdictcollection.ItemsTable,
 			Columns: []string{sysdictcollection.ItemsColumn},
 			Bidi:    false,
@@ -414,7 +419,7 @@ func (_u *SysDictCollectionUpdate) sqlSave(ctx context.Context) (_node int, err 
 	if nodes := _u.mutation.RemovedItemsIDs(); len(nodes) > 0 && !_u.mutation.ItemsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysdictcollection.ItemsTable,
 			Columns: []string{sysdictcollection.ItemsColumn},
 			Bidi:    false,
@@ -430,7 +435,7 @@ func (_u *SysDictCollectionUpdate) sqlSave(ctx context.Context) (_node int, err 
 	if nodes := _u.mutation.ItemsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysdictcollection.ItemsTable,
 			Columns: []string{sysdictcollection.ItemsColumn},
 			Bidi:    false,
@@ -769,6 +774,11 @@ func (_u *SysDictCollectionUpdateOne) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "SysDictCollection.name": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.ItemLength(); ok {
+		if err := sysdictcollection.ItemLengthValidator(v); err != nil {
+			return &ValidationError{Name: "item_length", err: fmt.Errorf(`ent: validator failed for field "SysDictCollection.item_length": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -864,7 +874,7 @@ func (_u *SysDictCollectionUpdateOne) sqlSave(ctx context.Context) (_node *SysDi
 	if _u.mutation.ItemsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysdictcollection.ItemsTable,
 			Columns: []string{sysdictcollection.ItemsColumn},
 			Bidi:    false,
@@ -877,7 +887,7 @@ func (_u *SysDictCollectionUpdateOne) sqlSave(ctx context.Context) (_node *SysDi
 	if nodes := _u.mutation.RemovedItemsIDs(); len(nodes) > 0 && !_u.mutation.ItemsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysdictcollection.ItemsTable,
 			Columns: []string{sysdictcollection.ItemsColumn},
 			Bidi:    false,
@@ -893,7 +903,7 @@ func (_u *SysDictCollectionUpdateOne) sqlSave(ctx context.Context) (_node *SysDi
 	if nodes := _u.mutation.ItemsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Inverse: true,
 			Table:   sysdictcollection.ItemsTable,
 			Columns: []string{sysdictcollection.ItemsColumn},
 			Bidi:    false,
