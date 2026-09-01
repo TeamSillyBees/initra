@@ -16,6 +16,12 @@ type UniversalClient = redis.UniversalClient
 // Cmdable 暴露 go-redis 命令接口类型，调用方无需直接 import go-redis。
 type Cmdable = redis.Cmdable
 
+// PubSub 暴露 go-redis 订阅句柄类型，业务代码无需直接 import go-redis。
+type PubSub = redis.PubSub
+
+// ErrNil 表示 Redis key 不存在。
+var ErrNil = redis.Nil
+
 // CommandClient 描述 redisx 需要的 Redis 命令与脚本执行能力。
 type CommandClient interface {
 	redis.Cmdable

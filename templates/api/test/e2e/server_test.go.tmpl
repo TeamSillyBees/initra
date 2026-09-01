@@ -66,7 +66,7 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	passwordHash, err := passwords.Hash("secret-123")
 	require.NoError(t, err)
 
-	modelPath, policyPath := writeCasbinFiles(t)
+	modelPath := writeCasbinModel(t)
 	jwtManager, err := platformauth.NewJWTManager(platformauth.JWTConfig{
 		Issuer:          "initra",
 		Secret:          "e2e-test-secret-at-least-32-bytes",
@@ -75,14 +75,23 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	enforcer, err := platformauth.NewEnforcer(modelPath, policyPath)
+	enforcer, err := platformauth.NewEnforcer(modelPath, platformauth.PolicyLoaderFunc(func(context.Context) ([]platformauth.PolicyRule, error) {
+		return []platformauth.PolicyRule{
+			{RoleCode: "admin", PermissionCode: "system:user:read"},
+			{RoleCode: "admin", PermissionCode: "system:file:read"},
+			{RoleCode: "admin", PermissionCode: "system:file:write"},
+			{RoleCode: "admin", PermissionCode: "system:file:delete"},
+		}, nil
+	}))
 	require.NoError(t, err)
 
 	app, err := server.NewApp(server.Options{
 		Title:   "initra",
 		Version: "test",
 		Env:     "test",
-	}, logger, jwtManager, enforcer)
+	}, logger, jwtManager, platformauth.IdentityResolverFunc(func(_ context.Context, userID idgen.ID) (platformauth.Principal, bool, error) {
+		return platformauth.Principal{UserID: userID, Roles: []string{"admin"}}, true, nil
+	}), enforcer)
 	require.NoError(t, err)
 
 	observability.NewModule(observability.BuildInfoVO{
@@ -231,43 +240,29 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
-// writeCasbinFiles 为端到端测试写入临时 Casbin 模型和策略文件。
-func writeCasbinFiles(t *testing.T) (string, string) {
+// writeCasbinModel 为端到端测试写入临时 Casbin 模型。
+func writeCasbinModel(t *testing.T) string {
 	t.Helper()
 
 	dir := t.TempDir()
 	modelPath := filepath.Join(dir, "rbac_model.conf")
-	policyPath := filepath.Join(dir, "rbac_policy.csv")
 
 	model := `
 	[request_definition]
-	r = sub, obj, act
+	r = sub, perm
 
 	[policy_definition]
-	p = sub, obj, act
-
-	[role_definition]
-	g = _, _
+	p = sub, perm
 
 	[policy_effect]
 	e = some(where (p.eft == allow))
 
 	[matchers]
-	m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
-	`
-
-	policy := `
-	p, admin, user, read
-	p, admin, file, read
-	p, admin, file, write
-	p, admin, file, delete
-	g, admin, admin
+	m = r.sub == p.sub && r.perm == p.perm
 	`
 
 	require.NoError(t, os.WriteFile(modelPath, []byte(strings.TrimSpace(model)), 0o600))
-	require.NoError(t, os.WriteFile(policyPath, []byte(strings.TrimSpace(policy)), 0o600))
-
-	return modelPath, policyPath
+	return modelPath
 }
 
 func multipartWriter(t *testing.T, body *bytes.Buffer, fieldName string, fileName string, content string) *multipart.Writer {

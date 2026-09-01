@@ -127,6 +127,11 @@ func (s *Service) Update(ctx context.Context, id idgen.ID, body UpdateUserBody) 
 	if err := s.cache.Delete(ctx, user.ID); err != nil {
 		return UserVO{}, bizerrors.WrapCacheContext(ctx, err, "delete user cache failed")
 	}
+	if s.authz != nil {
+		if err := s.authz.NotifyChanged(ctx, []idgen.ID{user.ID}, false); err != nil {
+			return UserVO{}, bizerrors.WrapInternalContext(ctx, err, "invalidate user authorization failed")
+		}
+	}
 
 	return userToVO(user), nil
 }
@@ -138,6 +143,11 @@ func (s *Service) Delete(ctx context.Context, id idgen.ID) error {
 	}
 	if err := s.cache.Delete(ctx, id); err != nil {
 		return bizerrors.WrapCacheContext(ctx, err, "delete user cache failed")
+	}
+	if s.authz != nil {
+		if err := s.authz.NotifyChanged(ctx, []idgen.ID{id}, false); err != nil {
+			return bizerrors.WrapInternalContext(ctx, err, "invalidate user authorization failed")
+		}
 	}
 	return nil
 }

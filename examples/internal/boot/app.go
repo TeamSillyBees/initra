@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/casbin/casbin/v2"
 	"github.com/samber/do"
+	"github.com/teamsillybees/initra/examples/internal/accesscontrol"
 	platformdatabase "github.com/teamsillybees/initra/pkg/database"
 	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/observability"
@@ -25,16 +27,17 @@ type Options struct {
 
 // Application 是启动完成后的应用聚合根。
 type Application struct {
-	Container *do.Injector
-	Config    *Config
-	Logger    *logx.Logger
-	Web       *server.App
-	Server    *http.Server
-	DB        *sql.DB
-	Redis     redisx.UniversalClient
-	Publisher task.Publisher
-	Worker    task.Worker
-	Scheduler task.Scheduler
+	Container     *do.Injector
+	Config        *Config
+	Logger        *logx.Logger
+	Web           *server.App
+	Server        *http.Server
+	DB            *sql.DB
+	Redis         redisx.UniversalClient
+	Publisher     task.Publisher
+	Worker        task.Worker
+	Scheduler     task.Scheduler
+	AccessControl *accesscontrol.Control
 
 	workerStarted    bool
 	schedulerStarted bool
@@ -69,6 +72,9 @@ func Bootstrap(options Options) (*Application, error) {
 		}
 	}
 	webApp := do.MustInvoke[*server.App](injector)
+	accessControl := do.MustInvoke[*accesscontrol.Control](injector)
+	enforcer := do.MustInvoke[*casbin.SyncedEnforcer](injector)
+	accessControl.BindEnforcer(enforcer)
 	publisher, err := do.Invoke[task.Publisher](injector)
 	if err != nil {
 		closeBootstrapResources(db, redisClient, nil)
@@ -97,16 +103,17 @@ func Bootstrap(options Options) (*Application, error) {
 	}
 
 	return &Application{
-		Container: injector,
-		Config:    cfg,
-		Logger:    logger,
-		Web:       webApp,
-		Server:    s,
-		DB:        db,
-		Redis:     redisClient,
-		Publisher: publisher,
-		Worker:    worker,
-		Scheduler: scheduler,
+		Container:     injector,
+		Config:        cfg,
+		Logger:        logger,
+		Web:           webApp,
+		Server:        s,
+		DB:            db,
+		Redis:         redisClient,
+		Publisher:     publisher,
+		Worker:        worker,
+		Scheduler:     scheduler,
+		AccessControl: accessControl,
 	}, nil
 }
 

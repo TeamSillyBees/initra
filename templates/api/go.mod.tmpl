@@ -5,6 +5,8 @@ go 1.26.0
 require (
 	entgo.io/ent v0.14.6
 	github.com/DATA-DOG/go-sqlmock v1.5.2
+	github.com/alicebob/miniredis/v2 v2.35.0
+	github.com/casbin/casbin/v2 v2.135.0
 	github.com/danielgtaylor/huma/v2 v2.37.3
 	github.com/lib/pq v1.12.3
 	github.com/mgtv-tech/jetcache-go v1.2.6
@@ -44,7 +46,6 @@ require (
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect
 	github.com/bytedance/sonic/loader v0.5.0 // indirect
-	github.com/casbin/casbin/v2 v2.135.0 // indirect
 	github.com/casbin/govaluate v1.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/clbanning/mxj v1.8.4 // indirect
@@ -123,6 +124,7 @@ require (
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	github.com/zclconf/go-cty v1.14.4 // indirect
 	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect

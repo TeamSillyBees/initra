@@ -67,7 +67,6 @@ observability:
 
 casbin:
   model_path: ./configs/rbac_model.conf
-  policy_path: ./configs/rbac_policy.csv
 
 cache:
   local_ttl: 1m

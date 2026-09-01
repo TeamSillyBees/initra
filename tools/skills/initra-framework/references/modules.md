@@ -39,7 +39,7 @@ Service 参数按用例选择现有 Body/Query、`idgen.ID`、必要的基础参
 
 模块 `providers.go` 注册 cache、service、handler、module；允许 `Handler -> *Service` 和 `Module -> *Handler` 的模块内具体依赖。service/handler 不访问 injector。
 
-`*.routes.go` 同时注册 Huma operation 和 `RouteSecurity`：公开接口使用 `AccessModePublic`，登录态接口使用 `AccessModeAuthenticated`，后台或运营接口使用 `AccessModePermission` 并同步 Casbin policy。
+`*.routes.go` 同时注册 Huma operation 和 `RouteSecurity`：公开接口使用 `AccessModePublic`，登录态接口使用 `AccessModeAuthenticated`，后台或运营接口使用 `AccessModePermission`，并在 `Permission` 中直接登记稳定权限标识。角色权限关系只通过数据库 RBAC 接口维护。
 
 ## 验证
 

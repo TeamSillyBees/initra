@@ -35,7 +35,7 @@ docs/               架构与工程规范文档
 
 ## 项目模板
 
-`api` 模板生成 Go Web API 基础项目，当前包含 Gin + Huma、统一响应/错误、JWT/Casbin、配置、日志、health/ready/version，以及 `auth`、`user`、`file`、`httpdemo`、`taskdemo` 示例模块、Ent schema、seed 和 Atlas migrations。Schema 使用 `pkg/entx/fieldx` 组合 ID、审计、软删除等字段，按需使用 `pkg/entx/indexx`；运行时在 Ent Client 注册 `entx.AuditHook` 和 `entx.RejectDeleteHook`。模板不保存 Ent 生成代码，`initra new` 渲染后会执行 `go run ./internal/data/entgenerate`。
+`api` 模板生成 Go Web API 基础项目，当前包含 Gin + Huma、统一响应/错误、JWT/Casbin、配置、日志、health/ready/version，以及 `auth`、`user`、`rbac`、`file`、`httpdemo`、`taskdemo` 示例模块、Ent schema、seed 和 Atlas migrations。RBAC 以数据库中的角色、权限资源和授权关系为唯一事实源，access JWT 不保存角色；请求时从共享缓存或数据库解析当前身份。Schema 使用 `pkg/entx/fieldx` 组合 ID、审计、软删除等字段，按需使用 `pkg/entx/indexx`；运行时在 Ent Client 注册 `entx.AuditHook` 和 `entx.RejectDeleteHook`。模板不保存 Ent 生成代码，`initra new` 渲染后会执行 `go run ./internal/data/entgenerate`。
 
 模板生成的业务项目是独立 Go module，通过 `go.mod` 引入 `github.com/teamsillybees/initra` 的可复用 Go package，不复制根仓库 `pkg/` 源码，也不依赖根仓库 `internal/`。
 
@@ -50,7 +50,7 @@ docs/               架构与工程规范文档
 - `pkg/redisx`：Redis 基础能力封装，支持 standalone/sentinel client、Ping/readiness、Key Builder、JSON/Msgpack 缓存、TTL jitter、空值缓存、singleflight、SCAN+UNLINK、Lua script registry、基于 `github.com/bsm/redislock` 的短时间分布式锁，以及 OpenTelemetry/zap hook；不支持 cluster，不封装 KEYS。
 - `pkg/entx`：Ent 通用 Hook、上下文工具，以及 `fieldx`/`indexx` schema 字段和索引助手；不依赖具体项目生成的 `internal/data/ent`。
 - `pkg/errors`、`pkg/response`、`pkg/requestctx`：统一错误、响应、trace/request id。
-- `pkg/auth`：JWT、refresh token、Redis token store、显式 opt-in 且仅 dev/local/test 可用的内存 store、Casbin、路由安全元信息。
+- `pkg/auth`：JWT、refresh token、Redis token store、显式 opt-in 且仅 dev/local/test 可用的内存 store、数据库 Casbin adapter、请求身份解析契约和路由权限元信息。
 - `pkg/server`：Gin + Huma 应用与认证授权中间件装配。
 - `pkg/observability`：health、ready、version 接口模块；`/health` 只检查进程存活，`/ready` 通过带独立超时的 registry 检查必要依赖。
 - `pkg/storage`：统一文件与对象存储接口，支持 local、阿里云 OSS、腾讯云 COS、AWS S3 和 S3 兼容服务；分片上传与临时授权通过可选扩展接口提供，具体支持范围由 provider 决定，local provider 不支持 presign。

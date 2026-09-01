@@ -11,6 +11,7 @@
 - 补齐存量导出声明注释，并增加基于 Go AST 的架构测试，阻止新增不规范注释。
 - CLI 增加 `snippet add`、可加载的事务化 `config add`、`doctor --json`，以及可检查和安全升级的 Codex skill。
 - API 模板增加随机 JWT secret、一次性管理员密码、安全 `app.slug`、数据库外键和 nonroot 容器基线。
+- API 模板增加数据库 RBAC adapter、角色/权限/分配管理接口、Redis 身份缓存失效和 Casbin 多实例策略重载。
 
 ### 变更
 
@@ -20,6 +21,7 @@
 - HTTP Client 默认不记录错误响应正文，5xx 全量重试改为显式 opt-in。
 - local storage 不再返回不会过期的伪 presign URL，改为明确返回不支持。
 - `logx.Logger.Sync` 只负责刷新，资源关闭统一使用共享且幂等的 `Close`/`Shutdown`。
+- access JWT 不再保存角色；路由改为直接登记稳定权限标识，`sys_role`、`sys_menu`、`sys_role_menu` 成为唯一权限事实源。
 
 ### 修复
 

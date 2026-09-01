@@ -28,5 +28,5 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Description: "通过 pkg/task 发布 demo:send_email 异步任务。",
 		Tags:        []string{"任务队列示例"},
 	}, m.handler.publishEmail)
-	registry.Register(http.MethodPost, "/api/v1/task-demo/email", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Resource: "taskdemo", Action: "create"})
+	registry.Register(http.MethodPost, "/api/v1/task-demo/email", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Permission: "system:taskdemo:create"})
 }

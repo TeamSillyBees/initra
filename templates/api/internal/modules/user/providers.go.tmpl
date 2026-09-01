@@ -2,6 +2,7 @@ package user
 
 import (
 	"github.com/samber/do"
+	"{{ .ModulePath }}/internal/accesscontrol"
 	"{{ .ModulePath }}/internal/data/ent"
 	"github.com/teamsillybees/initra/pkg/auth"
 	platformcache "github.com/teamsillybees/initra/pkg/cache"
@@ -23,7 +24,8 @@ func Provide(injector *do.Injector) {
 		client := do.MustInvoke[*ent.Client](i)
 		cache := do.MustInvokeNamed[*UserCache](i, userCacheServiceName)
 		passwords := do.MustInvoke[*auth.BcryptPasswordManager](i)
-		return NewService(client, cache, passwords), nil
+		invalidator := do.MustInvoke[accesscontrol.Invalidator](i)
+		return NewService(client, cache, passwords, invalidator), nil
 	})
 	do.ProvideNamed(injector, userHandlerServiceName, func(i *do.Injector) (*Handler, error) {
 		service := do.MustInvokeNamed[*Service](i, userServiceServiceName)

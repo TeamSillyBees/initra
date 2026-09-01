@@ -123,7 +123,6 @@ observability:
 
 casbin:
   model_path: ./configs/rbac_model.conf
-  policy_path: ./configs/rbac_policy.csv
 
 cache:
   local_ttl: 1m
@@ -328,7 +327,7 @@ func validConfigForValidation() *Config {
 				Secret: "0123456789abcdef0123456789abcdef",
 			},
 		},
-		Casbin: CasbinConfig{ModelPath: "model.conf", PolicyPath: "policy.csv"},
+		Casbin: CasbinConfig{ModelPath: "model.conf"},
 		IDGen:  IDGenConfig{Node: 1},
 	}
 }

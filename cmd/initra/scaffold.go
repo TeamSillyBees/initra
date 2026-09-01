@@ -370,7 +370,7 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 		Summary:     "查询%s详情",
 		Tags:        []string{"%s"},
 	}, m.handler.get)
-	registry.Register(http.MethodGet, "%s", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Resource: "%s", Action: "read"})
+	registry.Register(http.MethodGet, "%s", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePermission, Permission: "system:%s:read"})
 }
 `, name, name, name, name, name, path, typeName, typeName, path, name)
 }

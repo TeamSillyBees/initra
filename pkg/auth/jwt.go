@@ -37,15 +37,15 @@ type JWTConfig struct {
 
 // Principal 表示当前登录用户在请求链路中的最小身份载体。
 type Principal struct {
-	UserID   idgen.ID
-	Roles    []string
-	TenantID string
+	UserID       idgen.ID
+	Roles        []string
+	TenantID     string
+	IsSuperAdmin bool
 }
 
 // Claims 是脚手架统一的 JWT Claims。
 type Claims struct {
 	UserID    idgen.ID `json:"userId"`
-	Roles     []string `json:"roles"`
 	TenantID  string   `json:"tenantId,omitempty"`
 	TokenType string   `json:"tokenType"`
 	jwt.RegisteredClaims
@@ -309,7 +309,6 @@ func (m *JWTManager) issueWithID(principal Principal, tokenType string, tokenID 
 	}
 	claims := Claims{
 		UserID:    principal.UserID,
-		Roles:     append([]string(nil), principal.Roles...),
 		TenantID:  principal.TenantID,
 		TokenType: tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -395,6 +394,7 @@ func (m *JWTManager) parse(token string, expectedType string) (*Claims, error) {
 
 // WithPrincipal 将登录用户信息写入上下文，便于后续中间件和 service 统一读取。
 func WithPrincipal(ctx context.Context, principal Principal) context.Context {
+	ctx = context.WithValue(ctx, principalContextKey{}, principal)
 	if principal.UserID > 0 {
 		ctx = requestctx.WithUserID(ctx, principal.UserID.String())
 	}
@@ -403,4 +403,12 @@ func WithPrincipal(ctx context.Context, principal Principal) context.Context {
 		ctx = requestctx.WithTenantID(ctx, principal.TenantID)
 	}
 	return ctx
+}
+
+type principalContextKey struct{}
+
+// PrincipalFromContext 返回请求时解析得到的当前有效身份。
+func PrincipalFromContext(ctx context.Context) (Principal, bool) {
+	principal, ok := ctx.Value(principalContextKey{}).(Principal)
+	return principal, ok && principal.UserID > 0
 }

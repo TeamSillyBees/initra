@@ -18,7 +18,6 @@ type RegisterOptions struct {
 	RedisEnabled     bool
 	AllowMemoryStore bool
 	CasbinModelPath  string
-	CasbinPolicyPath string
 }
 
 // Register 将密码管理器、JWT 管理器和 Casbin Enforcer 注册到 DI 容器。
@@ -35,8 +34,12 @@ func Register(injector *do.Injector, opts RegisterOptions) {
 		cfg.Store = store
 		return NewJWTManager(cfg)
 	})
-	do.Provide(injector, func(i *do.Injector) (*casbin.Enforcer, error) {
-		return NewEnforcer(opts.CasbinModelPath, opts.CasbinPolicyPath)
+	do.Provide(injector, func(i *do.Injector) (*casbin.SyncedEnforcer, error) {
+		loader, err := do.Invoke[PolicyLoader](i)
+		if err != nil {
+			return nil, fmt.Errorf("解析数据库权限策略加载器失败: %w", err)
+		}
+		return NewEnforcer(opts.CasbinModelPath, loader)
 	})
 }
 

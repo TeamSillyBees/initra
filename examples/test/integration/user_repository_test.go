@@ -135,6 +135,11 @@ func TestUserServiceDeleteSoftDeletesUserAndRoles(t *testing.T) {
 
 	service := user.NewService(client, stubUserCache{}, stubPasswordManager{})
 	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
+		WillReturnRows(sysUserRows().AddRow(
+			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
+			"alice", "hashed:secret-123", "Alice", nil, nil, nil, false, true, 1,
+		))
 	mock.ExpectExec(`UPDATE "sys_user".*`).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`UPDATE "sys_user_role".*`).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()

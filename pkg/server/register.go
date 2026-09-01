@@ -12,7 +12,8 @@ func Register(injector *do.Injector, opts Options) {
 	do.Provide(injector, func(i *do.Injector) (*App, error) {
 		logger := do.MustInvoke[*logx.Logger](i)
 		jwtManager := do.MustInvoke[*platformauth.JWTManager](i)
-		enforcer := do.MustInvoke[*casbin.Enforcer](i)
-		return NewApp(opts, logger, jwtManager, enforcer)
+		resolver := do.MustInvoke[platformauth.IdentityResolver](i)
+		enforcer := do.MustInvoke[*casbin.SyncedEnforcer](i)
+		return NewApp(opts, logger, jwtManager, resolver, enforcer)
 	})
 }

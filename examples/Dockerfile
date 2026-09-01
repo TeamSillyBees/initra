@@ -16,7 +16,6 @@ WORKDIR /app
 COPY --from=builder --chown=65532:65532 /out/server /app/server
 COPY --from=builder --chown=65532:65532 /out/var /app/var
 COPY --from=builder --chown=65532:65532 /src/configs/rbac_model.conf /app/configs/rbac_model.conf
-COPY --from=builder --chown=65532:65532 /src/configs/rbac_policy.csv /app/configs/rbac_policy.csv
 
 EXPOSE 8080
 

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/samber/do"
 	"github.com/stretchr/testify/require"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
+	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/logx"
 )
 
@@ -20,10 +22,13 @@ func TestRegisterProvidesApp(t *testing.T) {
 		RefreshTokenTTL: time.Hour,
 	})
 	require.NoError(t, err)
-	enforcer, err := casbin.NewEnforcer()
+	enforcer, err := casbin.NewSyncedEnforcer()
 	require.NoError(t, err)
 	do.ProvideValue(injector, logx.NewNop())
 	do.ProvideValue(injector, manager)
+	do.ProvideValue(injector, platformauth.IdentityResolver(platformauth.IdentityResolverFunc(func(context.Context, idgen.ID) (platformauth.Principal, bool, error) {
+		return platformauth.Principal{}, false, nil
+	})))
 	do.ProvideValue(injector, enforcer)
 	Register(injector, Options{Title: "initra", Version: "test", Env: "test"})
 

@@ -78,7 +78,8 @@ internal/modules/<module>/
 - 所有 `/api/` 业务接口必须通过 `registry.Register` 登记 `RouteSecurity`，鉴权中间件默认 fail-closed。
 - 公开接口必须显式设置 `AccessModePublic`。
 - 登录即可访问的用户侧接口必须设置 `AccessModeAuthenticated`。
-- 后台管理、运营操作、审核、退款、风控、配置管理等接口必须设置 `AccessModePermission`，其 `Resource`、`Action` 必须与 Casbin policy 文件保持一致。
+- 后台管理、运营操作、审核、退款、风控、配置管理等接口必须设置 `AccessModePermission`，并通过 `Permission` 直接登记稳定权限标识（例如 `system:user:read`）。权限策略唯一事实源是 `sys_role`、`sys_menu`、`sys_role_menu`，禁止重新引入静态 policy 文件。
+- access JWT 只承载用户和会话身份，不保存角色或权限；请求时必须从 Redis 缓存或数据库解析当前有效用户、角色和超级管理员状态。
 - 业务配置结构放在 `internal/boot/config.go`，通过 `pkg/config` 泛型加载；配置应支持默认值、环境变量覆盖、启动校验和敏感配置脱敏打印。
 - 运行环境统一使用环境变量 `APP_ENV` 表示；其他配置环境变量默认使用 `INITRA_` 前缀。
 - 密码、Token、Secret、Access Key、Authorization、验证码、session value 和带密码的 DSN 禁止明文输出到日志。

@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -66,8 +67,8 @@ func TestJWTMiddlewareRejectsBlacklistedToken(t *testing.T) {
 	store.accessBlacklisted = true
 
 	engine := gin.New()
-	engine.Use(JWTMiddleware(manager, staticRouteSecurityLookup{
-		security: RouteSecurity{AccessMode: AccessModePermission, Resource: "user", Action: "read"},
+	engine.Use(JWTMiddleware(manager, activeResolver("admin"), staticRouteSecurityLookup{
+		security: RouteSecurity{AccessMode: AccessModePermission, Permission: "system:user:read"},
 	}))
 	engine.GET("/protected", func(c *gin.Context) {
 		c.Status(http.StatusOK)
@@ -106,7 +107,7 @@ func TestJWTMiddlewareRejectsTokenWithZeroUserID(t *testing.T) {
 	require.NoError(t, err)
 
 	engine := gin.New()
-	engine.Use(JWTMiddleware(manager, staticRouteSecurityLookup{
+	engine.Use(JWTMiddleware(manager, activeResolver(), staticRouteSecurityLookup{
 		security: RouteSecurity{AccessMode: AccessModeAuthenticated},
 	}))
 	engine.GET("/api/v1/me", func(c *gin.Context) {
@@ -116,6 +117,33 @@ func TestJWTMiddlewareRejectsTokenWithZeroUserID(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
 
+	engine.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+// TestJWTMiddlewareRejectsDisabledCurrentIdentity 验证旧 token 不能绕过用户禁用或删除状态。
+func TestJWTMiddlewareRejectsDisabledCurrentIdentity(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	manager, err := NewJWTManager(JWTConfig{
+		Issuer:          "initra",
+		Secret:          "middleware-test-secret-0123456789abcdef",
+		AccessTokenTTL:  time.Hour,
+		RefreshTokenTTL: 24 * time.Hour,
+	})
+	require.NoError(t, err)
+	pair, err := manager.IssueTokenPair(t.Context(), Principal{UserID: idgen.New(1001), Roles: []string{"admin"}})
+	require.NoError(t, err)
+
+	resolver := IdentityResolverFunc(func(context.Context, idgen.ID) (Principal, bool, error) {
+		return Principal{}, false, nil
+	})
+	engine := gin.New()
+	engine.Use(JWTMiddleware(manager, resolver, staticRouteSecurityLookup{security: RouteSecurity{AccessMode: AccessModeAuthenticated}}))
+	engine.GET("/api/v1/me", func(c *gin.Context) { c.Status(http.StatusOK) })
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.Header.Set("Authorization", "Bearer "+pair.AccessToken)
+	rec := httptest.NewRecorder()
 	engine.ServeHTTP(rec, req)
 	require.Equal(t, http.StatusUnauthorized, rec.Code)
 }
@@ -151,7 +179,7 @@ func TestJWTMiddlewareRejectsMissingTokenForAuthenticatedRoute(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	engine := gin.New()
-	engine.Use(JWTMiddleware(nil, staticRouteSecurityLookup{
+	engine.Use(JWTMiddleware(nil, nil, staticRouteSecurityLookup{
 		security: RouteSecurity{AccessMode: AccessModeAuthenticated},
 	}))
 	engine.GET("/api/v1/me", func(c *gin.Context) {
@@ -233,7 +261,7 @@ func TestAuthorizationMiddlewareRejectsZeroUserID(t *testing.T) {
 		c.Next()
 	})
 	engine.Use(AuthorizationMiddleware(nil, staticRouteSecurityLookup{
-		security: RouteSecurity{AccessMode: AccessModePermission, Resource: "user", Action: "read"},
+		security: RouteSecurity{AccessMode: AccessModePermission, Permission: "system:user:read"},
 	}))
 	engine.GET("/api/v1/users", func(c *gin.Context) {
 		c.Status(http.StatusOK)
@@ -252,7 +280,7 @@ func TestAuthMiddlewareReusesRouteSecurityLookup(t *testing.T) {
 
 	lookup := &countingRouteSecurityLookup{security: RouteSecurity{AccessMode: AccessModePublic}}
 	engine := gin.New()
-	engine.Use(JWTMiddleware(nil, lookup))
+	engine.Use(JWTMiddleware(nil, nil, lookup))
 	engine.Use(AuthorizationMiddleware(nil, lookup))
 	engine.GET("/api/v1/public", func(c *gin.Context) {
 		c.Status(http.StatusNoContent)
@@ -265,4 +293,10 @@ func TestAuthMiddlewareReusesRouteSecurityLookup(t *testing.T) {
 
 	require.Equal(t, http.StatusNoContent, rec.Code)
 	require.Equal(t, 1, lookup.count)
+}
+
+func activeResolver(roles ...string) IdentityResolver {
+	return IdentityResolverFunc(func(_ context.Context, userID idgen.ID) (Principal, bool, error) {
+		return Principal{UserID: userID, Roles: append([]string(nil), roles...)}, true, nil
+	})
 }

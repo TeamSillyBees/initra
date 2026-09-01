@@ -58,7 +58,7 @@ func (r *RouteRegistry) Lookup(method string, path string) (platformauth.RouteSe
 }
 
 // NewApp 创建集成 Gin、Huma、JWT 与 Casbin 的 Web 应用。
-func NewApp(options Options, logger *logx.Logger, jwtManager *platformauth.JWTManager, enforcer *casbin.Enforcer) (*App, error) {
+func NewApp(options Options, logger *logx.Logger, jwtManager *platformauth.JWTManager, resolver platformauth.IdentityResolver, enforcer *casbin.SyncedEnforcer) (*App, error) {
 	configureGinMode(options.Env)
 	configureHumaErrors()
 
@@ -72,7 +72,7 @@ func NewApp(options Options, logger *logx.Logger, jwtManager *platformauth.JWTMa
 		platformauth.RequestContextMiddleware(),
 		platformauth.RequestLogxMiddleware(logger),
 		platformauth.CORSMiddleware(),
-		platformauth.JWTMiddleware(jwtManager, registry),
+		platformauth.JWTMiddleware(jwtManager, resolver, registry),
 		platformauth.AuthorizationMiddleware(enforcer, registry),
 	)
 

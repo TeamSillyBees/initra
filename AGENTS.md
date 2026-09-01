@@ -117,7 +117,8 @@ internal/modules/<module>/
 - 所有 `/api/` 接口必须通过 `registry.Register` 登记 `RouteSecurity`，鉴权中间件默认 fail-closed。
 - 公开接口，例如登录、注册、验证码和公开内容，必须显式设置 `AccessModePublic`。
 - 登录即可访问的 ToC 接口必须设置 `AccessModeAuthenticated`，只做认证不做 RBAC 授权。
-- 后台管理、运营操作、审核、退款、风控、配置管理等接口必须设置 `AccessModePermission`，其 `Resource`、`Action` 必须与 Casbin policy 文件保持一致。
+- 后台管理、运营操作、审核、退款、风控、配置管理等接口必须设置 `AccessModePermission`，并通过 `Permission` 直接登记稳定权限标识（例如 `system:user:read`）。权限策略唯一事实源是 `sys_role`、`sys_menu`、`sys_role_menu`，禁止重新引入静态 policy 文件。
+- access JWT 只承载用户和会话身份，不保存角色或权限；请求时必须通过 `auth.IdentityResolver` 从共享缓存或数据库解析当前有效用户、角色和超级管理员状态。
 - API 模板的 file 示例模块使用 `storage.provider: local` 展示上传、下载、元信息查询和删除；切换云厂商时只调整 `storage` 配置与 provider。
 - 业务项目在自己的 `internal/boot/config.go` 定义配置结构，并通过 `pkg/config` 泛型加载。
 - `pkg/config` 提供 `LoadInto`、环境覆盖和 `Sanitize`，不绑定业务配置结构。业务项目 boot config 组合 pkg 已有配置结构体（如 `storage.Config`、`redisx.Config`），在聚合 `Validate()` 中调用各配置自身的 `Validate()`，再校验业务字段。

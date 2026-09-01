@@ -26,13 +26,12 @@ import (
 func TestNewAppAllowsCORSPreflightBeforeAuth(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, nil, nil, nil)
+	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, nil, nil, nil, nil)
 	require.NoError(t, err)
 
 	app.Registry.Register(http.MethodGet, "/api/v1/protected", platformauth.RouteSecurity{
 		AccessMode: platformauth.AccessModePermission,
-		Resource:   "user",
-		Action:     "read",
+		Permission: "system:user:read",
 	})
 	app.Engine.GET("/api/v1/protected", func(c *gin.Context) {
 		c.Status(http.StatusOK)
@@ -60,13 +59,12 @@ func TestNewAppLogsUnauthorizedRequests(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, logger, manager, nil)
+	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, logger, manager, nil, nil)
 	require.NoError(t, err)
 
 	app.Registry.Register(http.MethodGet, "/api/v1/protected", platformauth.RouteSecurity{
 		AccessMode: platformauth.AccessModePermission,
-		Resource:   "user",
-		Action:     "read",
+		Permission: "system:user:read",
 	})
 	app.Engine.GET("/api/v1/protected", func(c *gin.Context) {
 		c.Status(http.StatusOK)
@@ -92,7 +90,7 @@ func TestNewAppLogsHumaHandlerServerError(t *testing.T) {
 
 	logger, logPath := newTestLogger(t)
 
-	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, logger, nil, nil)
+	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, logger, nil, nil, nil)
 	require.NoError(t, err)
 
 	app.Registry.Register(http.MethodGet, "/api/v1/fail", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePublic})
@@ -132,17 +130,18 @@ func TestNewAppAcceptsValidJWTForProtectedAPIRoute(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	modelPath, policyPath := writeWebCasbinFiles(t)
-	enforcer, err := platformauth.NewEnforcer(modelPath, policyPath)
+	modelPath := writeWebCasbinModel(t)
+	enforcer, err := platformauth.NewEnforcer(modelPath, platformauth.PolicyLoaderFunc(func(context.Context) ([]platformauth.PolicyRule, error) {
+		return []platformauth.PolicyRule{{RoleCode: "admin", PermissionCode: "system:user:read"}}, nil
+	}))
 	require.NoError(t, err)
 
-	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, nil, manager, enforcer)
+	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, nil, manager, resolverWithRoles("admin"), enforcer)
 	require.NoError(t, err)
 
 	app.Registry.Register(http.MethodGet, "/api/v1/protected", platformauth.RouteSecurity{
 		AccessMode: platformauth.AccessModePermission,
-		Resource:   "user",
-		Action:     "read",
+		Permission: "system:user:read",
 	})
 	app.Engine.GET("/api/v1/protected", func(c *gin.Context) {
 		userID, ok := requestctx.UserIDFromContext(c.Request.Context())
@@ -156,7 +155,7 @@ func TestNewAppAcceptsValidJWTForProtectedAPIRoute(t *testing.T) {
 
 	pair, err := manager.IssueTokenPair(t.Context(), platformauth.Principal{
 		UserID: idgen.New(1001),
-		Roles:  []string{"admin"},
+		Roles:  []string{"revoked-token-role"},
 	})
 	require.NoError(t, err)
 
@@ -181,7 +180,7 @@ func TestNewAppAllowsAuthenticatedAPIRouteWithoutCasbinPolicy(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, nil, manager, nil)
+	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, nil, manager, resolverWithRoles("viewer"), nil)
 	require.NoError(t, err)
 
 	app.Registry.Register(http.MethodGet, "/api/v1/me", platformauth.RouteSecurity{
@@ -222,7 +221,7 @@ func TestNewAppInjectsAuthenticatedContextIntoHumaHandler(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, logger, manager, nil)
+	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, logger, manager, resolverWithRoles("viewer"), nil)
 	require.NoError(t, err)
 
 	app.Registry.Register(http.MethodGet, "/api/v1/context", platformauth.RouteSecurity{
@@ -279,7 +278,7 @@ func TestNewAppInjectsAuthenticatedContextIntoHumaHandler(t *testing.T) {
 func TestNewAppAllowsPublicAPIRouteWithoutToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, nil, nil, nil)
+	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, nil, nil, nil, nil)
 	require.NoError(t, err)
 
 	app.Registry.Register(http.MethodGet, "/api/v1/public", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePublic})
@@ -299,7 +298,7 @@ func TestNewAppAllowsPublicAPIRouteWithoutToken(t *testing.T) {
 func TestNewAppRejectsAPIRouteMissingSecurityMetadata(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, nil, nil, nil)
+	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, nil, nil, nil, nil)
 	require.NoError(t, err)
 
 	app.Engine.GET("/api/v1/unregistered", func(c *gin.Context) {
@@ -326,8 +325,7 @@ func TestRouteRegistryMatchesGinColonParams(t *testing.T) {
 	registry := NewRouteRegistry()
 	expected := platformauth.RouteSecurity{
 		AccessMode: platformauth.AccessModePermission,
-		Resource:   "user",
-		Action:     "read",
+		Permission: "system:user:read",
 	}
 
 	registry.Register(http.MethodGet, "/api/v1/users/{id}", expected)
@@ -337,34 +335,34 @@ func TestRouteRegistryMatchesGinColonParams(t *testing.T) {
 	require.Equal(t, expected, actual)
 }
 
-// writeWebCasbinFiles 为 Web 链路测试写入最小 Casbin 模型和策略文件。
-func writeWebCasbinFiles(t *testing.T) (string, string) {
+// writeWebCasbinModel 为 Web 链路测试写入最小 Casbin 模型。
+func writeWebCasbinModel(t *testing.T) string {
 	t.Helper()
 
 	dir := t.TempDir()
 	modelPath := filepath.Join(dir, "rbac_model.conf")
-	policyPath := filepath.Join(dir, "rbac_policy.csv")
-
 	model := `
 [request_definition]
-r = sub, obj, act
+r = sub, perm
 
 [policy_definition]
-p = sub, obj, act
+p = sub, perm
 
 [policy_effect]
 e = some(where (p.eft == allow))
 
 [matchers]
-m = r.sub == p.sub && r.obj == p.obj && r.act == p.act
-`
-	policy := `
-p, admin, user, read
+m = r.sub == p.sub && r.perm == p.perm
 `
 
 	require.NoError(t, os.WriteFile(modelPath, []byte(strings.TrimSpace(model)), 0o600))
-	require.NoError(t, os.WriteFile(policyPath, []byte(strings.TrimSpace(policy)), 0o600))
-	return modelPath, policyPath
+	return modelPath
+}
+
+func resolverWithRoles(roles ...string) platformauth.IdentityResolver {
+	return platformauth.IdentityResolverFunc(func(_ context.Context, userID idgen.ID) (platformauth.Principal, bool, error) {
+		return platformauth.Principal{UserID: userID, Roles: append([]string(nil), roles...)}, true, nil
+	})
 }
 
 // newTestLogger 创建只写入临时 JSONL 文件的测试 logger。

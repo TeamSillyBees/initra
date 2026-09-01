@@ -74,14 +74,14 @@ func newObservabilityApp(t *testing.T, readiness *observability.ReadinessRegistr
 	})
 	require.NoError(t, err)
 
-	enforcer, err := casbin.NewEnforcer()
+	enforcer, err := casbin.NewSyncedEnforcer()
 	require.NoError(t, err)
 
 	app, err := server.NewApp(server.Options{
 		Title:   "initra",
 		Version: "test",
 		Env:     "test",
-	}, logger, jwtManager, enforcer)
+	}, logger, jwtManager, nil, enforcer)
 	require.NoError(t, err)
 
 	module := observability.NewModule(observability.BuildInfoVO{

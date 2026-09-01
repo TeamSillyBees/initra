@@ -4,11 +4,13 @@ import (
 	"database/sql"
 
 	"github.com/samber/do"
+	"github.com/teamsillybees/initra/examples/internal/accesscontrol"
 	"github.com/teamsillybees/initra/examples/internal/data"
 	"github.com/teamsillybees/initra/examples/internal/data/ent"
 	authmodule "github.com/teamsillybees/initra/examples/internal/modules/auth"
 	filemodule "github.com/teamsillybees/initra/examples/internal/modules/file"
 	httpdemomodule "github.com/teamsillybees/initra/examples/internal/modules/httpdemo"
+	rbacmodule "github.com/teamsillybees/initra/examples/internal/modules/rbac"
 	taskdemomodule "github.com/teamsillybees/initra/examples/internal/modules/taskdemo"
 	usermodule "github.com/teamsillybees/initra/examples/internal/modules/user"
 	"github.com/teamsillybees/initra/pkg/auth"
@@ -44,6 +46,13 @@ func registerProviders(injector *do.Injector, cfg *Config, buildInfo observabili
 		db := do.MustInvoke[*sql.DB](i)
 		return data.NewEntClientFromDB(db, generator), nil
 	})
+	accesscontrol.Provide(injector, accesscontrol.Options{
+		AppName:      cfg.App.Slug,
+		Env:          cfg.App.Env,
+		InstanceID:   cfg.App.InstanceID,
+		CacheTTL:     cfg.Cache.RemoteTTL,
+		RedisEnabled: cfg.Redis.Enabled,
+	})
 	auth.Register(injector, auth.RegisterOptions{
 		AppName:          cfg.App.Slug,
 		Env:              cfg.App.Env,
@@ -55,8 +64,7 @@ func registerProviders(injector *do.Injector, cfg *Config, buildInfo observabili
 			AccessTokenTTL:  cfg.Auth.AccessTokenTTL,
 			RefreshTokenTTL: cfg.Auth.RefreshTokenTTL,
 		},
-		CasbinModelPath:  cfg.Casbin.ModelPath,
-		CasbinPolicyPath: cfg.Casbin.PolicyPath,
+		CasbinModelPath: cfg.Casbin.ModelPath,
 	})
 	server.Register(injector, server.Options{
 		Title:   cfg.App.Name,
@@ -73,6 +81,7 @@ func registerModules(injector *do.Injector, cfg *Config) {
 	filemodule.Provide(injector, storageproviderMaxFileSize(cfg))
 	httpdemomodule.Provide(injector)
 	taskdemomodule.Provide(injector)
+	rbacmodule.Provide(injector)
 }
 
 func storageproviderMaxFileSize(cfg *Config) int64 {
@@ -97,4 +106,5 @@ func registerRoutes(
 	do.MustInvoke[*filemodule.Module](injector).Register(webApp.API, webApp.Registry)
 	do.MustInvoke[*httpdemomodule.Module](injector).Register(webApp.API, webApp.Registry)
 	do.MustInvoke[*taskdemomodule.Module](injector).Register(webApp.API, webApp.Registry)
+	do.MustInvoke[*rbacmodule.Module](injector).Register(webApp.API, webApp.Registry)
 }

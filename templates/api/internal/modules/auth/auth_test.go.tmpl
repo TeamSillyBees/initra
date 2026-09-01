@@ -207,7 +207,6 @@ func TestServiceRefreshIssuesNewAccessToken(t *testing.T) {
 	claims, err := tokenManager.ParseAccessToken(context.Background(), vo.AccessToken)
 	require.NoError(t, err)
 	require.Equal(t, idgen.New(1001), claims.UserID)
-	require.Equal(t, []string{"admin"}, claims.Roles)
 
 	_, err = tokenManager.ValidateRefreshToken(context.Background(), pair.RefreshToken)
 	require.Error(t, err)

@@ -74,10 +74,9 @@ type FeatureConfig struct {
 	Enabled bool `mapstructure:"enabled"`
 }
 
-// CasbinConfig 描述权限模型与策略文件路径。
+// CasbinConfig 描述权限模型路径；策略唯一来源为业务数据库。
 type CasbinConfig struct {
-	ModelPath  string `mapstructure:"model_path"`
-	PolicyPath string `mapstructure:"policy_path"`
+	ModelPath string `mapstructure:"model_path"`
 }
 
 // CacheConfig 描述多级缓存的默认 TTL。
@@ -164,8 +163,6 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("auth.refresh_token_ttl 必须大于 auth.access_token_ttl")
 	case c.Casbin.ModelPath == "":
 		return fmt.Errorf("casbin.model_path 不能为空")
-	case c.Casbin.PolicyPath == "":
-		return fmt.Errorf("casbin.policy_path 不能为空")
 	case c.IDGen.Node < 0 || c.IDGen.Node > 1023:
 		return fmt.Errorf("idgen.node 必须显式配置为 0 到 1023 之间的实例唯一值")
 	}
@@ -232,7 +229,6 @@ func configDefaults() map[string]any {
 		"log.redact.fields":                                  []string{"password", "token", "secret", "authorization", "dsn"},
 		"observability.health.enabled":                       true,
 		"casbin.model_path":                                  "",
-		"casbin.policy_path":                                 "",
 		"cache.local_ttl":                                    "1m",
 		"cache.remote_ttl":                                   "10m",
 		"idgen.node":                                         int64(-1),

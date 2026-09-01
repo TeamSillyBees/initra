@@ -12,7 +12,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	apperrors "github.com/teamsillybees/initra/pkg/errors"
-	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/requestctx"
 )
@@ -48,7 +47,7 @@ func RequestContextMiddleware() gin.HandlerFunc {
 }
 
 // JWTMiddleware 在进入业务处理前完成 JWT 身份解析。
-func JWTMiddleware(manager *JWTManager, lookup RouteSecurityLookup) gin.HandlerFunc {
+func JWTMiddleware(manager *JWTManager, resolver IdentityResolver, lookup RouteSecurityLookup) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.Method == http.MethodOptions || shouldSkipAuth(c.Request.URL.Path) {
 			c.Next()
@@ -78,6 +77,11 @@ func JWTMiddleware(manager *JWTManager, lookup RouteSecurityLookup) gin.HandlerF
 			return
 		}
 
+		if manager == nil || resolver == nil {
+			writeError(c, apperrors.New(apperrors.CodeInternalError, "authorization identity service is unavailable"))
+			return
+		}
+
 		claims, err := manager.ParseAccessToken(c.Request.Context(), token)
 		if err != nil {
 			if errors.Is(err, ErrTokenStoreFailure) {
@@ -95,18 +99,26 @@ func JWTMiddleware(manager *JWTManager, lookup RouteSecurityLookup) gin.HandlerF
 			return
 		}
 
-		c.Request = c.Request.WithContext(WithPrincipal(c.Request.Context(), Principal{
-			UserID:   claims.UserID,
-			Roles:    claims.Roles,
-			TenantID: claims.TenantID,
-		}))
+		principal, found, err := resolver.ResolvePrincipal(c.Request.Context(), claims.UserID)
+		if err != nil {
+			writeError(c, apperrors.WrapContext(c.Request.Context(), err, apperrors.CodeInternalError, "resolve authorization identity failed",
+				apperrors.WithCauseDomain(apperrors.DomainAuth),
+			))
+			return
+		}
+		if !found || principal.UserID != claims.UserID {
+			writeError(c, apperrors.New(apperrors.CodeUnauthorized, "authorization identity is disabled or missing"))
+			return
+		}
+		principal.TenantID = claims.TenantID
+		c.Request = c.Request.WithContext(WithPrincipal(c.Request.Context(), principal))
 
 		c.Next()
 	}
 }
 
 // AuthorizationMiddleware 在身份校验后，基于 Casbin 策略继续完成授权判断。
-func AuthorizationMiddleware(enforcer *casbin.Enforcer, lookup RouteSecurityLookup) gin.HandlerFunc {
+func AuthorizationMiddleware(enforcer *casbin.SyncedEnforcer, lookup RouteSecurityLookup) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.Method == http.MethodOptions || shouldSkipAuth(c.Request.URL.Path) {
 			c.Next()
@@ -131,28 +143,27 @@ func AuthorizationMiddleware(enforcer *casbin.Enforcer, lookup RouteSecurityLook
 			writeError(c, apperrors.New(apperrors.CodeForbidden, "route security metadata is incomplete"))
 			return
 		}
-		if security.Resource == "" || security.Action == "" {
+		if strings.TrimSpace(security.Permission) == "" {
 			writeError(c, apperrors.New(apperrors.CodeForbidden, "route security metadata is incomplete"))
 			return
 		}
 
-		userID, ok := requestctx.UserIDFromContext(c.Request.Context())
+		principal, ok := PrincipalFromContext(c.Request.Context())
 		if !ok {
-			writeError(c, apperrors.New(apperrors.CodeUnauthorized, "user_id is missing"))
+			writeError(c, apperrors.New(apperrors.CodeUnauthorized, "authorization identity is missing"))
 			return
 		}
-		if _, err := idgen.Parse(strings.TrimSpace(userID)); err != nil {
-			writeError(c, apperrors.New(apperrors.CodeUnauthorized, "user_id is invalid"))
+		if principal.IsSuperAdmin {
+			c.Next()
 			return
 		}
-		roles, ok := requestctx.RolesFromContext(c.Request.Context())
-		if !ok {
-			writeError(c, apperrors.New(apperrors.CodeUnauthorized, "roles are missing"))
+		if enforcer == nil {
+			writeError(c, apperrors.New(apperrors.CodeInternalError, "authorization policy service is unavailable"))
 			return
 		}
 
-		for _, role := range roles {
-			allowed, err := enforcer.Enforce(role, security.Resource, security.Action)
+		for _, role := range principal.Roles {
+			allowed, err := enforcer.Enforce(role, security.Permission)
 			if err != nil {
 				writeError(c, apperrors.WrapContext(c.Request.Context(), err, apperrors.CodeInternalError, "authorize request failed",
 					apperrors.WithCauseDomain(apperrors.DomainAuth),

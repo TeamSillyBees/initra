@@ -171,9 +171,11 @@ func TestJWTManagerIssuesAndParsesTokens(t *testing.T) {
 	accessClaims, err := manager.ParseAccessToken(context.Background(), pair.AccessToken)
 	require.NoError(t, err)
 	require.Equal(t, idgen.New(1001), accessClaims.UserID)
-	require.Equal(t, []string{"admin"}, accessClaims.Roles)
 	require.Equal(t, TokenTypeAccess, accessClaims.TokenType)
 	require.NotEmpty(t, accessClaims.ID)
+	unverified, _, err := new(jwt.Parser).ParseUnverified(pair.AccessToken, jwt.MapClaims{})
+	require.NoError(t, err)
+	require.NotContains(t, unverified.Claims.(jwt.MapClaims), "roles")
 
 	_, _, err = new(jwt.Parser).ParseUnverified(pair.RefreshToken, &Claims{})
 	require.Error(t, err)

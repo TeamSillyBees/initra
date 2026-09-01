@@ -115,6 +115,19 @@ func (s *Service) page(ctx context.Context, input PageUsersQuery) ([]*User, int3
 
 func (s *Service) updateEnt(ctx context.Context, user *User) error {
 	return data.WithinTx(ctx, s.client, func(txCtx context.Context, txClient *appent.Client) error {
+		current, err := txClient.SysUser.Query().Where(sysuser.ID(user.ID), sysuser.DeletedAtIsNil()).Only(txCtx)
+		if appent.IsNotFound(err) {
+			return nil
+		}
+		if err != nil {
+			return bizerrors.WrapDBContext(txCtx, err, "query current user failed")
+		}
+		if current.IsSuperAdmin && current.IsEnable && (!user.IsSuperAdmin || !user.IsEnable) {
+			if err := ensureAnotherSuperAdmin(txCtx, txClient, user.ID); err != nil {
+				return err
+			}
+		}
+
 		update := txClient.SysUser.UpdateOneID(user.ID).
 			Where(sysuser.DeletedAtIsNil()).
 			SetIsSuperAdmin(user.IsSuperAdmin).
@@ -151,6 +164,19 @@ func (s *Service) updateEnt(ctx context.Context, user *User) error {
 
 func (s *Service) deleteEnt(ctx context.Context, id idgen.ID) error {
 	return data.WithinTx(ctx, s.client, func(txCtx context.Context, txClient *appent.Client) error {
+		current, err := txClient.SysUser.Query().Where(sysuser.ID(id), sysuser.DeletedAtIsNil()).Only(txCtx)
+		if appent.IsNotFound(err) {
+			return nil
+		}
+		if err != nil {
+			return bizerrors.WrapDBContext(txCtx, err, "query current user failed")
+		}
+		if current.IsSuperAdmin && current.IsEnable {
+			if err := ensureAnotherSuperAdmin(txCtx, txClient, id); err != nil {
+				return err
+			}
+		}
+
 		if _, err := txClient.SysUser.Update().
 			Where(
 				sysuser.ID(id),
@@ -172,6 +198,23 @@ func (s *Service) deleteEnt(ctx context.Context, id idgen.ID) error {
 		}
 		return nil
 	})
+}
+
+// ensureAnotherSuperAdmin 防止删除、禁用或降级最后一个有效超级管理员。
+func ensureAnotherSuperAdmin(ctx context.Context, client *appent.Client, excludedID idgen.ID) error {
+	count, err := client.SysUser.Query().Where(
+		sysuser.IDNEQ(excludedID),
+		sysuser.DeletedAtIsNil(),
+		sysuser.IsEnable(true),
+		sysuser.IsSuperAdmin(true),
+	).Count(ctx)
+	if err != nil {
+		return bizerrors.WrapDBContext(ctx, err, "count active super administrators failed")
+	}
+	if count == 0 {
+		return bizerrors.BadRequest("the last active super administrator cannot be disabled, downgraded, or deleted")
+	}
+	return nil
 }
 
 func mapEntWriteError(ctx context.Context, err error, message string) error {

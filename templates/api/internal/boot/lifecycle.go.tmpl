@@ -13,6 +13,11 @@ import (
 
 // Run 启动 HTTP 服务并在收到上游取消信号后优雅关闭。
 func (a *Application) Run(ctx context.Context) error {
+	if a.AccessControl != nil {
+		if err := a.AccessControl.Start(ctx); err != nil {
+			return errors.Join(err, a.shutdownWithTimeout())
+		}
+	}
 	if err := a.startTaskRunners(ctx); err != nil {
 		return errors.Join(err, a.shutdownWithTimeout())
 	}
@@ -106,6 +111,11 @@ func (a *Application) Shutdown(ctx context.Context) error {
 		}
 	}
 
+	if a.AccessControl != nil {
+		if err := a.AccessControl.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("close access control subscriber: %w", err))
+		}
+	}
 	if a.DB != nil {
 		if err := a.DB.Close(); err != nil {
 			errs = append(errs, fmt.Errorf("close database: %w", err))
