@@ -91,7 +91,7 @@ internal/modules/<module>/
 - 认证 token store 默认使用 Redis；只有 dev/local/test 环境显式设置 `auth.allow_memory_token_store: true` 才允许内存 store，其他环境必须 fail-closed。
 - 缓存能力优先复用 `pkg/cache`，业务侧保留明确的 key 命名、TTL 和失效策略；不要把 Redis value、验证码、session value 或 token 写入日志。
 - 文件与对象存储业务能力优先使用 `pkg/storage` 的统一接口和 `pkg/storage/provider` 工厂；业务模块不要直接依赖云厂商 SDK。
-- HTTP Client 在启动层通过 `httpclient.Register(injector, cfg.HTTPClient)` 统一装配；业务 Service 依赖 `ReadCaller` 等最小接口，模块使用 `httpclient.ProvideConsumer` 绑定命名客户端。
+- HTTP Client 在启动层通过 `httpclient.Register(injector, cfg.HTTPClient)` 统一装配；业务 Service 依赖 `httpclient.Executor`，模块使用 `httpclient.Provide` 绑定命名客户端。trace/request ID 由请求上下文自动透传，不在业务调用中重复拼 Header。
 - `Application` 根据 `task.worker.enabled` 和 `task.scheduler.enabled` 按需解析、启动和关闭 Worker/Scheduler；禁用时不解析对应 provider。启用 Worker 时，`server.shutdown_timeout` 不得小于 `task.worker.shutdown_timeout`。新增任务 handler 或周期任务时通过 `pkg/task` 在启动前完成注册，业务代码不得直接 import `github.com/hibiken/asynq`。
 - 任务队列按 at-least-once 模型设计，不承诺 exactly-once；`biz_key` 是业务幂等键，外部副作用任务必须由业务侧保证幂等。
 

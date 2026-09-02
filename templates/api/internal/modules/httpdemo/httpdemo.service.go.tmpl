@@ -3,6 +3,7 @@ package httpdemo
 import (
 	"context"
 	"errors"
+	"net/http"
 	"strings"
 
 	"{{ .ModulePath }}/internal/modules/bizerrors"
@@ -13,16 +14,16 @@ const defaultMessage = "hello from initra"
 
 // Service 是 httpdemo 示例模块的应用服务。
 type Service struct {
-	client httpclient.ReadCaller
+	client httpclient.Executor
 }
 
 // NewService 构造 httpdemo 示例模块应用服务。
-func NewService(client httpclient.ReadCaller) *Service {
+func NewService(client httpclient.Executor) *Service {
 	return &Service{client: client}
 }
 
 // GetHTTPBingo 调用 HTTPBingo /get 并返回 JSON 回显结果。
-func (s *Service) GetHTTPBingo(ctx context.Context, message string, traceID string) (HTTPBingoGetVO, error) {
+func (s *Service) GetHTTPBingo(ctx context.Context, message string) (HTTPBingoGetVO, error) {
 	if err := s.ensureClient(); err != nil {
 		return HTTPBingoGetVO{}, err
 	}
@@ -30,10 +31,8 @@ func (s *Service) GetHTTPBingo(ctx context.Context, message string, traceID stri
 	if message == "" {
 		message = defaultMessage
 	}
-	payload := httpBingoGetPayload{}
-	err := s.client.GetJSON(ctx, "/get", &payload,
+	payload, err := httpclient.GetJSON[httpBingoGetPayload](ctx, s.client, "/get",
 		httpclient.WithQuery("message", message),
-		httpclient.WithHeader("X-Trace-ID", strings.TrimSpace(traceID)),
 	)
 	if err != nil {
 		return HTTPBingoGetVO{}, mapHTTPClientError(ctx, err, "call httpbingo get failed")
@@ -42,13 +41,11 @@ func (s *Service) GetHTTPBingo(ctx context.Context, message string, traceID stri
 }
 
 // GetHTTPBingoFormPage 调用 HTTPBingo /forms/post 并返回 HTML 表单页内容。
-func (s *Service) GetHTTPBingoFormPage(ctx context.Context, traceID string) (HTTPBingoFormPageVO, error) {
+func (s *Service) GetHTTPBingoFormPage(ctx context.Context) (HTTPBingoFormPageVO, error) {
 	if err := s.ensureClient(); err != nil {
 		return HTTPBingoFormPageVO{}, err
 	}
-	body, resp, err := s.client.GetBytes(ctx, "/forms/post",
-		httpclient.WithHeader("X-Trace-ID", strings.TrimSpace(traceID)),
-	)
+	body, resp, err := httpclient.DoBytes(ctx, s.client, http.MethodGet, "/forms/post")
 	if err != nil {
 		return HTTPBingoFormPageVO{}, mapHTTPClientError(ctx, err, "call httpbingo form page failed")
 	}

@@ -104,12 +104,6 @@ auth:
   jwt:
     issuer: initra
     secret: "local-only-change-me-0123456789abcdef"
-httpclient:
-  clients:
-    demo:
-      headers:
-        app_id: initra-httpdemo
-        X-App-Id: initra
 `
 	rendered, err := transformTemplateContent("configs/config.yaml", config)
 	if err != nil {

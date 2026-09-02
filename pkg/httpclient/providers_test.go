@@ -36,7 +36,7 @@ func TestRegisterProvidesNamedServiceClient(t *testing.T) {
 	require.Same(t, sameClient, client)
 }
 
-func TestProvideConsumerInjectsNamedServiceClient(t *testing.T) {
+func TestProvideInjectsNamedServiceExecutor(t *testing.T) {
 	injector := do.New()
 	do.ProvideValue(injector, logx.NewNop())
 	Register(injector, Config{
@@ -45,18 +45,18 @@ func TestProvideConsumerInjectsNamedServiceClient(t *testing.T) {
 			"httpbingo": {BaseURL: "https://httpbingo.org"},
 		},
 	})
-	ProvideConsumer(injector, "consumer", "httpbingo", newTestConsumer)
+	Provide(injector, "httpbingo", newTestConsumer)
 
-	consumer := do.MustInvokeNamed[*testConsumer](injector, "consumer")
+	consumer := do.MustInvoke[*testConsumer](injector)
 	client := do.MustInvokeNamed[*Client](injector, ClientName("httpbingo"))
 
 	require.Same(t, client, consumer.client)
 }
 
 type testConsumer struct {
-	client ReadCaller
+	client Executor
 }
 
-func newTestConsumer(client ReadCaller) *testConsumer {
+func newTestConsumer(client Executor) *testConsumer {
 	return &testConsumer{client: client}
 }

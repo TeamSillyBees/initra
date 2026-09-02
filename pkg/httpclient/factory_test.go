@@ -67,9 +67,6 @@ func newTestFactory(t *testing.T, baseURL string, override ServiceConfig) *Facto
 	if override.Proxy != "" {
 		service.Proxy = override.Proxy
 	}
-	if override.Properties != nil {
-		service.Properties = override.Properties
-	}
 	factory, err := NewFactory(Config{
 		Enabled: true,
 		Services: map[string]ServiceConfig{

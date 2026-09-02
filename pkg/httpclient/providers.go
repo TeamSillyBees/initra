@@ -16,31 +16,38 @@ func ClientName(serviceName string) string {
 
 // Register 将 HTTP Client 工厂和已配置服务的命名 Client 注册到 DI 容器。
 //
-// 调用方需要先向容器注册 *logx.Logger。业务模块可通过
-// do.MustInvokeNamed[*httpclient.Client](injector, httpclient.ClientName("service"))
-// 直接依赖指定服务的 Client，避免自行感知 Factory 创建细节。
-func Register(injector *do.Injector, cfg Config) {
+// 调用方需要先向容器注册 *logx.Logger。业务模块优先使用 Provide 将命名服务
+// 注入 Executor；只有依赖 Client 专有能力时才显式解析 ClientName。
+func Register(injector *do.Injector, cfg Config, options ...FactoryOption) {
 	do.Provide(injector, func(i *do.Injector) (*Factory, error) {
 		logger := do.MustInvoke[*logx.Logger](i)
-		return NewFactory(cfg, logger)
+		return NewFactory(cfg, logger, options...)
 	})
 	for serviceName := range cfg.Services {
 		registerClient(injector, serviceName)
 	}
 }
 
-// ProvideConsumer 注册依赖指定远程服务 Client 的业务组件。
-//
-// constructor 的入参可以是 *Client，也可以是 Getter、ReadCaller、Caller 等
-// 由 *Client 实现的接口，用于减少业务模块中重复解析命名 Client 的胶水代码。
-func ProvideConsumer[T any, D any](injector *do.Injector, providerName string, serviceName string, constructor func(D) *T) {
-	do.ProvideNamed(injector, providerName, func(i *do.Injector) (*T, error) {
-		client := do.MustInvokeNamed[*Client](i, ClientName(serviceName))
-		dependency, ok := any(client).(D)
-		if !ok {
-			return nil, fmt.Errorf("%w: %s client does not satisfy consumer dependency", ErrUnsupported, serviceName)
+// Provide 注册只依赖一个远程服务 Executor 的业务组件。
+// 业务类型在不同 package 中天然具有不同 DI 类型名，因此无需额外维护 providerName。
+func Provide[T any](injector *do.Injector, serviceName string, constructor func(Executor) *T) {
+	do.Provide(injector, func(i *do.Injector) (*T, error) {
+		client, err := do.InvokeNamed[*Client](i, ClientName(serviceName))
+		if err != nil {
+			return nil, fmt.Errorf("resolve HTTP client %s: %w", serviceName, err)
 		}
-		return constructor(dependency), nil
+		return constructor(client), nil
+	})
+}
+
+// ProvideE 注册构造过程可能失败、且只依赖一个远程服务 Executor 的业务组件。
+func ProvideE[T any](injector *do.Injector, serviceName string, constructor func(Executor) (*T, error)) {
+	do.Provide(injector, func(i *do.Injector) (*T, error) {
+		client, err := do.InvokeNamed[*Client](i, ClientName(serviceName))
+		if err != nil {
+			return nil, fmt.Errorf("resolve HTTP client %s: %w", serviceName, err)
+		}
+		return constructor(client)
 	})
 }
 

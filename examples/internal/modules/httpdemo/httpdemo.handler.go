@@ -3,7 +3,6 @@ package httpdemo
 import (
 	"context"
 
-	"github.com/teamsillybees/initra/pkg/requestctx"
 	"github.com/teamsillybees/initra/pkg/response"
 )
 
@@ -18,8 +17,7 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) get(ctx context.Context, input *getHTTPBingoRequest) (*getHTTPBingoResponse, error) {
-	traceID := traceIDFromContext(ctx)
-	vo, err := h.service.GetHTTPBingo(ctx, input.Message, traceID)
+	vo, err := h.service.GetHTTPBingo(ctx, input.Message)
 	if err != nil {
 		return nil, err
 	}
@@ -29,17 +27,11 @@ func (h *Handler) get(ctx context.Context, input *getHTTPBingoRequest) (*getHTTP
 }
 
 func (h *Handler) formPage(ctx context.Context, input *getHTTPBingoFormPageRequest) (*getHTTPBingoFormPageResponse, error) {
-	traceID := traceIDFromContext(ctx)
-	vo, err := h.service.GetHTTPBingoFormPage(ctx, traceID)
+	vo, err := h.service.GetHTTPBingoFormPage(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return &getHTTPBingoFormPageResponse{
 		Body: response.OK(ctx, vo),
 	}, nil
-}
-
-func traceIDFromContext(ctx context.Context) string {
-	traceID, _ := requestctx.TraceIDFromContext(ctx)
-	return traceID
 }

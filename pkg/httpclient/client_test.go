@@ -14,6 +14,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/teamsillybees/initra/pkg/logx"
+	"github.com/teamsillybees/initra/pkg/requestctx"
 )
 
 type userVO struct {
@@ -42,7 +43,7 @@ func TestClientGetJSONWithHeadersQueryAndPathParams(t *testing.T) {
 	)
 
 	require.NoError(t, err)
-	require.Equal(t, &userVO{ID: "42", Name: "alice"}, got)
+	require.Equal(t, userVO{ID: "42", Name: "alice"}, got)
 }
 
 func TestClientPostJSONBody(t *testing.T) {
@@ -65,23 +66,7 @@ func TestClientPostJSONBody(t *testing.T) {
 	require.Equal(t, "alice", got.Name)
 }
 
-func TestClientGetJSONMethod(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/users/7", r.URL.Path)
-		writeJSON(t, w, userVO{ID: "7", Name: "bob"})
-	}))
-	defer server.Close()
-
-	client := newTestClient(t, server.URL, ServiceConfig{})
-	var got userVO
-
-	err := client.GetJSON(context.Background(), "/users/7", &got)
-
-	require.NoError(t, err)
-	require.Equal(t, userVO{ID: "7", Name: "bob"}, got)
-}
-
-func TestClientGetBytes(t *testing.T) {
+func TestDoBytes(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, "/page", r.URL.Path)
 		w.Header().Set("Content-Type", "text/html")
@@ -91,30 +76,12 @@ func TestClientGetBytes(t *testing.T) {
 
 	client := newTestClient(t, server.URL, ServiceConfig{})
 
-	body, resp, err := client.GetBytes(context.Background(), "/page")
+	body, resp, err := DoBytes(context.Background(), client, http.MethodGet, "/page")
 
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	require.Equal(t, "text/html", resp.Header.Get("Content-Type"))
 	require.Equal(t, []byte("<html>ok</html>"), body)
-}
-
-func TestClientProperties(t *testing.T) {
-	client := newTestClient(t, "http://example.test", ServiceConfig{
-		Properties: map[string]string{
-			"app_id": "initra",
-		},
-	})
-
-	appID, ok := client.GetProperty("app_id")
-	properties := client.Properties()
-	properties["app_id"] = "changed"
-	unchangedAppID, _ := client.GetProperty("app_id")
-
-	require.True(t, ok)
-	require.Equal(t, "initra", appID)
-	require.Equal(t, "initra", unchangedAppID)
-	require.Equal(t, map[string]string{"app_id": "initra"}, client.Properties())
 }
 
 func TestClientMethods(t *testing.T) {
@@ -364,13 +331,16 @@ func TestClientResponseAndParseErrors(t *testing.T) {
 
 		client := newTestClient(t, server.URL, ServiceConfig{})
 
-		_, err := client.Get(context.Background(), "/missing")
+		resp, err := client.Get(context.Background(), "/missing")
 
 		var httpErr *Error
 		require.Error(t, err)
 		require.True(t, errors.As(err, &httpErr))
 		require.Equal(t, ErrorKindResponse, httpErr.Kind)
 		require.Equal(t, http.StatusNotFound, httpErr.StatusCode)
+		require.Equal(t, http.StatusNotFound, resp.StatusCode)
+		require.Same(t, resp, httpErr.Response)
+		require.Contains(t, resp.String(), "not found")
 	})
 
 	t.Run("invalid json", func(t *testing.T) {
@@ -412,9 +382,9 @@ func TestClientLogsWithoutSensitiveHeaders(t *testing.T) {
 	client, err := factory.Get("svc")
 	require.NoError(t, err)
 
-	_, err = client.Get(context.Background(), "/ping?token=secret",
+	ctx := requestctx.WithTraceID(context.Background(), "trace-1")
+	_, err = client.Get(ctx, "/ping?token=secret",
 		WithHeader("Authorization", "Bearer secret"),
-		WithHeader("X-Trace-ID", "trace-1"),
 	)
 
 	require.NoError(t, err)
@@ -428,51 +398,36 @@ func TestClientLogsWithoutSensitiveHeaders(t *testing.T) {
 	require.NotContains(t, body, "secret")
 }
 
-func TestClientErrorBodyPreviewIsOptIn(t *testing.T) {
-	const marker = "remote-debug-marker"
-	tests := []struct {
-		name        string
-		includeBody bool
-	}{
-		{name: "default hides body"},
-		{name: "explicit preview includes body", includeBody: true},
+func TestClientDecodesStructuredErrorWithoutLoggingBody(t *testing.T) {
+	logger, logPath := newHTTPClientTestLogger(t)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", jsonContentType)
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		require.NoError(t, json.NewEncoder(w).Encode(map[string]string{"code": "invalid_name"}))
+	}))
+	defer server.Close()
+
+	factory, err := NewFactory(Config{
+		Enabled: true,
+		Services: map[string]ServiceConfig{
+			"svc": {BaseURL: server.URL},
+		},
+	}, logger)
+	require.NoError(t, err)
+	client, err := factory.Get("svc")
+	require.NoError(t, err)
+
+	var errorBody struct {
+		Code string `json:"code"`
 	}
+	resp, err := client.Get(context.Background(), "/failure", WithErrorResult(&errorBody))
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			logger, logPath := newHTTPClientTestLogger(t)
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				http.Error(w, marker, http.StatusBadGateway)
-			}))
-			defer server.Close()
-
-			factory, err := NewFactory(Config{
-				Enabled: true,
-				Services: map[string]ServiceConfig{
-					"svc": {
-						BaseURL:  server.URL,
-						Response: ResponseConfig{ErrorBodyPreview: tt.includeBody},
-					},
-				},
-			}, logger)
-			require.NoError(t, err)
-			client, err := factory.Get("svc")
-			require.NoError(t, err)
-
-			_, err = client.Get(context.Background(), "/failure")
-			var httpErr *Error
-			require.ErrorAs(t, err, &httpErr)
-			require.NoError(t, logger.Sync())
-			logBody := readHTTPClientLogFile(t, logPath)
-			if tt.includeBody {
-				require.Contains(t, httpErr.Message, marker)
-				require.Contains(t, logBody, marker)
-			} else {
-				require.Equal(t, "502 Bad Gateway", httpErr.Message)
-				require.NotContains(t, logBody, marker)
-			}
-		})
-	}
+	require.Error(t, err)
+	require.True(t, IsStatus(err, http.StatusUnprocessableEntity))
+	require.Equal(t, "invalid_name", errorBody.Code)
+	require.Same(t, &errorBody, resp.ErrorResult)
+	require.NoError(t, logger.Sync())
+	require.NotContains(t, readHTTPClientLogFile(t, logPath), "invalid_name")
 }
 
 func newTestClient(t *testing.T, baseURL string, override ServiceConfig) *Client {

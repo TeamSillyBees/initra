@@ -21,7 +21,7 @@ const (
 	maskedValue                = "***"
 )
 
-// AuthType 表示远程服务请求认证方式。
+// AuthType 表示远程服务的静态认证方式。动态凭证或请求签名应使用 RequestHook。
 type AuthType string
 
 const (
@@ -33,23 +33,12 @@ const (
 	AuthTypeBasic AuthType = "basic"
 	// AuthTypeAPIKey 表示在指定 Header 中放置 API Key。
 	AuthTypeAPIKey AuthType = "api_key"
-	// AuthTypeCustomHeader 表示添加静态认证 Header。
+	// AuthTypeCustomHeader 表示添加一组静态认证 Header。
 	AuthTypeCustomHeader AuthType = "custom_header"
 )
 
-// ResponseType 表示响应解析模式。
-type ResponseType string
-
-const (
-	// ResponseTypeJSON 表示按 JSON 响应处理。
-	ResponseTypeJSON ResponseType = "json"
-	// ResponseTypeRaw 表示保留原始响应体。
-	ResponseTypeRaw ResponseType = "raw"
-	// ResponseTypeStandardAPI 表示 code/message/data 标准响应；当前预留给 V2。
-	ResponseTypeStandardAPI ResponseType = "standard_api"
-)
-
-// Config 描述 HTTP Client 全局配置。
+// Config 描述 HTTP Client 全局配置。除 Enabled 和 Services 外的字段都有安全默认值，
+// 普通业务配置通常只需要声明 services.<name>.base_url。
 type Config struct {
 	Enabled             bool                     `mapstructure:"enabled"`
 	Timeout             time.Duration            `mapstructure:"timeout"`
@@ -71,13 +60,11 @@ type ServiceConfig struct {
 	Headers             map[string]string `mapstructure:"headers"`
 	Auth                AuthConfig        `mapstructure:"auth"`
 	Retry               RetryConfig       `mapstructure:"retry"`
-	Response            ResponseConfig    `mapstructure:"response"`
 	MaxResponseBodySize int64             `mapstructure:"max_response_body_size"`
 	Proxy               string            `mapstructure:"proxy"`
-	Properties          map[string]string `mapstructure:"properties"`
 }
 
-// AuthConfig 描述远程服务认证配置。
+// AuthConfig 描述远程服务的静态认证配置。
 type AuthConfig struct {
 	Type     AuthType          `mapstructure:"type"`
 	Token    string            `mapstructure:"token"`
@@ -88,7 +75,7 @@ type AuthConfig struct {
 	Headers  map[string]string `mapstructure:"headers"`
 }
 
-// RetryConfig 描述远程服务重试配置。
+// RetryConfig 描述远程服务重试配置。POST 和 PATCH 仅在单次请求显式标记安全时重试。
 type RetryConfig struct {
 	Enabled          bool          `mapstructure:"enabled"`
 	Count            int           `mapstructure:"count"`
@@ -99,15 +86,9 @@ type RetryConfig struct {
 	RetryAll5xx      bool          `mapstructure:"retry_all_5xx"`
 }
 
-// ResponseConfig 描述远程服务响应解析配置。
-type ResponseConfig struct {
-	Type             ResponseType `mapstructure:"type"`
-	ErrorBodyPreview bool         `mapstructure:"error_body_preview"`
-}
-
-// Validate 校验 HTTP Client 配置。
+// Validate 校验 HTTP Client 配置。未启用或没有远程服务时配置有效，便于项目按需接入。
 func (c Config) Validate() error {
-	if !c.Enabled {
+	if !c.Enabled || len(c.Services) == 0 {
 		return nil
 	}
 	cfg := c.withDefaults()
@@ -131,9 +112,6 @@ func (c Config) Validate() error {
 	}
 	if err := validateProxyURL("http_client.proxy", cfg.Proxy); err != nil {
 		return err
-	}
-	if len(cfg.Services) == 0 {
-		return fmt.Errorf("%w: http_client.services 至少配置一个远程服务", ErrInvalidConfig)
 	}
 	for name, service := range cfg.Services {
 		if strings.TrimSpace(name) == "" {
@@ -200,9 +178,6 @@ func (c ServiceConfig) withDefaults(global Config) ServiceConfig {
 	if c.Timeout == 0 {
 		c.Timeout = global.Timeout
 	}
-	if c.Response.Type == "" {
-		c.Response.Type = ResponseTypeJSON
-	}
 	if c.Auth.Type == "" {
 		c.Auth.Type = AuthTypeNone
 	}
@@ -234,8 +209,13 @@ func (c ServiceConfig) withDefaults(global Config) ServiceConfig {
 
 func validateServiceConfig(name string, cfg ServiceConfig) error {
 	prefix := "http_client.services." + name
-	if strings.TrimSpace(cfg.BaseURL) == "" {
+	baseURL := strings.TrimSpace(cfg.BaseURL)
+	if baseURL == "" {
 		return fmt.Errorf("%w: %s.base_url 不能为空", ErrInvalidConfig, prefix)
+	}
+	parsed, err := url.Parse(baseURL)
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return fmt.Errorf("%w: %s.base_url 必须是合法的 http 或 https 地址", ErrInvalidConfig, prefix)
 	}
 	if cfg.Timeout <= 0 {
 		return fmt.Errorf("%w: %s.timeout 必须大于 0", ErrInvalidConfig, prefix)
@@ -249,17 +229,7 @@ func validateServiceConfig(name string, cfg ServiceConfig) error {
 	if err := validateAuthConfig(prefix+".auth", cfg.Auth); err != nil {
 		return err
 	}
-	if err := validateRetryConfig(prefix+".retry", cfg.Retry); err != nil {
-		return err
-	}
-	switch cfg.Response.Type {
-	case ResponseTypeJSON, ResponseTypeRaw:
-		return nil
-	case ResponseTypeStandardAPI:
-		return fmt.Errorf("%w: %s.response.type standard_api 将在 V2 支持", ErrUnsupported, prefix)
-	default:
-		return fmt.Errorf("%w: %s.response.type %q 不受支持", ErrInvalidConfig, prefix, cfg.Response.Type)
-	}
+	return validateRetryConfig(prefix+".retry", cfg.Retry)
 }
 
 func validateAuthConfig(prefix string, cfg AuthConfig) error {
@@ -355,10 +325,8 @@ func sanitizeServiceConfig(cfg ServiceConfig) map[string]any {
 		"headers":                sanitizeHeaderMap(cfg.Headers),
 		"auth":                   sanitizeAuthConfig(cfg.Auth),
 		"retry":                  cfg.Retry,
-		"response":               cfg.Response,
 		"max_response_body_size": cfg.MaxResponseBodySize,
 		"proxy":                  sanitizeProxyURL(cfg.Proxy),
-		"properties":             sanitizeHeaderMap(cfg.Properties),
 	}
 }
 

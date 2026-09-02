@@ -2,6 +2,7 @@ package httpclient
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -35,6 +36,10 @@ func retryCondition(cfg RetryConfig) resty.RetryConditionFunc {
 	methods := methodSet(cfg.RetryMethods)
 	return func(resp *resty.Response, err error) bool {
 		if resp == nil || resp.Request == nil {
+			return false
+		}
+		var hookErr *requestHookError
+		if errors.As(err, &hookErr) {
 			return false
 		}
 		if !isRetryableMethod(resp.Request.Method, resp.Request.Context(), methods) {

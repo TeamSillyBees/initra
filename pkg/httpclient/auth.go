@@ -1,20 +1,11 @@
 package httpclient
 
 import (
-	"context"
-
 	"github.com/go-resty/resty/v2"
 )
 
-// AuthHandler 将认证配置应用到单次 resty 请求。
-type AuthHandler interface {
-	Apply(ctx context.Context, r *resty.Request, cfg AuthConfig) error
-}
-
-type defaultAuthHandler struct{}
-
-// Apply 根据认证类型把凭证写入当前请求，不记录或持久化凭证内容。
-func (h defaultAuthHandler) Apply(_ context.Context, r *resty.Request, cfg AuthConfig) error {
+// applyStaticAuth 根据认证配置把静态凭证写入当前请求。动态凭证和签名由 RequestHook 处理。
+func applyStaticAuth(r *resty.Request, cfg AuthConfig) error {
 	switch cfg.Type {
 	case "", AuthTypeNone:
 		return nil

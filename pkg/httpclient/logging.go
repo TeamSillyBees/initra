@@ -82,18 +82,3 @@ func safeErrorURL(raw string) string {
 	parsed.Fragment = ""
 	return parsed.String()
 }
-
-func firstTraceID(headers map[string]string) string {
-	for _, key := range []string{"X-Trace-ID", "X-Request-ID", "Traceparent"} {
-		if value := strings.TrimSpace(headers[key]); value != "" {
-			return value
-		}
-	}
-	for key, value := range headers {
-		normalized := strings.ToLower(key)
-		if normalized == "x-trace-id" || normalized == "x-request-id" || normalized == "traceparent" {
-			return strings.TrimSpace(value)
-		}
-	}
-	return ""
-}

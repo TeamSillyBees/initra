@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/teamsillybees/initra/pkg/logx"
@@ -16,12 +17,13 @@ import (
 type Factory struct {
 	cfg     Config
 	logger  *logx.Logger
+	hooks   map[string][]RequestHook
 	mu      sync.Mutex
 	clients map[string]*Client
 }
 
 // NewFactory 根据配置创建 HTTP Client 工厂。
-func NewFactory(cfg Config, logger *logx.Logger) (*Factory, error) {
+func NewFactory(cfg Config, logger *logx.Logger, options ...FactoryOption) (*Factory, error) {
 	if logger == nil {
 		logger = logx.NewNop()
 	}
@@ -29,9 +31,19 @@ func NewFactory(cfg Config, logger *logx.Logger) (*Factory, error) {
 	if err := normalized.Validate(); err != nil {
 		return nil, err
 	}
+	factoryOptions, err := applyFactoryOptions(options)
+	if err != nil {
+		return nil, err
+	}
+	for serviceName := range factoryOptions.hooks {
+		if _, ok := normalized.Services[serviceName]; !ok {
+			return nil, fmt.Errorf("%w: request hooks reference %s", ErrServiceNotFound, serviceName)
+		}
+	}
 	return &Factory{
 		cfg:     normalized,
 		logger:  logger,
+		hooks:   factoryOptions.hooks,
 		clients: make(map[string]*Client),
 	}, nil
 }
@@ -52,7 +64,7 @@ func (f *Factory) Get(serviceName string) (*Client, error) {
 	if !ok {
 		return nil, fmt.Errorf("%w: %s", ErrServiceNotFound, serviceName)
 	}
-	client, err := newClient(serviceName, f.cfg, serviceCfg.withDefaults(f.cfg), f.logger)
+	client, err := newClient(serviceName, f.cfg, serviceCfg.withDefaults(f.cfg), f.logger, f.hooks[serviceName])
 	if err != nil {
 		return nil, err
 	}
@@ -80,22 +92,22 @@ func (f *Factory) ClearAll() {
 	}
 }
 
-func newRestyClient(global Config, service ServiceConfig) *resty.Client {
-	transport := &http.Transport{
-		Proxy:               proxyFunc(service.Proxy),
-		MaxIdleConns:        global.MaxIdleConns,
-		MaxIdleConnsPerHost: global.MaxIdleConnsPerHost,
-		IdleConnTimeout:     global.IdleConnTimeout,
-	}
+func newRestyClient(global Config, service ServiceConfig, hooks []RequestHook) *resty.Client {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.Proxy = proxyFunc(service.Proxy)
+	transport.MaxIdleConns = global.MaxIdleConns
+	transport.MaxIdleConnsPerHost = global.MaxIdleConnsPerHost
+	transport.IdleConnTimeout = global.IdleConnTimeout
+	hookedTransport := &hookTransport{base: transport, hooks: append([]RequestHook(nil), hooks...)}
 	restyClient := resty.New().
 		SetBaseURL(service.BaseURL).
 		SetTimeout(service.Timeout).
 		SetHeaders(service.Headers).
-		SetTransport(transport).
+		SetTransport(hookedTransport).
 		SetResponseBodyLimit(int(service.MaxResponseBodySize))
 
 	if global.ConnectTimeout > 0 {
-		dialer := &net.Dialer{Timeout: global.ConnectTimeout}
+		dialer := &net.Dialer{Timeout: global.ConnectTimeout, KeepAlive: 30 * time.Second}
 		transport.DialContext = dialer.DialContext
 	}
 	if service.Retry.Enabled && service.Retry.Count > 0 {

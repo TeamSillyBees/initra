@@ -270,8 +270,6 @@ func transformTemplateContent(rel string, content string) (string, error) {
 			"  application_name: initra": "  application_name: {{ .AppSlug }}",
 			"    issuer: initra":         "    issuer: {{ .AppSlug }}",
 			"    secret: \"local-only-change-me-0123456789abcdef\"": "    secret: \"{{ .LocalJWTSecret }}\"",
-			"        app_id: initra-httpdemo":                       "        app_id: {{ .AppSlug }}-httpdemo",
-			"        X-App-Id: initra":                              "        X-App-Id: {{ .AppSlug }}",
 		})
 		if err != nil {
 			return "", err

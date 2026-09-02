@@ -12,8 +12,6 @@ var (
 	ErrInvalidConfig = errors.New("httpclient invalid config")
 	// ErrServiceNotFound 表示请求的远程服务未配置。
 	ErrServiceNotFound = errors.New("httpclient service not found")
-	// ErrUnsupported 表示当前版本不支持该能力。
-	ErrUnsupported = errors.New("httpclient unsupported")
 )
 
 // ErrorKind 表示 HTTP Client 错误分类。
@@ -22,7 +20,7 @@ type ErrorKind string
 const (
 	// ErrorKindRequest 表示网络错误、连接失败或超时。
 	ErrorKindRequest ErrorKind = "request"
-	// ErrorKindResponse 表示 HTTP 非 2xx 或业务响应失败。
+	// ErrorKindResponse 表示 HTTP 状态不在默认或调用方声明的成功范围内。
 	ErrorKindResponse ErrorKind = "response"
 	// ErrorKindInternal 表示配置、解析或本地处理错误。
 	ErrorKindInternal ErrorKind = "internal"
@@ -38,6 +36,7 @@ type Error struct {
 	Code       string
 	Message    string
 	Cause      error
+	Response   *Response
 }
 
 // Error 返回适合日志和调试的错误描述。
@@ -76,4 +75,10 @@ func IsResponseError(err error) bool {
 func IsRequestError(err error) bool {
 	var target *Error
 	return errors.As(err, &target) && target.Kind == ErrorKindRequest
+}
+
+// IsStatus 判断错误是否来自指定 HTTP 状态码。
+func IsStatus(err error, statusCode int) bool {
+	var target *Error
+	return errors.As(err, &target) && target.StatusCode == statusCode
 }

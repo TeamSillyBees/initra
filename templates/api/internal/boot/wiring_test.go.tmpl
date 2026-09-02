@@ -163,8 +163,6 @@ http_client:
       base_url: https://httpbingo.org
       timeout: 10s
       proxy: http://127.0.0.1:7891
-      properties:
-        app_id: httpbingo-app
       headers:
         X-App-Id: example-api
       retry:
@@ -222,7 +220,6 @@ auth:
 	require.Equal(t, "http://127.0.0.1:7890", cfg.HTTPClient.Proxy)
 	require.Equal(t, "https://httpbingo.org", cfg.HTTPClient.Services["httpbingo"].BaseURL)
 	require.Equal(t, "http://127.0.0.1:7891", cfg.HTTPClient.Services["httpbingo"].Proxy)
-	require.Equal(t, "httpbingo-app", cfg.HTTPClient.Services["httpbingo"].Properties["app_id"])
 	require.Equal(t, "example-api", cfg.HTTPClient.Services["httpbingo"].Headers["x-app-id"])
 	require.Equal(t, int64(1), cfg.IDGen.Node)
 

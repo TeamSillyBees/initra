@@ -5,21 +5,17 @@ import (
 	"github.com/teamsillybees/initra/pkg/httpclient"
 )
 
-const (
-	httpBingoServiceName = "httpbingo"
-	httpDemoServiceName  = "httpdemo.service"
-	httpDemoHandlerName  = "httpdemo.handler"
-)
+const httpBingoServiceName = "httpbingo"
 
 // Provide 使用 do 注册 httpdemo 示例模块依赖。
 func Provide(injector *do.Injector) {
-	httpclient.ProvideConsumer(injector, httpDemoServiceName, httpBingoServiceName, NewService)
-	do.ProvideNamed(injector, httpDemoHandlerName, func(i *do.Injector) (*Handler, error) {
-		service := do.MustInvokeNamed[*Service](i, httpDemoServiceName)
+	httpclient.Provide(injector, httpBingoServiceName, NewService)
+	do.Provide(injector, func(i *do.Injector) (*Handler, error) {
+		service := do.MustInvoke[*Service](i)
 		return NewHandler(service), nil
 	})
 	do.Provide(injector, func(i *do.Injector) (*Module, error) {
-		handler := do.MustInvokeNamed[*Handler](i, httpDemoHandlerName)
+		handler := do.MustInvoke[*Handler](i)
 		return NewModule(handler), nil
 	})
 }

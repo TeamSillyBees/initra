@@ -19,10 +19,6 @@ func TestConfigValidateAndSafeForLog(t *testing.T) {
 					"X-App-Id":  "initra",
 					"X-API-Key": "secret-key",
 				},
-				Properties: map[string]string{
-					"app_id":        "initra",
-					"client_secret": "secret-value",
-				},
 				Auth: AuthConfig{
 					Type:  AuthTypeBearer,
 					Token: "token-value",
@@ -40,35 +36,28 @@ func TestConfigValidateAndSafeForLog(t *testing.T) {
 	services := safe["services"].(map[string]any)
 	service := services["user_center"].(map[string]any)
 	headers := service["headers"].(map[string]string)
-	properties := service["properties"].(map[string]string)
 	auth := service["auth"].(map[string]any)
 	require.Equal(t, maskedValue, headers["X-API-Key"])
-	require.Equal(t, maskedValue, properties["client_secret"])
 	require.Equal(t, maskedValue, auth["token"])
 	require.Equal(t, "initra", headers["X-App-Id"])
-	require.Equal(t, "initra", properties["app_id"])
 	require.Equal(t, "http://proxy-user:"+maskedValue+"@127.0.0.1:7890", safe["proxy"])
 	require.Equal(t, "http://service-user:"+maskedValue+"@127.0.0.1:7891", service["proxy"])
 }
 
-func TestConfigValidateRejectsUnsupportedStandardAPIInV1(t *testing.T) {
-	cfg := Config{
-		Enabled: true,
-		Services: map[string]ServiceConfig{
-			"user_center": {
-				BaseURL: "https://api.example.com",
-				Response: ResponseConfig{
-					Type: ResponseTypeStandardAPI,
-				},
-			},
-		},
-	}
+func TestConfigValidateAllowsEnabledWithoutServices(t *testing.T) {
+	require.NoError(t, (Config{Enabled: true}).Validate())
+}
+
+func TestConfigValidateRejectsInvalidBaseURL(t *testing.T) {
+	cfg := Config{Enabled: true, Services: map[string]ServiceConfig{
+		"user_center": {BaseURL: "api.example.com"},
+	}}
 
 	err := cfg.Validate()
 
 	require.Error(t, err)
-	require.True(t, errors.Is(err, ErrUnsupported))
-	require.ErrorContains(t, err, "V2")
+	require.True(t, errors.Is(err, ErrInvalidConfig))
+	require.ErrorContains(t, err, "base_url")
 }
 
 func TestConfigValidateAuthRequirements(t *testing.T) {

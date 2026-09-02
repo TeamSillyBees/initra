@@ -69,7 +69,7 @@ go run ./cmd/initra new $target --type api --module example.com/demo-api --repla
 - 框架能力包（如 `logx`、`httpclient`、`redisx`、`cache`、`idgen`、`storage`、`auth`、`server`、`task/asynqadapter`）通过 `Register(injector, cfg)` 或 `Register(injector, options)` 风格入口在启动时装配；业务对象通过构造函数接收最小必要依赖，禁止在 service/handler 中直接使用 `do.Invoke` 或持有全局 injector。
 - `internal/boot/providers.go` 应优先调用各 `pkg/*` 的 `Register` 入口，例如 `storageprovider.Register(injector, cfg.Storage)`、`httpclient.Register(injector, cfg.HTTPClient)`、`redisx.Register(injector, cfg.Redis)`、`asynqadapter.Register(injector, cfg.Task)`；只有项目自身能力（如 examples 的 `data.NewEntClientFromDB`）才保留本地 `do.Provide`。
 - 禁止为 package 装配做两阶段传参，例如先 `do.ProvideValue(injector, cfg.HTTPClient)` 再 `httpclient.Register(injector)`；配置应作为 `Register` 参数显式传入，公共组件（如 `*logx.Logger`）可由 `Register` 内部从 injector 解析。
-- HTTP Client 装配由 `httpclient.Register(injector, cfg.HTTPClient)` 统一完成；业务模块优先通过 `httpclient.ProvideConsumer` 将命名 client 注入最小接口，或显式解析 `httpclient.ClientName("service")`，不要手写 `Factory.Get` provider。
+- HTTP Client 装配由 `httpclient.Register(injector, cfg.HTTPClient)` 统一完成；业务模块通过 `httpclient.Provide(injector, "service", NewService)` 注入 `httpclient.Executor`，或显式解析 `httpclient.ClientName("service")`，不要手写 `Factory.Get` provider。业务调用优先使用 `GetJSON`、`PostJSON`、`PostForm`、`PostMultipart` 和 `DoBytes` 等便捷函数，特殊协议再组合 `Do` 与 RequestOption。
 - 标准模板会根据 `task.worker.enabled` 和 `task.scheduler.enabled` 在 `Application` 生命周期中按需解析、启动和关闭 Worker/Scheduler；禁用时不解析对应 provider。启用 Worker 时，`server.shutdown_timeout` 不得小于 `task.worker.shutdown_timeout`。新增任务 handler 或周期任务时仍需在启动前完成 Registry/Scheduler 注册。
 - 禁止在业务模块中随意使用 `panic` 或吞掉错误；错误应向上返回并保留足够上下文。
 
