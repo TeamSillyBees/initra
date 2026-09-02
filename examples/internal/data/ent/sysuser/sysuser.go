@@ -31,6 +31,8 @@ const (
 	FieldIsSuperAdmin = "is_super_admin"
 	// FieldIsEnable holds the string denoting the is_enable field in the database.
 	FieldIsEnable = "is_enable"
+	// FieldSessionVersion holds the string denoting the session_version field in the database.
+	FieldSessionVersion = "session_version"
 	// FieldSortID holds the string denoting the sort_id field in the database.
 	FieldSortID = "sort_id"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
@@ -67,6 +69,7 @@ var Columns = []string{
 	FieldAvatarURL,
 	FieldIsSuperAdmin,
 	FieldIsEnable,
+	FieldSessionVersion,
 	FieldSortID,
 	FieldDeletedAt,
 	FieldCreatedAt,
@@ -100,6 +103,10 @@ var (
 	DefaultIsSuperAdmin bool
 	// DefaultIsEnable holds the default value on creation for the "is_enable" field.
 	DefaultIsEnable bool
+	// DefaultSessionVersion holds the default value on creation for the "session_version" field.
+	DefaultSessionVersion int64
+	// SessionVersionValidator is a validator for the "session_version" field. It is called by the builders before save.
+	SessionVersionValidator func(int64) error
 	// DefaultSortID holds the default value on creation for the "sort_id" field.
 	DefaultSortID int32
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -160,6 +167,11 @@ func ByIsSuperAdmin(opts ...sql.OrderTermOption) OrderOption {
 // ByIsEnable orders the results by the is_enable field.
 func ByIsEnable(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsEnable, opts...).ToFunc()
+}
+
+// BySessionVersion orders the results by the session_version field.
+func BySessionVersion(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSessionVersion, opts...).ToFunc()
 }
 
 // BySortID orders the results by the sort_id field.

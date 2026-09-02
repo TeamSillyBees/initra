@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -17,9 +18,25 @@ import (
 
 // Options 描述 Web 层初始化所需的最小配置。
 type Options struct {
-	Title   string
-	Version string
-	Env     string
+	Title          string
+	Version        string
+	Env            string
+	TrustedProxies []string
+	CORS           CORSConfig
+	Docs           DocsConfig
+}
+
+// DocsConfig 描述 OpenAPI、交互文档与独立 Schema 路由是否对外暴露。
+type DocsConfig struct {
+	Enabled bool `mapstructure:"enabled"`
+}
+
+// Validate 禁止共享环境公开未受保护的文档路由。
+func (c DocsConfig) Validate(env string) error {
+	if c.Enabled && isSharedEnvironment(env) {
+		return fmt.Errorf("非 dev/local/test 环境禁止公开 server.docs")
+	}
+	return nil
 }
 
 // App 聚合 Gin Engine、Huma API 和路由安全注册表。
@@ -31,8 +48,9 @@ type App struct {
 
 // RouteRegistry 负责记录每个路由对应的安全元信息。
 type RouteRegistry struct {
-	mu     sync.RWMutex
-	routes map[string]platformauth.RouteSecurity
+	mu      sync.RWMutex
+	routes  map[string]platformauth.RouteSecurity
+	openAPI *huma.OpenAPI
 }
 
 // NewRouteRegistry 创建一个空的路由注册表。
@@ -47,6 +65,14 @@ func (r *RouteRegistry) Register(method string, path string, security platformau
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.routes[routeKey(method, path)] = security
+	r.applyOpenAPISecurity(method, path, security)
+}
+
+// BindOpenAPI 绑定 Huma 文档模型，使 RouteSecurity 成为运行时与契约的共同安全元数据。
+func (r *RouteRegistry) BindOpenAPI(openAPI *huma.OpenAPI) {
+	r.mu.Lock()
+	r.openAPI = openAPI
+	r.mu.Unlock()
 }
 
 // Lookup 查询某个路由是否配置了安全元信息。
@@ -59,6 +85,12 @@ func (r *RouteRegistry) Lookup(method string, path string) (platformauth.RouteSe
 
 // NewApp 创建集成 Gin、Huma、JWT 与 Casbin 的 Web 应用。
 func NewApp(options Options, logger *logx.Logger, jwtManager *platformauth.JWTManager, resolver platformauth.IdentityResolver, enforcer *casbin.SyncedEnforcer) (*App, error) {
+	if err := options.CORS.Validate(options.Env); err != nil {
+		return nil, err
+	}
+	if err := options.Docs.Validate(options.Env); err != nil {
+		return nil, err
+	}
 	configureGinMode(options.Env)
 	configureHumaErrors()
 
@@ -69,25 +101,116 @@ func NewApp(options Options, logger *logx.Logger, jwtManager *platformauth.JWTMa
 	registry := NewRouteRegistry()
 	engine.Use(
 		platformauth.RecoveryLogxMiddleware(logger),
-		platformauth.RequestContextMiddleware(),
+		platformauth.RequestContextMiddleware(options.TrustedProxies...),
 		platformauth.RequestLogxMiddleware(logger),
-		platformauth.CORSMiddleware(),
+		DocsExposureMiddleware(options.Docs),
+		CORSMiddleware(options.CORS),
 		platformauth.JWTMiddleware(jwtManager, resolver, registry),
 		platformauth.AuthorizationMiddleware(enforcer, registry),
 	)
 
 	humaConfig := huma.DefaultConfig(options.Title, options.Version)
-	humaConfig.OpenAPIPath = "/openapi"
-	humaConfig.DocsPath = "/docs"
-	humaConfig.SchemasPath = "/schemas"
+	if options.Docs.Enabled {
+		humaConfig.OpenAPIPath = "/openapi"
+		humaConfig.DocsPath = "/docs"
+		humaConfig.SchemasPath = "/schemas"
+	} else {
+		humaConfig.OpenAPIPath = ""
+		humaConfig.DocsPath = ""
+		humaConfig.SchemasPath = ""
+	}
 	humaConfig.CreateHooks = nil
 
 	api := humagin.New(engine, humaConfig)
+	configureOpenAPISecurity(api.OpenAPI())
+	registry.BindOpenAPI(api.OpenAPI())
 	return &App{
 		Engine:   engine,
 		API:      api,
 		Registry: registry,
 	}, nil
+}
+
+const bearerSecuritySchemeName = "bearerAuth"
+
+func configureOpenAPISecurity(openAPI *huma.OpenAPI) {
+	if openAPI == nil {
+		return
+	}
+	if openAPI.Components == nil {
+		openAPI.Components = &huma.Components{}
+	}
+	if openAPI.Components.SecuritySchemes == nil {
+		openAPI.Components.SecuritySchemes = map[string]*huma.SecurityScheme{}
+	}
+	openAPI.Components.SecuritySchemes[bearerSecuritySchemeName] = &huma.SecurityScheme{
+		Type:         "http",
+		Scheme:       "bearer",
+		BearerFormat: "JWT",
+		Description:  "在 Authorization 请求头中使用 Bearer access token。",
+	}
+	if openAPI.Components.Responses == nil {
+		openAPI.Components.Responses = map[string]*huma.Response{}
+	}
+	openAPI.Components.Responses["Unauthorized"] = &huma.Response{Description: "访问令牌缺失、无效或会话已失效。"}
+	openAPI.Components.Responses["Forbidden"] = &huma.Response{Description: "当前身份没有访问该资源所需的权限。"}
+}
+
+func (r *RouteRegistry) applyOpenAPISecurity(method string, path string, security platformauth.RouteSecurity) {
+	if r.openAPI == nil {
+		return
+	}
+	pathItem := r.openAPI.Paths[normalizeRoutePath(path)]
+	operation := operationForMethod(pathItem, method)
+	if operation == nil {
+		return
+	}
+	switch security.AccessMode {
+	case platformauth.AccessModePublic:
+		operation.Security = []map[string][]string{}
+	case platformauth.AccessModeAuthenticated:
+		operation.Security = []map[string][]string{{bearerSecuritySchemeName: {}}}
+		addSecurityResponse(operation, http.StatusUnauthorized, "Unauthorized")
+	case platformauth.AccessModePermission:
+		operation.Security = []map[string][]string{{bearerSecuritySchemeName: {}}}
+		addSecurityResponse(operation, http.StatusUnauthorized, "Unauthorized")
+		addSecurityResponse(operation, http.StatusForbidden, "Forbidden")
+	}
+}
+
+func operationForMethod(pathItem *huma.PathItem, method string) *huma.Operation {
+	if pathItem == nil {
+		return nil
+	}
+	switch strings.ToUpper(strings.TrimSpace(method)) {
+	case http.MethodGet:
+		return pathItem.Get
+	case http.MethodPost:
+		return pathItem.Post
+	case http.MethodPut:
+		return pathItem.Put
+	case http.MethodPatch:
+		return pathItem.Patch
+	case http.MethodDelete:
+		return pathItem.Delete
+	case http.MethodOptions:
+		return pathItem.Options
+	case http.MethodHead:
+		return pathItem.Head
+	default:
+		return nil
+	}
+}
+
+func addSecurityResponse(operation *huma.Operation, status int, component string) {
+	if operation.Responses == nil {
+		operation.Responses = map[string]*huma.Response{}
+	}
+	statusText := fmt.Sprintf("%d", status)
+	if _, exists := operation.Responses[statusText]; exists {
+		return
+	}
+	operation.Responses[statusText] = &huma.Response{Ref: "#/components/responses/" + component}
 }
 
 // configureGinMode 根据运行环境设置 Gin 模式，避免生产环境输出调试日志。

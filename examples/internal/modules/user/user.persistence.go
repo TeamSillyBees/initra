@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"math"
 	"strings"
 	"time"
 
@@ -134,6 +135,12 @@ func (s *Service) updateEnt(ctx context.Context, user *User) error {
 			SetIsEnable(user.IsEnable).
 			SetSortID(user.SortID)
 		setOptionalStrings(update, user)
+		if current.IsEnable && !user.IsEnable {
+			if current.SessionVersion == math.MaxInt64 {
+				return bizerrors.Internal("session version exhausted")
+			}
+			update.SetSessionVersion(current.SessionVersion + 1)
+		}
 
 		record, err := update.Save(txCtx)
 		if appent.IsNotFound(err) {

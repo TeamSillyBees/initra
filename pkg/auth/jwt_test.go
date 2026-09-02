@@ -104,9 +104,10 @@ func (f *fakeTokenStore) IsAccessTokenBlacklisted(_ context.Context, tokenID str
 func TestWithPrincipalInjectsRequestContextUserValues(t *testing.T) {
 	ctx := requestctx.WithTraceID(context.Background(), "trace-1")
 	ctx = WithPrincipal(ctx, Principal{
-		UserID:   idgen.New(1001),
-		Roles:    []string{"admin"},
-		TenantID: "tenant-1",
+		UserID:    idgen.New(1001),
+		SessionID: "session-1",
+		Roles:     []string{"admin"},
+		TenantID:  "tenant-1",
 	})
 
 	userID, ok := requestctx.UserIDFromContext(ctx)
@@ -118,6 +119,9 @@ func TestWithPrincipalInjectsRequestContextUserValues(t *testing.T) {
 	tenantID, ok := requestctx.TenantIDFromContext(ctx)
 	require.True(t, ok)
 	require.Equal(t, "tenant-1", tenantID)
+	sessionID, ok := requestctx.SessionIDFromContext(ctx)
+	require.True(t, ok)
+	require.Equal(t, "session-1", sessionID)
 	traceID, ok := requestctx.TraceIDFromContext(ctx)
 	require.True(t, ok)
 	require.Equal(t, "trace-1", traceID)
@@ -161,8 +165,9 @@ func TestJWTManagerIssuesAndParsesTokens(t *testing.T) {
 	require.NoError(t, err)
 
 	pair, err := manager.IssueTokenPair(context.Background(), Principal{
-		UserID: idgen.New(1001),
-		Roles:  []string{"admin"},
+		UserID:         idgen.New(1001),
+		SessionVersion: 1,
+		Roles:          []string{"admin"},
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, pair.AccessToken)
@@ -171,17 +176,22 @@ func TestJWTManagerIssuesAndParsesTokens(t *testing.T) {
 	accessClaims, err := manager.ParseAccessToken(context.Background(), pair.AccessToken)
 	require.NoError(t, err)
 	require.Equal(t, idgen.New(1001), accessClaims.UserID)
+	require.NotEmpty(t, accessClaims.SessionID)
+	require.Equal(t, int64(1), accessClaims.SessionVersion)
 	require.Equal(t, TokenTypeAccess, accessClaims.TokenType)
 	require.NotEmpty(t, accessClaims.ID)
 	unverified, _, err := new(jwt.Parser).ParseUnverified(pair.AccessToken, jwt.MapClaims{})
 	require.NoError(t, err)
 	require.NotContains(t, unverified.Claims.(jwt.MapClaims), "roles")
+	require.NotContains(t, unverified.Claims.(jwt.MapClaims), "tenantId")
 
 	_, _, err = new(jwt.Parser).ParseUnverified(pair.RefreshToken, &Claims{})
 	require.Error(t, err)
 	require.NotContains(t, pair.RefreshToken, ".")
 	require.NotEqual(t, pair.RefreshToken, store.storedRefreshTokenID)
 	require.Equal(t, idgen.New(1001), store.storedRefreshRecord.UserID)
+	require.Equal(t, accessClaims.SessionID, store.storedRefreshRecord.SessionID)
+	require.Equal(t, accessClaims.SessionVersion, store.storedRefreshRecord.SessionVersion)
 	require.Equal(t, accessClaims.ID, store.storedRefreshRecord.AccessTokenID)
 	require.Equal(t, pair.AccessExpiresAt.Unix(), store.storedRefreshRecord.AccessExpiresAt.Unix())
 	require.Positive(t, store.storedRefreshTTL)
@@ -271,7 +281,7 @@ func TestJWTManagerRejectsBlacklistedAccessToken(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001)})
+	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001), SessionVersion: 1})
 	require.NoError(t, err)
 
 	claims, err := manager.parse(pair.AccessToken, TokenTypeAccess)
@@ -295,7 +305,7 @@ func TestJWTManagerRejectsRefreshTokenMissingFromStore(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001)})
+	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001), SessionVersion: 1})
 	require.NoError(t, err)
 
 	_, err = manager.ValidateRefreshToken(context.Background(), pair.RefreshToken)
@@ -318,7 +328,7 @@ func TestJWTManagerConsumeRefreshTokenRevokesPairedAccessToken(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001)})
+	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001), SessionVersion: 1})
 	require.NoError(t, err)
 	accessClaims, err := manager.parse(pair.AccessToken, TokenTypeAccess)
 	require.NoError(t, err)
@@ -346,12 +356,16 @@ func TestJWTManagerRotatesRefreshTokenAtomically(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	oldPair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001)})
+	oldPair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001), SessionVersion: 1})
 	require.NoError(t, err)
 	expected, err := manager.ValidateRefreshToken(context.Background(), oldPair.RefreshToken)
 	require.NoError(t, err)
 
-	newPair, err := manager.RotateRefreshToken(context.Background(), oldPair.RefreshToken, *expected, Principal{UserID: idgen.New(1001)})
+	newPair, err := manager.RotateRefreshToken(context.Background(), oldPair.RefreshToken, *expected, Principal{
+		UserID:         idgen.New(1001),
+		SessionID:      expected.SessionID,
+		SessionVersion: expected.SessionVersion,
+	})
 	require.NoError(t, err)
 	require.NotEmpty(t, newPair.RefreshToken)
 	_, err = manager.ValidateRefreshToken(context.Background(), oldPair.RefreshToken)
@@ -374,7 +388,7 @@ func TestJWTManagerBlacklistAccessTokenStoresRemainingTTL(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001)})
+	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001), SessionVersion: 1})
 	require.NoError(t, err)
 
 	err = manager.BlacklistAccessToken(context.Background(), pair.AccessToken)
@@ -399,7 +413,7 @@ func TestJWTManagerUsesInjectedClockForRefreshTTL(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001)})
+	_, err = manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001), SessionVersion: 1})
 	require.NoError(t, err)
 
 	require.Equal(t, 24*time.Hour, store.storedRefreshTTL)
@@ -421,7 +435,7 @@ func TestJWTManagerUsesInjectedClockForBlacklistTTL(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001)})
+	pair, err := manager.IssueTokenPair(context.Background(), Principal{UserID: idgen.New(1001), SessionVersion: 1})
 	require.NoError(t, err)
 
 	err = manager.BlacklistAccessToken(context.Background(), pair.AccessToken)

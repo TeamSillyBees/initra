@@ -35,7 +35,7 @@ docs/               架构与工程规范文档
 
 ## 项目模板
 
-`api` 模板生成 Go Web API 基础项目，当前包含 Gin + Huma、统一响应/错误、JWT/Casbin、配置、日志、health/ready/version，以及 `auth`、`user`、`rbac`、`file`、`httpdemo`、`taskdemo` 示例模块、Ent schema、seed 和 Atlas migrations。RBAC 以数据库中的角色、权限资源和授权关系为唯一事实源，access JWT 不保存角色；请求时从共享缓存或数据库解析当前身份。Schema 使用 `pkg/entx/fieldx` 组合 ID、审计、软删除等字段，按需使用 `pkg/entx/indexx`；Ent edge 仅表达逻辑关系，物理外键生成被关闭，关联写入通过事务内有效性检查和行锁保持一致。运行时在 Ent Client 注册 `entx.AuditHook` 和 `entx.RejectDeleteHook`。模板不保存 Ent 生成代码，`initra new` 渲染后会执行 `go run ./internal/data/entgenerate`。
+`api` 模板生成 Go Web API 基础项目，当前包含 Gin + Huma、统一响应/错误、JWT/Casbin、配置、日志、health/ready/version，以及 `auth`、`user`、`rbac`、`file`、`httpdemo`、`taskdemo` 示例模块、Ent schema、seed 和 Atlas migrations。RBAC 以数据库中的角色、权限资源和授权关系为唯一事实源；access JWT 只保存用户 ID、会话 ID 和用户级会话版本，请求时从共享缓存或数据库解析当前身份。标准认证接口包含登录、刷新、当前用户、当前会话退出、全部会话退出和修改密码，并为登录提供 Redis 账号/IP 限流与连续失败锁定。Schema 使用 `pkg/entx/fieldx` 组合 ID、审计、软删除等字段，按需使用 `pkg/entx/indexx`；Ent edge 仅表达逻辑关系，物理外键生成被关闭，关联写入通过事务内有效性检查和行锁保持一致。运行时在 Ent Client 注册 `entx.AuditHook` 和 `entx.RejectDeleteHook`。模板不保存 Ent 生成代码，`initra new` 渲染后会执行 `go run ./internal/data/entgenerate`。
 
 `examples` 保留已发布的旧外键迁移原文以兼容存量数据库升级，最新迁移会删除这些约束；模板同步时会把旧版本渲染为 no-op 并重算 `atlas.sum`，因此新生成项目的完整迁移链也不会创建物理外键。
 
@@ -52,8 +52,8 @@ docs/               架构与工程规范文档
 - `pkg/redisx`：Redis 基础能力封装，支持 standalone/sentinel client、Ping/readiness、Key Builder、JSON/Msgpack 缓存、TTL jitter、空值缓存、singleflight、SCAN+UNLINK、Lua script registry、基于 `github.com/bsm/redislock` 的短时间分布式锁，以及 OpenTelemetry/zap hook；不支持 cluster，不封装 KEYS。
 - `pkg/entx`：Ent 通用 Hook、上下文工具，以及 `fieldx`/`indexx` schema 字段和索引助手；不依赖具体项目生成的 `internal/data/ent`。
 - `pkg/errors`、`pkg/response`、`pkg/requestctx`：统一错误、响应、trace/request id。
-- `pkg/auth`：JWT、refresh token、Redis token store、显式 opt-in 且仅 dev/local/test 可用的内存 store、数据库 Casbin adapter、请求身份解析契约和路由权限元信息。
-- `pkg/server`：Gin + Huma 应用与认证授权中间件装配。
+- `pkg/auth`：带会话 ID/版本的 JWT、refresh token、Redis token store、access 黑名单、账号/IP 登录限流与失败锁定、数据库 Casbin adapter、请求身份解析契约和路由权限元信息；内存状态实现仅允许 dev/local/test 显式 opt-in。
+- `pkg/server`：Gin + Huma 应用与认证授权中间件装配、配置化 CORS、环境化文档暴露，以及由 `RouteSecurity` 自动生成的 OpenAPI Bearer/JWT 安全契约。
 - `pkg/observability`：health、ready、version 接口模块；`/health` 只检查进程存活，`/ready` 通过带独立超时的 registry 检查必要依赖。
 - `pkg/storage`：统一文件与对象存储接口，支持 local、阿里云 OSS、腾讯云 COS、AWS S3 和 S3 兼容服务；分片上传与临时授权通过可选扩展接口提供，具体支持范围由 provider 决定，local provider 不支持 presign。
 - `pkg/task`：任务队列抽象层，提供 `Publisher`、`Worker`、`Registry`、`Scheduler`、`Task` 与 `TaskMeta`；默认由 `pkg/task/asynqadapter` 适配 Asynq，业务代码不直接依赖 Asynq。任务队列按 at-least-once 模型设计，`biz_key` 是业务幂等键，外部副作用任务必须由业务侧保证幂等。启用 Worker 时，应用总关闭超时必须不小于 Worker 关闭超时。
@@ -66,6 +66,7 @@ docs/               架构与工程规范文档
 - 配置加载支持默认值、可选 `configs/config.yaml` 初始值、可选 `configs/config.<env>.yaml` 覆盖、环境变量覆盖和启动校验；配置文件不存在时会跳过，环境变量可独立完成配置，配置文件中的未知字段会导致启动失败。
 - 服务进程通过无前缀环境变量 `APP_ENV` 选择运行环境，未设置时使用 `dev`；迁移 diff 默认通过 `--env` 和 `--config-dir` 读取对应业务数据库配置，也可用 `--dev-url` 覆盖，apply/hash 通过 `--env` 选择 Atlas 环境。其他配置环境变量默认使用 `INITRA_` 前缀。
 - 标准模板默认启用 Redis 作为共享 token store；只有 dev/local/test 环境显式设置 `auth.allow_memory_token_store: true` 才允许关闭 Redis，其他环境一律 fail-closed。`idgen.node` 没有可用于生产的默认值，每个实例必须配置唯一的 0–1023 节点号。
+- `auth.login_protection` 默认启用账号/IP 登录速率限制和连续失败锁定；`server.cors` 使用明确白名单，`server.docs` 默认仅在 dev/local/test 开放，其他环境必须关闭匿名文档路由。
 - 数据库连接使用结构化 PostgreSQL URL 安全编码凭据并配置连接超时与连接池生命周期；只有 dev/local/test 环境允许弱 TLS 配置，其他环境必须使用 `verify-full`。
 - API 模板的基础配置启用 `storage.provider: local`，默认路径统一为 `./var/uploads`；可通过 `storage` 配置分组切换云厂商 provider。
 

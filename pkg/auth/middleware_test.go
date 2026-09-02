@@ -58,7 +58,7 @@ func TestJWTMiddlewareRejectsBlacklistedToken(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pair, err := manager.IssueTokenPair(t.Context(), Principal{UserID: idgen.New(1001), Roles: []string{"admin"}})
+	pair, err := manager.IssueTokenPair(t.Context(), Principal{UserID: idgen.New(1001), SessionVersion: 1, Roles: []string{"admin"}})
 	require.NoError(t, err)
 
 	claims, err := manager.parse(pair.AccessToken, TokenTypeAccess)
@@ -131,7 +131,7 @@ func TestJWTMiddlewareRejectsDisabledCurrentIdentity(t *testing.T) {
 		RefreshTokenTTL: 24 * time.Hour,
 	})
 	require.NoError(t, err)
-	pair, err := manager.IssueTokenPair(t.Context(), Principal{UserID: idgen.New(1001), Roles: []string{"admin"}})
+	pair, err := manager.IssueTokenPair(t.Context(), Principal{UserID: idgen.New(1001), SessionVersion: 1, Roles: []string{"admin"}})
 	require.NoError(t, err)
 
 	resolver := IdentityResolverFunc(func(context.Context, idgen.ID) (Principal, bool, error) {
@@ -145,6 +145,33 @@ func TestJWTMiddlewareRejectsDisabledCurrentIdentity(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+pair.AccessToken)
 	rec := httptest.NewRecorder()
 	engine.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+// TestJWTMiddlewareRejectsStaleSessionVersion 验证 logout-all 或改密后旧 access token 会被当前身份版本拒绝。
+func TestJWTMiddlewareRejectsStaleSessionVersion(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	manager, err := NewJWTManager(JWTConfig{
+		Issuer:          "initra",
+		Secret:          "middleware-test-secret-0123456789abcdef",
+		AccessTokenTTL:  time.Hour,
+		RefreshTokenTTL: 24 * time.Hour,
+	})
+	require.NoError(t, err)
+	pair, err := manager.IssueTokenPair(t.Context(), Principal{UserID: idgen.New(1001), SessionVersion: 1})
+	require.NoError(t, err)
+	resolver := IdentityResolverFunc(func(context.Context, idgen.ID) (Principal, bool, error) {
+		return Principal{UserID: idgen.New(1001), SessionVersion: 2}, true, nil
+	})
+
+	engine := gin.New()
+	engine.Use(JWTMiddleware(manager, resolver, staticRouteSecurityLookup{security: RouteSecurity{AccessMode: AccessModeAuthenticated}}))
+	engine.GET("/api/v1/me", func(c *gin.Context) { c.Status(http.StatusOK) })
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.Header.Set("Authorization", "Bearer "+pair.AccessToken)
+	rec := httptest.NewRecorder()
+	engine.ServeHTTP(rec, req)
+
 	require.Equal(t, http.StatusUnauthorized, rec.Code)
 }
 
@@ -295,8 +322,28 @@ func TestAuthMiddlewareReusesRouteSecurityLookup(t *testing.T) {
 	require.Equal(t, 1, lookup.count)
 }
 
+// TestRequestContextMiddlewareStoresTrustedClientIP 验证登录防护读取的是可信代理规则解析后的来源 IP。
+func TestRequestContextMiddlewareStoresTrustedClientIP(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	engine.Use(RequestContextMiddleware("10.0.0.0/8"))
+	engine.GET("/client-ip", func(c *gin.Context) {
+		clientIP, ok := requestctx.ClientIPFromContext(c.Request.Context())
+		require.True(t, ok)
+		require.Equal(t, "203.0.113.9", clientIP)
+		c.Status(http.StatusNoContent)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/client-ip", nil)
+	req.RemoteAddr = "10.0.0.2:12345"
+	req.Header.Set("X-Forwarded-For", "203.0.113.9")
+	rec := httptest.NewRecorder()
+	engine.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusNoContent, rec.Code)
+}
+
 func activeResolver(roles ...string) IdentityResolver {
 	return IdentityResolverFunc(func(_ context.Context, userID idgen.ID) (Principal, bool, error) {
-		return Principal{UserID: userID, Roles: append([]string(nil), roles...)}, true, nil
+		return Principal{UserID: userID, SessionVersion: 1, Roles: append([]string(nil), roles...)}, true, nil
 	})
 }

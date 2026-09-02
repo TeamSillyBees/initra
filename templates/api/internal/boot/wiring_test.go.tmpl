@@ -16,6 +16,7 @@ import (
 
 	"github.com/samber/do"
 	"github.com/stretchr/testify/require"
+	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/observability"
 )
 
@@ -48,6 +49,12 @@ func TestRegisterProvidersDoesNotConnectDuringRegistration(t *testing.T) {
 			JWT: JWTConfig{
 				Issuer: "example-api",
 				Secret: "0123456789abcdef0123456789abcdef",
+			},
+			LoginProtection: platformauth.LoginProtectionConfig{
+				Enabled:          true,
+				AccountRateLimit: platformauth.LoginRateConfig{MaxAttempts: 10, Window: time.Minute},
+				IPRateLimit:      platformauth.LoginRateConfig{MaxAttempts: 60, Window: time.Minute},
+				Lockout:          platformauth.LoginLockConfig{MaxFailures: 5, FailureWindow: 15 * time.Minute, LockDuration: 15 * time.Minute},
 			},
 		},
 		IDGen: IDGenConfig{Node: 1},
@@ -339,6 +346,12 @@ func validConfigForValidation() *Config {
 			JWT: JWTConfig{
 				Issuer: "example-api",
 				Secret: "0123456789abcdef0123456789abcdef",
+			},
+			LoginProtection: platformauth.LoginProtectionConfig{
+				Enabled:          true,
+				AccountRateLimit: platformauth.LoginRateConfig{MaxAttempts: 10, Window: time.Minute},
+				IPRateLimit:      platformauth.LoginRateConfig{MaxAttempts: 60, Window: time.Minute},
+				Lockout:          platformauth.LoginLockConfig{MaxFailures: 5, FailureWindow: 15 * time.Minute, LockDuration: 15 * time.Minute},
 			},
 		},
 		Casbin: CasbinConfig{ModelPath: "model.conf"},

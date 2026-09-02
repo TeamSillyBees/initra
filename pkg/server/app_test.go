@@ -26,7 +26,15 @@ import (
 func TestNewAppAllowsCORSPreflightBeforeAuth(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	app, err := NewApp(Options{Title: "initra", Version: "test", Env: "test"}, nil, nil, nil, nil)
+	app, err := NewApp(Options{
+		Title: "initra", Version: "test", Env: "test",
+		CORS: CORSConfig{
+			Enabled:        true,
+			AllowedOrigins: []string{"https://admin.example.test"},
+			AllowedMethods: []string{http.MethodGet, http.MethodOptions},
+			AllowedHeaders: []string{"Authorization"},
+		},
+	}, nil, nil, nil, nil)
 	require.NoError(t, err)
 
 	app.Registry.Register(http.MethodGet, "/api/v1/protected", platformauth.RouteSecurity{
@@ -38,12 +46,14 @@ func TestNewAppAllowsCORSPreflightBeforeAuth(t *testing.T) {
 	})
 
 	req := httptest.NewRequest(http.MethodOptions, "/api/v1/protected", nil)
+	req.Header.Set("Origin", "https://admin.example.test")
+	req.Header.Set("Access-Control-Request-Method", http.MethodGet)
 	rec := httptest.NewRecorder()
 
 	app.Engine.ServeHTTP(rec, req)
 
 	require.Equal(t, http.StatusNoContent, rec.Code)
-	require.Equal(t, "*", rec.Header().Get("Access-Control-Allow-Origin"))
+	require.Equal(t, "https://admin.example.test", rec.Header().Get("Access-Control-Allow-Origin"))
 }
 
 // TestNewAppLogsUnauthorizedRequests 验证认证失败请求也会经过请求日志中间件。
@@ -154,8 +164,9 @@ func TestNewAppAcceptsValidJWTForProtectedAPIRoute(t *testing.T) {
 	})
 
 	pair, err := manager.IssueTokenPair(t.Context(), platformauth.Principal{
-		UserID: idgen.New(1001),
-		Roles:  []string{"revoked-token-role"},
+		UserID:         idgen.New(1001),
+		SessionVersion: 1,
+		Roles:          []string{"revoked-token-role"},
 	})
 	require.NoError(t, err)
 
@@ -194,8 +205,9 @@ func TestNewAppAllowsAuthenticatedAPIRouteWithoutCasbinPolicy(t *testing.T) {
 	})
 
 	pair, err := manager.IssueTokenPair(t.Context(), platformauth.Principal{
-		UserID: idgen.New(1001),
-		Roles:  []string{"viewer"},
+		UserID:         idgen.New(1001),
+		SessionVersion: 1,
+		Roles:          []string{"viewer"},
 	})
 	require.NoError(t, err)
 
@@ -248,9 +260,9 @@ func TestNewAppInjectsAuthenticatedContextIntoHumaHandler(t *testing.T) {
 	})
 
 	pair, err := manager.IssueTokenPair(t.Context(), platformauth.Principal{
-		UserID:   idgen.New(1001),
-		Roles:    []string{"viewer"},
-		TenantID: "tenant-1",
+		UserID:         idgen.New(1001),
+		SessionVersion: 1,
+		Roles:          []string{"viewer"},
 	})
 	require.NoError(t, err)
 
@@ -361,7 +373,12 @@ m = r.sub == p.sub && r.perm == p.perm
 
 func resolverWithRoles(roles ...string) platformauth.IdentityResolver {
 	return platformauth.IdentityResolverFunc(func(_ context.Context, userID idgen.ID) (platformauth.Principal, bool, error) {
-		return platformauth.Principal{UserID: userID, Roles: append([]string(nil), roles...)}, true, nil
+		return platformauth.Principal{
+			UserID:         userID,
+			SessionVersion: 1,
+			Roles:          append([]string(nil), roles...),
+			TenantID:       "tenant-1",
+		}, true, nil
 	})
 }
 

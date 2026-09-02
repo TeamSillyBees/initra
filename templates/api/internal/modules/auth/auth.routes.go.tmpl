@@ -41,6 +41,36 @@ func (m *Module) Register(api huma.API, registry *server.RouteRegistry) {
 	registry.Register(http.MethodPost, "/api/v1/auth/refresh", platformauth.RouteSecurity{AccessMode: platformauth.AccessModePublic})
 
 	huma.Register(api, huma.Operation{
+		OperationID: "auth-logout",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/auth/logout",
+		Summary:     "退出当前会话",
+		Description: "原子消费当前 refresh token，并吊销与其绑定的 access token。",
+		Tags:        []string{"认证管理"},
+	}, m.handler.logout)
+	registry.Register(http.MethodPost, "/api/v1/auth/logout", platformauth.RouteSecurity{AccessMode: platformauth.AccessModeAuthenticated})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-logout-all",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/auth/logout-all",
+		Summary:     "退出全部会话",
+		Description: "递增用户会话版本，使该用户的全部旧 access token 和 refresh token 失效。",
+		Tags:        []string{"认证管理"},
+	}, m.handler.logoutAll)
+	registry.Register(http.MethodPost, "/api/v1/auth/logout-all", platformauth.RouteSecurity{AccessMode: platformauth.AccessModeAuthenticated})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-change-password",
+		Method:      http.MethodPut,
+		Path:        "/api/v1/auth/password",
+		Summary:     "修改当前用户密码",
+		Description: "校验当前密码并更新密码；成功后使全部旧会话失效。",
+		Tags:        []string{"认证管理"},
+	}, m.handler.changePassword)
+	registry.Register(http.MethodPut, "/api/v1/auth/password", platformauth.RouteSecurity{AccessMode: platformauth.AccessModeAuthenticated})
+
+	huma.Register(api, huma.Operation{
 		OperationID: "auth-me",
 		Method:      http.MethodGet,
 		Path:        "/api/v1/auth/me",

@@ -44,7 +44,7 @@ func sysUserRows() *sqlmock.Rows {
 	return sqlmock.NewRows([]string{
 		"id", "deleted_at", "created_at", "updated_at", "created_by", "updated_by",
 		"username", "password_hash", "nickname", "phone", "email", "avatar_url",
-		"is_super_admin", "is_enable", "sort_id",
+		"is_super_admin", "is_enable", "session_version", "sort_id",
 	})
 }
 
@@ -58,6 +58,12 @@ func (noopUserCache) Get(context.Context, idgen.ID) (*usermodule.User, bool, err
 }
 func (noopUserCache) Set(context.Context, *usermodule.User) error { return nil }
 func (noopUserCache) Delete(context.Context, idgen.ID) error      { return nil }
+
+type noopAuthorizationInvalidator struct{}
+
+func (noopAuthorizationInvalidator) NotifyChanged(context.Context, []idgen.ID, bool) error {
+	return nil
+}
 
 // TestServer_LoginMeAndUserDetail 覆盖登录、当前用户、用户详情和健康检查的完整 HTTP 流程。
 func TestServer_LoginMeAndUserDetail(t *testing.T) {
@@ -90,7 +96,7 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 		Version: "test",
 		Env:     "test",
 	}, logger, jwtManager, platformauth.IdentityResolverFunc(func(_ context.Context, userID idgen.ID) (platformauth.Principal, bool, error) {
-		return platformauth.Principal{UserID: userID, Roles: []string{"admin"}}, true, nil
+		return platformauth.Principal{UserID: userID, SessionVersion: 1, Roles: []string{"admin"}}, true, nil
 	}), enforcer)
 	require.NoError(t, err)
 
@@ -108,7 +114,7 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
 		WillReturnRows(sysUserRows().AddRow(
 			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
-			"alice", passwordHash, "Alice", nil, nil, nil, false, true, 1,
+			"alice", passwordHash, "Alice", nil, nil, nil, false, true, int64(1), 1,
 		))
 	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
 		WillReturnRows(sqlmock.NewRows([]string{"code"}).AddRow("admin"))
@@ -116,7 +122,7 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
 		WillReturnRows(sysUserRows().AddRow(
 			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
-			"alice", passwordHash, "Alice", nil, nil, nil, false, true, 1,
+			"alice", passwordHash, "Alice", nil, nil, nil, false, true, int64(1), 1,
 		))
 	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
 		WillReturnRows(sqlmock.NewRows([]string{"code"}).AddRow("admin"))
@@ -125,12 +131,15 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 		WillReturnRows(sysUserRows().AddRow(
 			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
 			"alice", passwordHash, "Alice", "13800000000", "alice@example.com",
-			"https://example.com/avatar.png", true, true, 1,
+			"https://example.com/avatar.png", true, true, int64(1), 1,
 		))
 	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
 		WillReturnRows(sqlmock.NewRows([]string{"code"}).AddRow("admin"))
 
-	authService := authmodule.NewService(entClient, passwords, jwtManager)
+	loginGuard, err := platformauth.NewMemoryLoginGuard(platformauth.LoginProtectionConfig{})
+	require.NoError(t, err)
+	authService, err := authmodule.NewService(entClient, passwords, jwtManager, loginGuard, noopAuthorizationInvalidator{}, logger)
+	require.NoError(t, err)
 	authmodule.NewModule(authmodule.NewHandler(authService)).Register(app.API, app.Registry)
 
 	userService := usermodule.NewService(entClient, noopUserCache{}, passwords)
@@ -141,6 +150,9 @@ func TestServer_LoginMeAndUserDetail(t *testing.T) {
 	require.Contains(t, openAPIText, `"type":"string"`)
 	require.Contains(t, openAPIText, `"pattern":"^[1-9][0-9]{0,18}$"`)
 	require.Contains(t, openAPIText, `"1771234567890123456"`)
+	require.Contains(t, openAPIText, `"bearerAuth"`)
+	require.Contains(t, openAPIText, `"401"`)
+	require.Contains(t, openAPIText, `"403"`)
 
 	localStorage, err := local.New(storage.Config{
 		Enabled:  true,

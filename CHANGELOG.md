@@ -4,6 +4,8 @@
 
 ## 未发布
 
+## v0.1.20 - 2026-09-02
+
 ### 新增
 
 - 增加安全报告、贡献流程和变更记录基础文档。
@@ -12,6 +14,8 @@
 - CLI 增加 `snippet add`、可加载的事务化 `config add`、`doctor --json`，以及可检查和安全升级的 Codex skill。
 - API 模板增加随机 JWT secret、一次性管理员密码、安全 `app.slug`、事务化逻辑外键检查和 nonroot 容器基线。
 - API 模板增加数据库 RBAC adapter、角色/权限/分配管理接口、Redis 身份缓存失效和 Casbin 多实例策略重载。
+- API 模板增加当前会话退出、全部会话退出、修改密码后的全会话失效，以及 Redis 账号/IP 登录限流、连续失败锁定和安全审计。
+- OpenAPI 增加 Bearer/JWT scheme，并从 `RouteSecurity` 自动生成 operation security 与 401/403 响应；CORS 和文档暴露改为环境化配置。
 
 ### 变更
 
@@ -22,6 +26,7 @@
 - local storage 不再返回不会过期的伪 presign URL，改为明确返回不支持。
 - `logx.Logger.Sync` 只负责刷新，资源关闭统一使用共享且幂等的 `Close`/`Shutdown`。
 - access JWT 不再保存角色；路由改为直接登记稳定权限标识，`sys_role`、`sys_menu`、`sys_role_menu` 成为唯一权限事实源。
+- access JWT 改为只保存用户 ID、会话 ID 和会话版本；`sys_user.session_version` 递增可批量使旧 access/refresh token 失效。
 
 ### 修复
 
@@ -30,7 +35,7 @@
 
 ## 历史版本
 
-仓库已经存在 `v0.1.0` 至 `v0.1.18` tag，但这些版本早于本变更记录建立。为避免根据提交标题猜测用户影响，此处不回填未经核实的逐版本条目；需要追溯时以对应 tag、提交历史和当时的可执行代码为准。
+仓库已经存在 `v0.1.0` 至 `v0.1.19` tag，但这些版本早于本变更记录建立。为避免根据提交标题猜测用户影响，此处不回填未经核实的逐版本条目；需要追溯时以对应 tag、提交历史和当时的可执行代码为准。
 
 ## 待所有者决定
 

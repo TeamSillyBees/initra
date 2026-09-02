@@ -18,6 +18,7 @@ type RegisterOptions struct {
 	RedisEnabled     bool
 	AllowMemoryStore bool
 	CasbinModelPath  string
+	LoginProtection  LoginProtectionConfig
 }
 
 // Register 将密码管理器、JWT 管理器和 Casbin Enforcer 注册到 DI 容器。
@@ -41,6 +42,26 @@ func Register(injector *do.Injector, opts RegisterOptions) {
 		}
 		return NewEnforcer(opts.CasbinModelPath, loader)
 	})
+	do.Provide(injector, func(i *do.Injector) (LoginGuard, error) {
+		return loginGuardFromInjector(i, opts)
+	})
+}
+
+func loginGuardFromInjector(injector *do.Injector, opts RegisterOptions) (LoginGuard, error) {
+	if !opts.LoginProtection.Enabled {
+		return noopLoginGuard{}, nil
+	}
+	if !opts.RedisEnabled {
+		if !opts.AllowMemoryStore || !isMemoryStoreAllowedEnvironment(opts.Env) {
+			return nil, fmt.Errorf("login protection 必须使用 Redis，进程内实现只允许用于显式启用的 dev、local 或 test 环境")
+		}
+		return NewMemoryLoginGuard(opts.LoginProtection)
+	}
+	client, err := do.Invoke[redisx.UniversalClient](injector)
+	if err != nil {
+		return nil, fmt.Errorf("解析 login protection Redis client 失败: %w", err)
+	}
+	return NewRedisLoginGuard(opts.AppName, opts.Env, client, opts.LoginProtection)
 }
 
 func tokenStoreFromInjector(injector *do.Injector, opts RegisterOptions) (TokenStore, error) {

@@ -65,11 +65,15 @@ func registerProviders(injector *do.Injector, cfg *Config, buildInfo observabili
 			RefreshTokenTTL: cfg.Auth.RefreshTokenTTL,
 		},
 		CasbinModelPath: cfg.Casbin.ModelPath,
+		LoginProtection: cfg.Auth.LoginProtection,
 	})
 	server.Register(injector, server.Options{
-		Title:   cfg.App.Name,
-		Version: buildInfo.Version,
-		Env:     cfg.App.Env,
+		Title:          cfg.App.Name,
+		Version:        buildInfo.Version,
+		Env:            cfg.App.Env,
+		TrustedProxies: append([]string(nil), cfg.Server.TrustedProxies...),
+		CORS:           cfg.Server.CORS,
+		Docs:           cfg.Server.Docs,
 	})
 }
 

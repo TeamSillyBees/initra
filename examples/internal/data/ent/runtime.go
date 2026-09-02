@@ -451,16 +451,22 @@ func init() {
 	sysuserDescIsEnable := sysuserFields[8].Descriptor()
 	// sysuser.DefaultIsEnable holds the default value on creation for the is_enable field.
 	sysuser.DefaultIsEnable = sysuserDescIsEnable.Default.(bool)
+	// sysuserDescSessionVersion is the schema descriptor for session_version field.
+	sysuserDescSessionVersion := sysuserFields[9].Descriptor()
+	// sysuser.DefaultSessionVersion holds the default value on creation for the session_version field.
+	sysuser.DefaultSessionVersion = sysuserDescSessionVersion.Default.(int64)
+	// sysuser.SessionVersionValidator is a validator for the "session_version" field. It is called by the builders before save.
+	sysuser.SessionVersionValidator = sysuserDescSessionVersion.Validators[0].(func(int64) error)
 	// sysuserDescSortID is the schema descriptor for sort_id field.
-	sysuserDescSortID := sysuserFields[9].Descriptor()
+	sysuserDescSortID := sysuserFields[10].Descriptor()
 	// sysuser.DefaultSortID holds the default value on creation for the sort_id field.
 	sysuser.DefaultSortID = sysuserDescSortID.Default.(int32)
 	// sysuserDescCreatedAt is the schema descriptor for created_at field.
-	sysuserDescCreatedAt := sysuserFields[11].Descriptor()
+	sysuserDescCreatedAt := sysuserFields[12].Descriptor()
 	// sysuser.DefaultCreatedAt holds the default value on creation for the created_at field.
 	sysuser.DefaultCreatedAt = sysuserDescCreatedAt.Default.(func() time.Time)
 	// sysuserDescUpdatedAt is the schema descriptor for updated_at field.
-	sysuserDescUpdatedAt := sysuserFields[12].Descriptor()
+	sysuserDescUpdatedAt := sysuserFields[13].Descriptor()
 	// sysuser.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	sysuser.DefaultUpdatedAt = sysuserDescUpdatedAt.Default.(func() time.Time)
 	// sysuser.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

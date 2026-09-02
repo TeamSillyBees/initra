@@ -96,6 +96,11 @@ func IsEnable(v bool) predicate.SysUser {
 	return predicate.SysUser(sql.FieldEQ(FieldIsEnable, v))
 }
 
+// SessionVersion applies equality check predicate on the "session_version" field. It's identical to SessionVersionEQ.
+func SessionVersion(v int64) predicate.SysUser {
+	return predicate.SysUser(sql.FieldEQ(FieldSessionVersion, v))
+}
+
 // SortID applies equality check predicate on the "sort_id" field. It's identical to SortIDEQ.
 func SortID(v int32) predicate.SysUser {
 	return predicate.SysUser(sql.FieldEQ(FieldSortID, v))
@@ -576,6 +581,46 @@ func IsEnableEQ(v bool) predicate.SysUser {
 // IsEnableNEQ applies the NEQ predicate on the "is_enable" field.
 func IsEnableNEQ(v bool) predicate.SysUser {
 	return predicate.SysUser(sql.FieldNEQ(FieldIsEnable, v))
+}
+
+// SessionVersionEQ applies the EQ predicate on the "session_version" field.
+func SessionVersionEQ(v int64) predicate.SysUser {
+	return predicate.SysUser(sql.FieldEQ(FieldSessionVersion, v))
+}
+
+// SessionVersionNEQ applies the NEQ predicate on the "session_version" field.
+func SessionVersionNEQ(v int64) predicate.SysUser {
+	return predicate.SysUser(sql.FieldNEQ(FieldSessionVersion, v))
+}
+
+// SessionVersionIn applies the In predicate on the "session_version" field.
+func SessionVersionIn(vs ...int64) predicate.SysUser {
+	return predicate.SysUser(sql.FieldIn(FieldSessionVersion, vs...))
+}
+
+// SessionVersionNotIn applies the NotIn predicate on the "session_version" field.
+func SessionVersionNotIn(vs ...int64) predicate.SysUser {
+	return predicate.SysUser(sql.FieldNotIn(FieldSessionVersion, vs...))
+}
+
+// SessionVersionGT applies the GT predicate on the "session_version" field.
+func SessionVersionGT(v int64) predicate.SysUser {
+	return predicate.SysUser(sql.FieldGT(FieldSessionVersion, v))
+}
+
+// SessionVersionGTE applies the GTE predicate on the "session_version" field.
+func SessionVersionGTE(v int64) predicate.SysUser {
+	return predicate.SysUser(sql.FieldGTE(FieldSessionVersion, v))
+}
+
+// SessionVersionLT applies the LT predicate on the "session_version" field.
+func SessionVersionLT(v int64) predicate.SysUser {
+	return predicate.SysUser(sql.FieldLT(FieldSessionVersion, v))
+}
+
+// SessionVersionLTE applies the LTE predicate on the "session_version" field.
+func SessionVersionLTE(v int64) predicate.SysUser {
+	return predicate.SysUser(sql.FieldLTE(FieldSessionVersion, v))
 }
 
 // SortIDEQ applies the EQ predicate on the "sort_id" field.

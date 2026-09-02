@@ -36,6 +36,8 @@ func (SysUser) Fields() []ent.Field {
 			Comment("是否为超级管理员，超级管理员通常拥有全量权限。"),
 		field.Bool("is_enable").Default(true).
 			Comment("账号是否启用。"),
+		field.Int64("session_version").Default(1).Positive().
+			Comment("用户级会话版本，递增后使全部旧 access/refresh token 失效。"),
 		field.Int32("sort_id").Default(0).
 			Comment("排序值，便于后台列表定制顺序。"),
 	}

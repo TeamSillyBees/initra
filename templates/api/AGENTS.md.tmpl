@@ -79,7 +79,8 @@ internal/modules/<module>/
 - 公开接口必须显式设置 `AccessModePublic`。
 - 登录即可访问的用户侧接口必须设置 `AccessModeAuthenticated`。
 - 后台管理、运营操作、审核、退款、风控、配置管理等接口必须设置 `AccessModePermission`，并通过 `Permission` 直接登记稳定权限标识（例如 `system:user:read`）。权限策略唯一事实源是 `sys_role`、`sys_menu`、`sys_role_menu`，禁止重新引入静态 policy 文件。
-- access JWT 只承载用户和会话身份，不保存角色或权限；请求时必须从 Redis 缓存或数据库解析当前有效用户、角色和超级管理员状态。
+- access JWT 只承载 `userId`、`sessionId`、`sessionVersion` 和标准声明，不保存角色、权限或租户快照；请求时必须从 Redis 缓存或数据库解析当前有效用户、会话版本、角色和超级管理员状态。全部退出、修改密码或禁用账号必须递增 `sys_user.session_version`。
+- 登录必须通过 `auth.LoginGuard` 执行账号/IP 限流与连续失败锁定，凭证类拒绝统一响应并只在安全审计日志记录内部原因。生产 CORS 使用明确白名单，匿名 `/docs`、`/openapi`、`/schemas` 只允许 dev/local/test 开放。
 - 业务配置结构放在 `internal/boot/config.go`，通过 `pkg/config` 泛型加载；配置应支持默认值、环境变量覆盖、启动校验和敏感配置脱敏打印。
 - 运行环境统一使用环境变量 `APP_ENV` 表示；其他配置环境变量默认使用 `INITRA_` 前缀。
 - 密码、Token、Secret、Access Key、Authorization、验证码、session value 和带密码的 DSN 禁止明文输出到日志。

@@ -38,7 +38,11 @@ func newStartupInfo(cfg *Config, addr string) startup.Info {
 	if baseURL == "" {
 		return info
 	}
-	info.DocsURL = baseURL + "/docs"
+	if cfg.Server.Docs.Enabled {
+		info.DocsURL = baseURL + "/docs"
+	} else {
+		info.DocsURL = "disabled"
+	}
 	if cfg.Observability.Health.Enabled {
 		info.Health = baseURL + "/health"
 	} else {

@@ -31,7 +31,7 @@ func sysUserRows() *sqlmock.Rows {
 	return sqlmock.NewRows([]string{
 		"id", "deleted_at", "created_at", "updated_at", "created_by", "updated_by",
 		"username", "password_hash", "nickname", "phone", "email", "avatar_url",
-		"is_super_admin", "is_enable", "sort_id",
+		"is_super_admin", "is_enable", "session_version", "sort_id",
 	})
 }
 
@@ -39,6 +39,48 @@ type fakePasswordVerifier struct{}
 
 func (fakePasswordVerifier) Hash(password string) (string, error) {
 	return "hashed:" + password, nil
+}
+
+type fakeAuthorizationInvalidator struct {
+	calls   int
+	userIDs []idgen.ID
+}
+
+type recordingLoginGuard struct {
+	checkErr     error
+	checkCalls   int
+	failureCalls int
+	resetCalls   int
+}
+
+func (g *recordingLoginGuard) Check(context.Context, string, string) error {
+	g.checkCalls++
+	return g.checkErr
+}
+
+func (g *recordingLoginGuard) RecordFailure(context.Context, string) error {
+	g.failureCalls++
+	return nil
+}
+
+func (g *recordingLoginGuard) Reset(context.Context, string) error {
+	g.resetCalls++
+	return nil
+}
+
+func (f *fakeAuthorizationInvalidator) NotifyChanged(_ context.Context, userIDs []idgen.ID, _ bool) error {
+	f.calls++
+	f.userIDs = append([]idgen.ID(nil), userIDs...)
+	return nil
+}
+
+func newAuthServiceForTest(t *testing.T, client *appent.Client, tokens tokenManager) *Service {
+	t.Helper()
+	guard, err := platformauth.NewMemoryLoginGuard(platformauth.LoginProtectionConfig{})
+	require.NoError(t, err)
+	service, err := NewService(client, fakePasswordVerifier{}, tokens, guard, &fakeAuthorizationInvalidator{}, nil)
+	require.NoError(t, err)
+	return service
 }
 
 func (fakePasswordVerifier) Compare(hash string, password string) error {
@@ -149,12 +191,14 @@ func TestServiceLoginReturnsTokenPairForValidCredentials(t *testing.T) {
 	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
 		WillReturnRows(sysUserRows().AddRow(
 			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
-			"alice", "hashed:secret-123", "Alice", nil, nil, nil, false, true, 1,
+			"alice", "hashed:secret-123", "Alice", nil, nil, nil, false, true, int64(1), 1,
 		))
 	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
 		WillReturnRows(sqlmock.NewRows([]string{"code"}).AddRow("admin"))
 
-	service := NewService(client, fakePasswordVerifier{}, tokenManager)
+	service := newAuthServiceForTest(t, client, tokenManager)
+	guard := &recordingLoginGuard{}
+	service.loginGuard = guard
 
 	vo, err := service.Login(context.Background(), LoginBody{
 		Username: "alice",
@@ -167,7 +211,25 @@ func TestServiceLoginReturnsTokenPairForValidCredentials(t *testing.T) {
 	require.NotEmpty(t, vo.RefreshToken)
 	require.NotEmpty(t, store.storedRefreshTokenID)
 	require.Empty(t, store.blacklistedTokenID)
+	require.Equal(t, 1, guard.checkCalls)
+	require.Zero(t, guard.failureCalls)
+	require.Equal(t, 1, guard.resetCalls)
 	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// TestServiceLoginReturnsUniformFailureWhenGuardRejects 验证限流或锁定不会暴露账号是否存在。
+func TestServiceLoginReturnsUniformFailureWhenGuardRejects(t *testing.T) {
+	db, _, client := newMockEntClient(t)
+	t.Cleanup(func() { _ = db.Close() })
+	service := newAuthServiceForTest(t, client, &fakeSessionTokenManager{})
+	guard := &recordingLoginGuard{checkErr: platformauth.ErrLoginLocked}
+	service.loginGuard = guard
+
+	_, err := service.Login(t.Context(), LoginBody{Username: "alice", Password: "secret-123"})
+	require.ErrorContains(t, err, "login failed")
+	require.Equal(t, 1, guard.checkCalls)
+	require.Zero(t, guard.failureCalls)
+	require.Zero(t, guard.resetCalls)
 }
 
 func TestServiceRefreshIssuesNewAccessToken(t *testing.T) {
@@ -187,15 +249,16 @@ func TestServiceRefreshIssuesNewAccessToken(t *testing.T) {
 	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
 		WillReturnRows(sysUserRows().AddRow(
 			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
-			"alice", "hashed:secret-123", "Alice", nil, nil, nil, false, true, 1,
+			"alice", "hashed:secret-123", "Alice", nil, nil, nil, false, true, int64(1), 1,
 		))
 	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
 		WillReturnRows(sqlmock.NewRows([]string{"code"}).AddRow("admin"))
 
-	service := NewService(client, fakePasswordVerifier{}, tokenManager)
+	service := newAuthServiceForTest(t, client, tokenManager)
 	pair, err := tokenManager.IssueTokenPair(context.Background(), platformauth.Principal{
-		UserID: idgen.New(1001),
-		Roles:  []string{"old-role"},
+		UserID:         idgen.New(1001),
+		SessionVersion: 1,
+		Roles:          []string{"old-role"},
 	})
 	require.NoError(t, err)
 
@@ -232,8 +295,8 @@ func TestServiceRefreshDoesNotConsumeTokenWhenUserLookupFails(t *testing.T) {
 	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
 		WillReturnRows(sysUserRows())
 
-	service := NewService(client, fakePasswordVerifier{}, tokenManager)
-	pair, err := tokenManager.IssueTokenPair(context.Background(), platformauth.Principal{UserID: idgen.New(1001)})
+	service := newAuthServiceForTest(t, client, tokenManager)
+	pair, err := tokenManager.IssueTokenPair(context.Background(), platformauth.Principal{UserID: idgen.New(1001), SessionVersion: 1})
 	require.NoError(t, err)
 
 	_, err = service.Refresh(context.Background(), RefreshBody{RefreshToken: pair.RefreshToken})

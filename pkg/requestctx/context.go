@@ -13,6 +13,7 @@ const (
 	rolesKey          requestContextKey = "roles"
 	tenantIDKey       requestContextKey = "tenant_id"
 	sessionIDKey      requestContextKey = "session_id"
+	clientIPKey       requestContextKey = "client_ip"
 	appIDKey          requestContextKey = "app_id"
 	trustedProxiesKey requestContextKey = "trusted_proxies"
 )
@@ -25,6 +26,7 @@ type Values struct {
 	Roles     []string
 	TenantID  string
 	SessionID string
+	ClientIP  string
 	AppID     string
 }
 
@@ -36,6 +38,7 @@ func WithValues(ctx context.Context, values Values) context.Context {
 	ctx = WithRoles(ctx, values.Roles)
 	ctx = WithTenantID(ctx, values.TenantID)
 	ctx = WithSessionID(ctx, values.SessionID)
+	ctx = WithClientIP(ctx, values.ClientIP)
 	ctx = WithAppID(ctx, values.AppID)
 	return ctx
 }
@@ -48,6 +51,7 @@ func ValuesFromContext(ctx context.Context) Values {
 	roles, _ := RolesFromContext(ctx)
 	tenantID, _ := TenantIDFromContext(ctx)
 	sessionID, _ := SessionIDFromContext(ctx)
+	clientIP, _ := ClientIPFromContext(ctx)
 	appID, _ := AppIDFromContext(ctx)
 	return Values{
 		RequestID: requestID,
@@ -56,6 +60,7 @@ func ValuesFromContext(ctx context.Context) Values {
 		Roles:     roles,
 		TenantID:  tenantID,
 		SessionID: sessionID,
+		ClientIP:  clientIP,
 		AppID:     appID,
 	}
 }
@@ -125,6 +130,16 @@ func WithSessionID(ctx context.Context, sessionID string) context.Context {
 // SessionIDFromContext 从上下文中提取 session_id。
 func SessionIDFromContext(ctx context.Context) (string, bool) {
 	return stringFromContext(ctx, sessionIDKey)
+}
+
+// WithClientIP 将经可信代理规则解析后的客户端 IP 写入上下文。
+func WithClientIP(ctx context.Context, clientIP string) context.Context {
+	return withString(ctx, clientIPKey, clientIP)
+}
+
+// ClientIPFromContext 返回经可信代理规则解析后的客户端 IP。
+func ClientIPFromContext(ctx context.Context) (string, bool) {
+	return stringFromContext(ctx, clientIPKey)
 }
 
 // WithAppID 将 app_id 写入上下文。

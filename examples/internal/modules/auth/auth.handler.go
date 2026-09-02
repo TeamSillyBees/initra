@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/teamsillybees/initra/examples/internal/modules/bizerrors"
+	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/idgen"
 	"github.com/teamsillybees/initra/pkg/requestctx"
 	"github.com/teamsillybees/initra/pkg/response"
@@ -39,6 +40,39 @@ func (h *Handler) refresh(ctx context.Context, input *refreshRequest) (*refreshR
 	}, nil
 }
 
+func (h *Handler) logout(ctx context.Context, input *logoutRequest) (*logoutResponse, error) {
+	principal, ok := currentPrincipal(ctx)
+	if !ok {
+		return nil, bizerrors.Unauthorized("authorization identity is missing")
+	}
+	if err := h.service.Logout(ctx, principal, input.Body); err != nil {
+		return nil, err
+	}
+	return &logoutResponse{Body: response.OK(ctx, map[string]any{})}, nil
+}
+
+func (h *Handler) logoutAll(ctx context.Context, _ *logoutAllRequest) (*logoutAllResponse, error) {
+	principal, ok := currentPrincipal(ctx)
+	if !ok {
+		return nil, bizerrors.Unauthorized("authorization identity is missing")
+	}
+	if err := h.service.LogoutAll(ctx, principal); err != nil {
+		return nil, err
+	}
+	return &logoutAllResponse{Body: response.OK(ctx, map[string]any{})}, nil
+}
+
+func (h *Handler) changePassword(ctx context.Context, input *changePasswordRequest) (*changePasswordResponse, error) {
+	principal, ok := currentPrincipal(ctx)
+	if !ok {
+		return nil, bizerrors.Unauthorized("authorization identity is missing")
+	}
+	if err := h.service.ChangePassword(ctx, principal, input.Body); err != nil {
+		return nil, err
+	}
+	return &changePasswordResponse{Body: response.OK(ctx, map[string]any{})}, nil
+}
+
 func (h *Handler) me(ctx context.Context, _ *meRequest) (*meResponse, error) {
 	userIDText, ok := requestctx.UserIDFromContext(ctx)
 	if !ok {
@@ -56,4 +90,8 @@ func (h *Handler) me(ctx context.Context, _ *meRequest) (*meResponse, error) {
 	return &meResponse{
 		Body: response.OK(ctx, vo),
 	}, nil
+}
+
+func currentPrincipal(ctx context.Context) (platformauth.Principal, bool) {
+	return platformauth.PrincipalFromContext(ctx)
 }

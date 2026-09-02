@@ -7365,33 +7365,35 @@ func (m *SysRoleMenuMutation) ResetEdge(name string) error {
 // SysUserMutation represents an operation that mutates the SysUser nodes in the graph.
 type SysUserMutation struct {
 	config
-	op                Op
-	typ               string
-	id                *idgen.ID
-	username          *string
-	password_hash     *string
-	nickname          *string
-	phone             *string
-	email             *string
-	avatar_url        *string
-	is_super_admin    *bool
-	is_enable         *bool
-	sort_id           *int32
-	addsort_id        *int32
-	deleted_at        *time.Time
-	created_at        *time.Time
-	updated_at        *time.Time
-	created_by        *idgen.ID
-	addcreated_by     *idgen.ID
-	updated_by        *idgen.ID
-	addupdated_by     *idgen.ID
-	clearedFields     map[string]struct{}
-	user_roles        map[idgen.ID]struct{}
-	removeduser_roles map[idgen.ID]struct{}
-	cleareduser_roles bool
-	done              bool
-	oldValue          func(context.Context) (*SysUser, error)
-	predicates        []predicate.SysUser
+	op                 Op
+	typ                string
+	id                 *idgen.ID
+	username           *string
+	password_hash      *string
+	nickname           *string
+	phone              *string
+	email              *string
+	avatar_url         *string
+	is_super_admin     *bool
+	is_enable          *bool
+	session_version    *int64
+	addsession_version *int64
+	sort_id            *int32
+	addsort_id         *int32
+	deleted_at         *time.Time
+	created_at         *time.Time
+	updated_at         *time.Time
+	created_by         *idgen.ID
+	addcreated_by      *idgen.ID
+	updated_by         *idgen.ID
+	addupdated_by      *idgen.ID
+	clearedFields      map[string]struct{}
+	user_roles         map[idgen.ID]struct{}
+	removeduser_roles  map[idgen.ID]struct{}
+	cleareduser_roles  bool
+	done               bool
+	oldValue           func(context.Context) (*SysUser, error)
+	predicates         []predicate.SysUser
 }
 
 var _ ent.Mutation = (*SysUserMutation)(nil)
@@ -7838,6 +7840,62 @@ func (m *SysUserMutation) ResetIsEnable() {
 	m.is_enable = nil
 }
 
+// SetSessionVersion sets the "session_version" field.
+func (m *SysUserMutation) SetSessionVersion(i int64) {
+	m.session_version = &i
+	m.addsession_version = nil
+}
+
+// SessionVersion returns the value of the "session_version" field in the mutation.
+func (m *SysUserMutation) SessionVersion() (r int64, exists bool) {
+	v := m.session_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSessionVersion returns the old "session_version" field's value of the SysUser entity.
+// If the SysUser object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SysUserMutation) OldSessionVersion(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSessionVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSessionVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSessionVersion: %w", err)
+	}
+	return oldValue.SessionVersion, nil
+}
+
+// AddSessionVersion adds i to the "session_version" field.
+func (m *SysUserMutation) AddSessionVersion(i int64) {
+	if m.addsession_version != nil {
+		*m.addsession_version += i
+	} else {
+		m.addsession_version = &i
+	}
+}
+
+// AddedSessionVersion returns the value that was added to the "session_version" field in this mutation.
+func (m *SysUserMutation) AddedSessionVersion() (r int64, exists bool) {
+	v := m.addsession_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSessionVersion resets all changes to the "session_version" field.
+func (m *SysUserMutation) ResetSessionVersion() {
+	m.session_version = nil
+	m.addsession_version = nil
+}
+
 // SetSortID sets the "sort_id" field.
 func (m *SysUserMutation) SetSortID(i int32) {
 	m.sort_id = &i
@@ -8243,7 +8301,7 @@ func (m *SysUserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SysUserMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 15)
 	if m.username != nil {
 		fields = append(fields, sysuser.FieldUsername)
 	}
@@ -8267,6 +8325,9 @@ func (m *SysUserMutation) Fields() []string {
 	}
 	if m.is_enable != nil {
 		fields = append(fields, sysuser.FieldIsEnable)
+	}
+	if m.session_version != nil {
+		fields = append(fields, sysuser.FieldSessionVersion)
 	}
 	if m.sort_id != nil {
 		fields = append(fields, sysuser.FieldSortID)
@@ -8310,6 +8371,8 @@ func (m *SysUserMutation) Field(name string) (ent.Value, bool) {
 		return m.IsSuperAdmin()
 	case sysuser.FieldIsEnable:
 		return m.IsEnable()
+	case sysuser.FieldSessionVersion:
+		return m.SessionVersion()
 	case sysuser.FieldSortID:
 		return m.SortID()
 	case sysuser.FieldDeletedAt:
@@ -8347,6 +8410,8 @@ func (m *SysUserMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldIsSuperAdmin(ctx)
 	case sysuser.FieldIsEnable:
 		return m.OldIsEnable(ctx)
+	case sysuser.FieldSessionVersion:
+		return m.OldSessionVersion(ctx)
 	case sysuser.FieldSortID:
 		return m.OldSortID(ctx)
 	case sysuser.FieldDeletedAt:
@@ -8424,6 +8489,13 @@ func (m *SysUserMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetIsEnable(v)
 		return nil
+	case sysuser.FieldSessionVersion:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSessionVersion(v)
+		return nil
 	case sysuser.FieldSortID:
 		v, ok := value.(int32)
 		if !ok {
@@ -8474,6 +8546,9 @@ func (m *SysUserMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *SysUserMutation) AddedFields() []string {
 	var fields []string
+	if m.addsession_version != nil {
+		fields = append(fields, sysuser.FieldSessionVersion)
+	}
 	if m.addsort_id != nil {
 		fields = append(fields, sysuser.FieldSortID)
 	}
@@ -8491,6 +8566,8 @@ func (m *SysUserMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *SysUserMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case sysuser.FieldSessionVersion:
+		return m.AddedSessionVersion()
 	case sysuser.FieldSortID:
 		return m.AddedSortID()
 	case sysuser.FieldCreatedBy:
@@ -8506,6 +8583,13 @@ func (m *SysUserMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *SysUserMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case sysuser.FieldSessionVersion:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSessionVersion(v)
+		return nil
 	case sysuser.FieldSortID:
 		v, ok := value.(int32)
 		if !ok {
@@ -8622,6 +8706,9 @@ func (m *SysUserMutation) ResetField(name string) error {
 		return nil
 	case sysuser.FieldIsEnable:
 		m.ResetIsEnable()
+		return nil
+	case sysuser.FieldSessionVersion:
+		m.ResetSessionVersion()
 		return nil
 	case sysuser.FieldSortID:
 		m.ResetSortID()

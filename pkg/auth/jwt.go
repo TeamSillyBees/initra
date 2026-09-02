@@ -37,17 +37,20 @@ type JWTConfig struct {
 
 // Principal 表示当前登录用户在请求链路中的最小身份载体。
 type Principal struct {
-	UserID       idgen.ID
-	Roles        []string
-	TenantID     string
-	IsSuperAdmin bool
+	UserID         idgen.ID
+	SessionID      string
+	SessionVersion int64
+	Roles          []string
+	TenantID       string
+	IsSuperAdmin   bool
 }
 
 // Claims 是脚手架统一的 JWT Claims。
 type Claims struct {
-	UserID    idgen.ID `json:"userId"`
-	TenantID  string   `json:"tenantId,omitempty"`
-	TokenType string   `json:"tokenType"`
+	UserID         idgen.ID `json:"userId"`
+	SessionID      string   `json:"sessionId"`
+	SessionVersion int64    `json:"sessionVersion"`
+	TokenType      string   `json:"tokenType"`
 	jwt.RegisteredClaims
 }
 
@@ -62,6 +65,8 @@ type TokenPair struct {
 // RefreshTokenRecord 是服务端保存的 refresh token 状态，客户端只持有 opaque token。
 type RefreshTokenRecord struct {
 	UserID          idgen.ID  `json:"userId"`
+	SessionID       string    `json:"sessionId"`
+	SessionVersion  int64     `json:"sessionVersion"`
 	AccessTokenID   string    `json:"accessTokenId"`
 	AccessExpiresAt time.Time `json:"accessExpiresAt"`
 }
@@ -132,6 +137,12 @@ func (m *JWTManager) newTokenPair(principal Principal) (TokenPair, RefreshTokenR
 	if principal.UserID <= 0 {
 		return TokenPair{}, RefreshTokenRecord{}, fmt.Errorf("%w: user id is missing", ErrTokenInvalid)
 	}
+	if principal.SessionVersion <= 0 {
+		return TokenPair{}, RefreshTokenRecord{}, fmt.Errorf("%w: session version is invalid", ErrTokenInvalid)
+	}
+	if strings.TrimSpace(principal.SessionID) == "" {
+		principal.SessionID = uuid.NewString()
+	}
 	now := m.now()
 
 	accessExpiresAt := now.Add(m.accessTokenTTL)
@@ -156,6 +167,8 @@ func (m *JWTManager) newTokenPair(principal Principal) (TokenPair, RefreshTokenR
 	}
 	record := RefreshTokenRecord{
 		UserID:          principal.UserID,
+		SessionID:       principal.SessionID,
+		SessionVersion:  principal.SessionVersion,
 		AccessTokenID:   accessTokenID,
 		AccessExpiresAt: accessExpiresAt,
 	}
@@ -211,6 +224,9 @@ func (m *JWTManager) RotateRefreshToken(ctx context.Context, token string, expec
 	}
 	if principal.UserID <= 0 || principal.UserID != expected.UserID {
 		return TokenPair{}, fmt.Errorf("%w: refresh token user mismatch", ErrTokenInvalid)
+	}
+	if principal.SessionID != expected.SessionID || principal.SessionVersion != expected.SessionVersion {
+		return TokenPair{}, fmt.Errorf("%w: refresh token session mismatch", ErrTokenInvalid)
 	}
 
 	pair, replacement, err := m.newTokenPair(principal)
@@ -308,9 +324,10 @@ func (m *JWTManager) issueWithID(principal Principal, tokenType string, tokenID 
 		return "", fmt.Errorf("%w: user id is missing", ErrTokenInvalid)
 	}
 	claims := Claims{
-		UserID:    principal.UserID,
-		TenantID:  principal.TenantID,
-		TokenType: tokenType,
+		UserID:         principal.UserID,
+		SessionID:      principal.SessionID,
+		SessionVersion: principal.SessionVersion,
+		TokenType:      tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    m.issuer,
 			Subject:   principal.UserID.String(),
@@ -347,6 +364,12 @@ func validateRefreshTokenRecord(record RefreshTokenRecord) error {
 	}
 	if record.AccessTokenID == "" {
 		return fmt.Errorf("%w: refresh token access token id is missing", ErrTokenInvalid)
+	}
+	if strings.TrimSpace(record.SessionID) == "" {
+		return fmt.Errorf("%w: refresh token session id is missing", ErrTokenInvalid)
+	}
+	if record.SessionVersion <= 0 {
+		return fmt.Errorf("%w: refresh token session version is invalid", ErrTokenInvalid)
 	}
 	if record.AccessExpiresAt.IsZero() {
 		return fmt.Errorf("%w: refresh token access expiration is missing", ErrTokenInvalid)
@@ -386,6 +409,12 @@ func (m *JWTManager) parse(token string, expectedType string) (*Claims, error) {
 	if claims.UserID <= 0 {
 		return nil, fmt.Errorf("%w: user id is missing", ErrTokenInvalid)
 	}
+	if strings.TrimSpace(claims.SessionID) == "" {
+		return nil, fmt.Errorf("%w: session id is missing", ErrTokenInvalid)
+	}
+	if claims.SessionVersion <= 0 {
+		return nil, fmt.Errorf("%w: session version is invalid", ErrTokenInvalid)
+	}
 	if claims.Subject != claims.UserID.String() {
 		return nil, fmt.Errorf("%w: token subject mismatch", ErrTokenInvalid)
 	}
@@ -399,6 +428,9 @@ func WithPrincipal(ctx context.Context, principal Principal) context.Context {
 		ctx = requestctx.WithUserID(ctx, principal.UserID.String())
 	}
 	ctx = requestctx.WithRoles(ctx, principal.Roles)
+	if principal.SessionID != "" {
+		ctx = requestctx.WithSessionID(ctx, principal.SessionID)
+	}
 	if principal.TenantID != "" {
 		ctx = requestctx.WithTenantID(ctx, principal.TenantID)
 	}

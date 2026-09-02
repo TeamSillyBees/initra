@@ -249,6 +249,7 @@ var (
 		{Name: "avatar_url", Type: field.TypeString, Nullable: true, Size: 2147483647, Comment: "头像资源地址。"},
 		{Name: "is_super_admin", Type: field.TypeBool, Comment: "是否为超级管理员，超级管理员通常拥有全量权限。", Default: false},
 		{Name: "is_enable", Type: field.TypeBool, Comment: "账号是否启用。", Default: true},
+		{Name: "session_version", Type: field.TypeInt64, Comment: "用户级会话版本，递增后使全部旧 access/refresh token 失效。", Default: 1},
 		{Name: "sort_id", Type: field.TypeInt32, Comment: "排序值，便于后台列表定制顺序。", Default: 0},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, Comment: "逻辑删除时间，NULL 表示未删除。"},
 		{Name: "created_at", Type: field.TypeTime, Comment: "创建时间。"},

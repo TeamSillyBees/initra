@@ -204,7 +204,12 @@ func (c *Control) loadPrincipal(ctx context.Context, userID idgen.ID) (platforma
 	for _, row := range rows {
 		roles = append(roles, row.Code)
 	}
-	return platformauth.Principal{UserID: user.ID, Roles: roles, IsSuperAdmin: user.IsSuperAdmin}, true, nil
+	return platformauth.Principal{
+		UserID:         user.ID,
+		SessionVersion: user.SessionVersion,
+		Roles:          roles,
+		IsSuperAdmin:   user.IsSuperAdmin,
+	}, true, nil
 }
 
 // NotifyChanged 在事务提交后失效用户身份，并按需重载、广播数据库策略变更。

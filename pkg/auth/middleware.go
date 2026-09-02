@@ -32,12 +32,15 @@ type routeSecurityResult struct {
 
 // RequestContextMiddleware 为每个请求补齐 request_id 与 trace_id。
 // 该中间件必须排在日志、CORS、认证与授权之前，确保即使请求被提前拒绝，也能留下完整链路信息。
-func RequestContextMiddleware() gin.HandlerFunc {
+func RequestContextMiddleware(trustedProxies ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestID := firstNonEmpty(c.GetHeader(headerRequestID), uuid.NewString())
 		traceID := firstNonEmpty(c.GetHeader(headerTraceID), requestID)
 		ctx := requestctx.WithRequestID(c.Request.Context(), requestID)
 		ctx = requestctx.WithTraceID(ctx, traceID)
+		ctx = requestctx.WithTrustedProxies(ctx, trustedProxies...)
+		requestWithContext := c.Request.WithContext(ctx)
+		ctx = requestctx.WithClientIP(ctx, requestctx.ClientIP(requestWithContext))
 		c.Request = c.Request.WithContext(ctx)
 		c.Header(headerRequestID, requestID)
 		c.Header(headerTraceID, traceID)
@@ -110,7 +113,11 @@ func JWTMiddleware(manager *JWTManager, resolver IdentityResolver, lookup RouteS
 			writeError(c, apperrors.New(apperrors.CodeUnauthorized, "authorization identity is disabled or missing"))
 			return
 		}
-		principal.TenantID = claims.TenantID
+		if principal.SessionVersion != claims.SessionVersion {
+			writeError(c, apperrors.New(apperrors.CodeUnauthorized, "authorization session is invalid"))
+			return
+		}
+		principal.SessionID = claims.SessionID
 		c.Request = c.Request.WithContext(WithPrincipal(c.Request.Context(), principal))
 
 		c.Next()
@@ -225,20 +232,6 @@ func RecoveryLogxMiddleware(logger *logx.Logger) gin.HandlerFunc {
 		}
 		writeError(c, apperrors.New(apperrors.CodeInternalError, "internal error"))
 	})
-}
-
-// CORSMiddleware 提供最小可用的跨域响应头。
-func CORSMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-ID, X-Trace-ID")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		if c.Request.Method == http.MethodOptions {
-			c.AbortWithStatus(http.StatusNoContent)
-			return
-		}
-		c.Next()
-	}
 }
 
 // resolveRouteSecurity 获取路由安全元信息，并在同一请求内复用查询结果。

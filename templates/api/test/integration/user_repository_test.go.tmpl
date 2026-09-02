@@ -82,7 +82,7 @@ func TestUserServiceFindByID(t *testing.T) {
 		WillReturnRows(sysUserRows().AddRow(
 			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
 			"alice", "hashed:secret-123", "Alice", "13800000000", "alice@example.com",
-			"https://example.com/avatar.png", true, true, 1,
+			"https://example.com/avatar.png", true, true, int64(1), 1,
 		))
 	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
 		WillReturnRows(sqlmock.NewRows([]string{"code"}).AddRow("admin").AddRow("viewer"))
@@ -107,7 +107,7 @@ func TestUserServicePageLoadsRolesInBatch(t *testing.T) {
 	mock.ExpectQuery(`SELECT .*FROM "sys_user".*`).
 		WillReturnRows(sysUserRows().AddRow(
 			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
-			"alice", "hashed:secret-123", "Alice", nil, nil, nil, false, true, 1,
+			"alice", "hashed:secret-123", "Alice", nil, nil, nil, false, true, int64(1), 1,
 		))
 	mock.ExpectQuery(`SELECT .*FROM "sys_role".*`).
 		WillReturnRows(sysRoleRows().AddRow(
@@ -138,7 +138,7 @@ func TestUserServiceDeleteSoftDeletesUserAndRoles(t *testing.T) {
 	mock.ExpectQuery(`SELECT .*FROM "sys_user".*FOR UPDATE`).
 		WillReturnRows(sysUserRows().AddRow(
 			int64(1001), nil, testNow, testNow, int64(9001), int64(9001),
-			"alice", "hashed:secret-123", "Alice", nil, nil, nil, false, true, 1,
+			"alice", "hashed:secret-123", "Alice", nil, nil, nil, false, true, int64(1), 1,
 		))
 	mock.ExpectExec(`UPDATE "sys_user".*`).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`UPDATE "sys_user_role".*`).WillReturnResult(sqlmock.NewResult(0, 1))

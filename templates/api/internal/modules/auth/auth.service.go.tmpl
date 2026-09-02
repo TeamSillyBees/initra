@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	appent "{{ .ModulePath }}/internal/data/ent"
@@ -12,21 +13,25 @@ import (
 	"{{ .ModulePath }}/internal/modules/bizerrors"
 	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	"github.com/teamsillybees/initra/pkg/idgen"
+	"github.com/teamsillybees/initra/pkg/logx"
+	"github.com/teamsillybees/initra/pkg/requestctx"
 )
 
 // Identity 描述 auth 模块关心的最小用户身份聚合。
 type Identity struct {
-	UserID       idgen.ID
-	Username     string
-	Nickname     string
-	PasswordHash string
-	RoleCodes    []string
-	IsSuperAdmin bool
-	IsEnable     bool
+	UserID         idgen.ID
+	Username       string
+	Nickname       string
+	PasswordHash   string
+	SessionVersion int64
+	RoleCodes      []string
+	IsSuperAdmin   bool
+	IsEnable       bool
 }
 
 // passwordVerifier 抽象密码校验行为。
-type passwordVerifier interface {
+type passwordManager interface {
+	Hash(password string) (string, error)
 	Compare(hash string, password string) error
 }
 
@@ -35,49 +40,110 @@ type tokenManager interface {
 	IssueTokenPair(ctx context.Context, principal platformauth.Principal) (platformauth.TokenPair, error)
 	ValidateRefreshToken(ctx context.Context, token string) (*platformauth.RefreshTokenRecord, error)
 	RotateRefreshToken(ctx context.Context, token string, expected platformauth.RefreshTokenRecord, principal platformauth.Principal) (platformauth.TokenPair, error)
+	ConsumeRefreshToken(ctx context.Context, token string) (*platformauth.RefreshTokenRecord, error)
+}
+
+type authorizationInvalidator interface {
+	NotifyChanged(ctx context.Context, userIDs []idgen.ID, reloadPolicy bool) error
 }
 
 // Service 是 auth 模块的应用服务，直接通过 Ent Client 操作数据库。
 type Service struct {
-	client    *appent.Client
-	passwords passwordVerifier
-	tokens    tokenManager
+	client            *appent.Client
+	passwords         passwordManager
+	tokens            tokenManager
+	loginGuard        platformauth.LoginGuard
+	authz             authorizationInvalidator
+	logger            *logx.Logger
+	dummyPasswordHash string
 }
 
 // NewService 构造 auth 模块应用服务。
-func NewService(client *appent.Client, passwords passwordVerifier, tokens tokenManager) *Service {
-	return &Service{
-		client:    client,
-		passwords: passwords,
-		tokens:    tokens,
+func NewService(
+	client *appent.Client,
+	passwords passwordManager,
+	tokens tokenManager,
+	loginGuard platformauth.LoginGuard,
+	invalidator authorizationInvalidator,
+	logger *logx.Logger,
+) (*Service, error) {
+	if client == nil || passwords == nil || tokens == nil || loginGuard == nil || invalidator == nil {
+		return nil, fmt.Errorf("auth service 依赖不能为空")
 	}
+	dummyPasswordHash, err := passwords.Hash("initra-login-timing-placeholder")
+	if err != nil {
+		return nil, fmt.Errorf("初始化登录等时密码哈希失败: %w", err)
+	}
+	if logger == nil {
+		logger = logx.NewNop()
+	}
+	return &Service{
+		client:            client,
+		passwords:         passwords,
+		tokens:            tokens,
+		loginGuard:        loginGuard,
+		authz:             invalidator,
+		logger:            logger.Named("security.audit"),
+		dummyPasswordHash: dummyPasswordHash,
+	}, nil
 }
 
 // Login 校验账号密码并签发 access JWT 与 opaque refresh token。
 func (s *Service) Login(ctx context.Context, body LoginBody) (LoginVO, error) {
-	if strings.TrimSpace(body.Username) == "" || strings.TrimSpace(body.Password) == "" {
-		return LoginVO{}, bizerrors.BadRequest("username and password are required")
+	account := strings.TrimSpace(body.Username)
+	sourceIP, _ := requestctx.ClientIPFromContext(ctx)
+	if account == "" || strings.TrimSpace(body.Password) == "" {
+		s.auditLoginRejected(ctx, account, sourceIP, "credentials_invalid")
+		return LoginVO{}, bizerrors.LoginFailed()
+	}
+	if err := s.loginGuard.Check(ctx, account, sourceIP); err != nil {
+		if errors.Is(err, platformauth.ErrLoginProtectionStoreFailure) {
+			return LoginVO{}, bizerrors.WrapInternalContext(ctx, err, "check login protection failed")
+		}
+		s.auditLoginRejected(ctx, account, sourceIP, loginGuardReason(err))
+		return LoginVO{}, bizerrors.LoginFailed()
 	}
 
-	identity, err := s.findByUsername(ctx, strings.TrimSpace(body.Username))
+	identity, err := s.findByUsername(ctx, account)
 	if err != nil {
 		return LoginVO{}, err
 	}
-	if identity == nil || !identity.IsEnable {
+	passwordHash := s.dummyPasswordHash
+	if identity != nil {
+		passwordHash = identity.PasswordHash
+	}
+	passwordMatches := s.passwords.Compare(passwordHash, body.Password) == nil
+	if identity == nil || !identity.IsEnable || !passwordMatches {
+		guardErr := s.loginGuard.RecordFailure(ctx, account)
+		if errors.Is(guardErr, platformauth.ErrLoginProtectionStoreFailure) {
+			return LoginVO{}, bizerrors.WrapInternalContext(ctx, guardErr, "record login failure failed")
+		}
+		reason := "credentials_invalid"
+		if errors.Is(guardErr, platformauth.ErrLoginLocked) {
+			reason = "account_locked"
+		}
+		s.auditLoginRejected(ctx, account, sourceIP, reason)
 		return LoginVO{}, bizerrors.LoginFailed()
 	}
-	if err := s.passwords.Compare(identity.PasswordHash, body.Password); err != nil {
-		return LoginVO{}, bizerrors.LoginFailed()
+	if err := s.loginGuard.Reset(ctx, account); err != nil {
+		return LoginVO{}, bizerrors.WrapInternalContext(ctx, err, "reset login protection failed")
 	}
 
 	tokenPair, err := s.tokens.IssueTokenPair(ctx, platformauth.Principal{
-		UserID: identity.UserID,
-		Roles:  append([]string(nil), identity.RoleCodes...),
+		UserID:         identity.UserID,
+		SessionVersion: identity.SessionVersion,
+		Roles:          append([]string(nil), identity.RoleCodes...),
 	})
 	if err != nil {
 		return LoginVO{}, bizerrors.WrapInternalContext(ctx, err, "issue token failed")
 	}
 
+	s.logger.Info(ctx, "login succeeded",
+		logx.String("event", "auth.login.succeeded"),
+		logx.String("account", account),
+		logx.String("source_ip", sourceIP),
+		logx.String("user_id", identity.UserID.String()),
+	)
 	return LoginVO{
 		AccessToken:  tokenPair.AccessToken,
 		RefreshToken: tokenPair.RefreshToken,
@@ -106,10 +172,15 @@ func (s *Service) Refresh(ctx context.Context, body RefreshBody) (RefreshVO, err
 	if identity == nil || !identity.IsEnable {
 		return RefreshVO{}, bizerrors.Unauthorized("refresh token is invalid")
 	}
+	if record.SessionVersion != identity.SessionVersion {
+		return RefreshVO{}, bizerrors.Unauthorized("refresh token is invalid")
+	}
 
 	tokenPair, err := s.tokens.RotateRefreshToken(ctx, body.RefreshToken, *record, platformauth.Principal{
-		UserID: identity.UserID,
-		Roles:  append([]string(nil), identity.RoleCodes...),
+		UserID:         identity.UserID,
+		SessionID:      record.SessionID,
+		SessionVersion: identity.SessionVersion,
+		Roles:          append([]string(nil), identity.RoleCodes...),
 	})
 	if err != nil {
 		if errors.Is(err, platformauth.ErrTokenStoreFailure) {
@@ -176,14 +247,35 @@ func (s *Service) toIdentity(ctx context.Context, record *appent.SysUser) (*Iden
 		return nil, err
 	}
 	return &Identity{
-		UserID:       record.ID,
-		Username:     record.Username,
-		Nickname:     stringValue(record.Nickname),
-		PasswordHash: record.PasswordHash,
-		RoleCodes:    roleCodes,
-		IsSuperAdmin: record.IsSuperAdmin,
-		IsEnable:     record.IsEnable,
+		UserID:         record.ID,
+		Username:       record.Username,
+		Nickname:       stringValue(record.Nickname),
+		PasswordHash:   record.PasswordHash,
+		SessionVersion: record.SessionVersion,
+		RoleCodes:      roleCodes,
+		IsSuperAdmin:   record.IsSuperAdmin,
+		IsEnable:       record.IsEnable,
 	}, nil
+}
+
+func (s *Service) auditLoginRejected(ctx context.Context, account string, sourceIP string, reason string) {
+	s.logger.Warn(ctx, "login rejected",
+		logx.String("event", "auth.login.rejected"),
+		logx.String("account", account),
+		logx.String("source_ip", sourceIP),
+		logx.String("reason", reason),
+	)
+}
+
+func loginGuardReason(err error) string {
+	switch {
+	case errors.Is(err, platformauth.ErrLoginLocked):
+		return "account_locked"
+	case errors.Is(err, platformauth.ErrLoginRateLimited):
+		return "rate_limited"
+	default:
+		return "rejected"
+	}
 }
 
 func (s *Service) loadRoleCodes(ctx context.Context, userID idgen.ID) ([]string, error) {

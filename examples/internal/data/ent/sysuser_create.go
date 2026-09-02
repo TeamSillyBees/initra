@@ -118,6 +118,20 @@ func (_c *SysUserCreate) SetNillableIsEnable(v *bool) *SysUserCreate {
 	return _c
 }
 
+// SetSessionVersion sets the "session_version" field.
+func (_c *SysUserCreate) SetSessionVersion(v int64) *SysUserCreate {
+	_c.mutation.SetSessionVersion(v)
+	return _c
+}
+
+// SetNillableSessionVersion sets the "session_version" field if the given value is not nil.
+func (_c *SysUserCreate) SetNillableSessionVersion(v *int64) *SysUserCreate {
+	if v != nil {
+		_c.SetSessionVersion(*v)
+	}
+	return _c
+}
+
 // SetSortID sets the "sort_id" field.
 func (_c *SysUserCreate) SetSortID(v int32) *SysUserCreate {
 	_c.mutation.SetSortID(v)
@@ -274,6 +288,10 @@ func (_c *SysUserCreate) defaults() {
 		v := sysuser.DefaultIsEnable
 		_c.mutation.SetIsEnable(v)
 	}
+	if _, ok := _c.mutation.SessionVersion(); !ok {
+		v := sysuser.DefaultSessionVersion
+		_c.mutation.SetSessionVersion(v)
+	}
 	if _, ok := _c.mutation.SortID(); !ok {
 		v := sysuser.DefaultSortID
 		_c.mutation.SetSortID(v)
@@ -330,6 +348,14 @@ func (_c *SysUserCreate) check() error {
 	}
 	if _, ok := _c.mutation.IsEnable(); !ok {
 		return &ValidationError{Name: "is_enable", err: errors.New(`ent: missing required field "SysUser.is_enable"`)}
+	}
+	if _, ok := _c.mutation.SessionVersion(); !ok {
+		return &ValidationError{Name: "session_version", err: errors.New(`ent: missing required field "SysUser.session_version"`)}
+	}
+	if v, ok := _c.mutation.SessionVersion(); ok {
+		if err := sysuser.SessionVersionValidator(v); err != nil {
+			return &ValidationError{Name: "session_version", err: fmt.Errorf(`ent: validator failed for field "SysUser.session_version": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.SortID(); !ok {
 		return &ValidationError{Name: "sort_id", err: errors.New(`ent: missing required field "SysUser.sort_id"`)}
@@ -408,6 +434,10 @@ func (_c *SysUserCreate) createSpec() (*SysUser, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.IsEnable(); ok {
 		_spec.SetField(sysuser.FieldIsEnable, field.TypeBool, value)
 		_node.IsEnable = value
+	}
+	if value, ok := _c.mutation.SessionVersion(); ok {
+		_spec.SetField(sysuser.FieldSessionVersion, field.TypeInt64, value)
+		_node.SessionVersion = value
 	}
 	if value, ok := _c.mutation.SortID(); ok {
 		_spec.SetField(sysuser.FieldSortID, field.TypeInt32, value)

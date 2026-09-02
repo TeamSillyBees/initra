@@ -166,6 +166,27 @@ func (_u *SysUserUpdate) SetNillableIsEnable(v *bool) *SysUserUpdate {
 	return _u
 }
 
+// SetSessionVersion sets the "session_version" field.
+func (_u *SysUserUpdate) SetSessionVersion(v int64) *SysUserUpdate {
+	_u.mutation.ResetSessionVersion()
+	_u.mutation.SetSessionVersion(v)
+	return _u
+}
+
+// SetNillableSessionVersion sets the "session_version" field if the given value is not nil.
+func (_u *SysUserUpdate) SetNillableSessionVersion(v *int64) *SysUserUpdate {
+	if v != nil {
+		_u.SetSessionVersion(*v)
+	}
+	return _u
+}
+
+// AddSessionVersion adds value to the "session_version" field.
+func (_u *SysUserUpdate) AddSessionVersion(v int64) *SysUserUpdate {
+	_u.mutation.AddSessionVersion(v)
+	return _u
+}
+
 // SetSortID sets the "sort_id" field.
 func (_u *SysUserUpdate) SetSortID(v int32) *SysUserUpdate {
 	_u.mutation.ResetSortID()
@@ -371,6 +392,11 @@ func (_u *SysUserUpdate) check() error {
 			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "SysUser.email": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.SessionVersion(); ok {
+		if err := sysuser.SessionVersionValidator(v); err != nil {
+			return &ValidationError{Name: "session_version", err: fmt.Errorf(`ent: validator failed for field "SysUser.session_version": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -421,6 +447,12 @@ func (_u *SysUserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.IsEnable(); ok {
 		_spec.SetField(sysuser.FieldIsEnable, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.SessionVersion(); ok {
+		_spec.SetField(sysuser.FieldSessionVersion, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedSessionVersion(); ok {
+		_spec.AddField(sysuser.FieldSessionVersion, field.TypeInt64, value)
 	}
 	if value, ok := _u.mutation.SortID(); ok {
 		_spec.SetField(sysuser.FieldSortID, field.TypeInt32, value)
@@ -656,6 +688,27 @@ func (_u *SysUserUpdateOne) SetNillableIsEnable(v *bool) *SysUserUpdateOne {
 	return _u
 }
 
+// SetSessionVersion sets the "session_version" field.
+func (_u *SysUserUpdateOne) SetSessionVersion(v int64) *SysUserUpdateOne {
+	_u.mutation.ResetSessionVersion()
+	_u.mutation.SetSessionVersion(v)
+	return _u
+}
+
+// SetNillableSessionVersion sets the "session_version" field if the given value is not nil.
+func (_u *SysUserUpdateOne) SetNillableSessionVersion(v *int64) *SysUserUpdateOne {
+	if v != nil {
+		_u.SetSessionVersion(*v)
+	}
+	return _u
+}
+
+// AddSessionVersion adds value to the "session_version" field.
+func (_u *SysUserUpdateOne) AddSessionVersion(v int64) *SysUserUpdateOne {
+	_u.mutation.AddSessionVersion(v)
+	return _u
+}
+
 // SetSortID sets the "sort_id" field.
 func (_u *SysUserUpdateOne) SetSortID(v int32) *SysUserUpdateOne {
 	_u.mutation.ResetSortID()
@@ -874,6 +927,11 @@ func (_u *SysUserUpdateOne) check() error {
 			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "SysUser.email": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.SessionVersion(); ok {
+		if err := sysuser.SessionVersionValidator(v); err != nil {
+			return &ValidationError{Name: "session_version", err: fmt.Errorf(`ent: validator failed for field "SysUser.session_version": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -941,6 +999,12 @@ func (_u *SysUserUpdateOne) sqlSave(ctx context.Context) (_node *SysUser, err er
 	}
 	if value, ok := _u.mutation.IsEnable(); ok {
 		_spec.SetField(sysuser.FieldIsEnable, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.SessionVersion(); ok {
+		_spec.SetField(sysuser.FieldSessionVersion, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedSessionVersion(); ok {
+		_spec.AddField(sysuser.FieldSessionVersion, field.TypeInt64, value)
 	}
 	if value, ok := _u.mutation.SortID(); ok {
 		_spec.SetField(sysuser.FieldSortID, field.TypeInt32, value)

@@ -7,7 +7,7 @@
 - 权限使用 `domain:resource:action` 风格的稳定字符串，例如 `system:user:read`。
 - 权限路由通过 `RouteSecurity.Permission` 直接登记权限标识。
 - Casbin 模型为 `p(role_code, permission_code)`；adapter 只读取有效的 `sys_role`、`sys_menu`、`sys_role_menu`，不允许 Casbin API 反向写库。
-- access JWT 只保存 `userId`、tenant/session 等身份声明，不保存角色或权限。中间件按请求从 Redis 缓存或数据库解析当前启用用户、有效角色和超级管理员状态，因此角色撤销、角色禁用和用户禁用不受旧 token 过期时间影响。
+- access JWT 只保存 `userId`、`sessionId`、`sessionVersion` 和必要的标准 JWT 声明，不保存角色、权限或租户快照。中间件按请求从 Redis 缓存或数据库解析当前启用用户、会话版本、有效角色和超级管理员状态，因此会话撤销、角色撤销、角色禁用和用户禁用不受旧 token 过期时间影响。
 
 ## 管理与审计
 

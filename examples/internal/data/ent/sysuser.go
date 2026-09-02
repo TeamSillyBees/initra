@@ -35,6 +35,8 @@ type SysUser struct {
 	IsSuperAdmin bool `json:"is_super_admin,omitempty"`
 	// 账号是否启用。
 	IsEnable bool `json:"is_enable,omitempty"`
+	// 用户级会话版本，递增后使全部旧 access/refresh token 失效。
+	SessionVersion int64 `json:"session_version,omitempty"`
 	// 排序值，便于后台列表定制顺序。
 	SortID int32 `json:"sort_id,omitempty"`
 	// 逻辑删除时间，NULL 表示未删除。
@@ -78,7 +80,7 @@ func (*SysUser) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case sysuser.FieldIsSuperAdmin, sysuser.FieldIsEnable:
 			values[i] = new(sql.NullBool)
-		case sysuser.FieldID, sysuser.FieldSortID, sysuser.FieldCreatedBy, sysuser.FieldUpdatedBy:
+		case sysuser.FieldID, sysuser.FieldSessionVersion, sysuser.FieldSortID, sysuser.FieldCreatedBy, sysuser.FieldUpdatedBy:
 			values[i] = new(sql.NullInt64)
 		case sysuser.FieldUsername, sysuser.FieldPasswordHash, sysuser.FieldNickname, sysuser.FieldPhone, sysuser.FieldEmail, sysuser.FieldAvatarURL:
 			values[i] = new(sql.NullString)
@@ -156,6 +158,12 @@ func (_m *SysUser) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field is_enable", values[i])
 			} else if value.Valid {
 				_m.IsEnable = value.Bool
+			}
+		case sysuser.FieldSessionVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field session_version", values[i])
+			} else if value.Valid {
+				_m.SessionVersion = value.Int64
 			}
 		case sysuser.FieldSortID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -268,6 +276,9 @@ func (_m *SysUser) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("is_enable=")
 	builder.WriteString(fmt.Sprintf("%v", _m.IsEnable))
+	builder.WriteString(", ")
+	builder.WriteString("session_version=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SessionVersion))
 	builder.WriteString(", ")
 	builder.WriteString("sort_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SortID))

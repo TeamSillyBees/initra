@@ -40,6 +40,7 @@ func sysUserRows() *sqlmock.Rows {
 		"avatar_url",
 		"is_super_admin",
 		"is_enable",
+		"session_version",
 		"sort_id",
 	})
 }

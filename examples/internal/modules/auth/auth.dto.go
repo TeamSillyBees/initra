@@ -24,6 +24,27 @@ type refreshRequest struct {
 	Body RefreshBody
 }
 
+// LogoutBody 描述撤销当前会话所需的 refresh token。
+type LogoutBody struct {
+	RefreshToken string `json:"refreshToken" example:"token"`
+}
+
+type logoutRequest struct {
+	Body LogoutBody
+}
+
+type logoutAllRequest struct{}
+
+// ChangePasswordBody 描述当前用户修改密码请求体。
+type ChangePasswordBody struct {
+	CurrentPassword string `json:"currentPassword" example:"old-secret-123"`
+	NewPassword     string `json:"newPassword" example:"new-secret-456"`
+}
+
+type changePasswordRequest struct {
+	Body ChangePasswordBody
+}
+
 type meRequest struct{}
 
 // LoginVO 描述登录成功响应体。
@@ -59,4 +80,16 @@ type refreshResponse struct {
 
 type meResponse struct {
 	Body response.SuccessVO[UserIdentityVO]
+}
+
+type logoutResponse struct {
+	Body response.SuccessVO[map[string]any]
+}
+
+type logoutAllResponse struct {
+	Body response.SuccessVO[map[string]any]
+}
+
+type changePasswordResponse struct {
+	Body response.SuccessVO[map[string]any]
 }

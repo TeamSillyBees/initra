@@ -6,10 +6,12 @@ import (
 	"time"
 
 	"github.com/teamsillybees/initra/examples/internal/data"
+	platformauth "github.com/teamsillybees/initra/pkg/auth"
 	platformconfig "github.com/teamsillybees/initra/pkg/config"
 	"github.com/teamsillybees/initra/pkg/httpclient"
 	"github.com/teamsillybees/initra/pkg/logx"
 	"github.com/teamsillybees/initra/pkg/redisx"
+	platformserver "github.com/teamsillybees/initra/pkg/server"
 	platformstorage "github.com/teamsillybees/initra/pkg/storage"
 	"github.com/teamsillybees/initra/pkg/task"
 )
@@ -42,20 +44,24 @@ type AppConfig struct {
 
 // ServerConfig 描述 HTTP Server 的监听地址、超时和关闭参数。
 type ServerConfig struct {
-	Addr            string        `mapstructure:"addr"`
-	ReadTimeout     time.Duration `mapstructure:"read_timeout"`
-	WriteTimeout    time.Duration `mapstructure:"write_timeout"`
-	IdleTimeout     time.Duration `mapstructure:"idle_timeout"`
-	ShutdownTimeout time.Duration `mapstructure:"shutdown_timeout"`
+	Addr            string                    `mapstructure:"addr"`
+	ReadTimeout     time.Duration             `mapstructure:"read_timeout"`
+	WriteTimeout    time.Duration             `mapstructure:"write_timeout"`
+	IdleTimeout     time.Duration             `mapstructure:"idle_timeout"`
+	ShutdownTimeout time.Duration             `mapstructure:"shutdown_timeout"`
+	TrustedProxies  []string                  `mapstructure:"trusted_proxies"`
+	CORS            platformserver.CORSConfig `mapstructure:"cors"`
+	Docs            platformserver.DocsConfig `mapstructure:"docs"`
 }
 
 // AuthConfig 描述认证与令牌配置。
 type AuthConfig struct {
-	Enabled               bool          `mapstructure:"enabled"`
-	AllowMemoryTokenStore bool          `mapstructure:"allow_memory_token_store"`
-	AccessTokenTTL        time.Duration `mapstructure:"access_token_ttl"`
-	RefreshTokenTTL       time.Duration `mapstructure:"refresh_token_ttl"`
-	JWT                   JWTConfig     `mapstructure:"jwt"`
+	Enabled               bool                               `mapstructure:"enabled"`
+	AllowMemoryTokenStore bool                               `mapstructure:"allow_memory_token_store"`
+	AccessTokenTTL        time.Duration                      `mapstructure:"access_token_ttl"`
+	RefreshTokenTTL       time.Duration                      `mapstructure:"refresh_token_ttl"`
+	JWT                   JWTConfig                          `mapstructure:"jwt"`
+	LoginProtection       platformauth.LoginProtectionConfig `mapstructure:"login_protection"`
 }
 
 // JWTConfig 描述 JWT 签发所需配置。
@@ -109,6 +115,15 @@ func (c *Config) Validate() error {
 	if err := c.Redis.Validate(); err != nil {
 		return err
 	}
+	if err := c.Server.CORS.Validate(c.App.Env); err != nil {
+		return err
+	}
+	if err := c.Server.Docs.Validate(c.App.Env); err != nil {
+		return err
+	}
+	if err := c.Auth.LoginProtection.Validate(); err != nil {
+		return err
+	}
 	taskConfig := c.Task.Normalize()
 	switch {
 	case c.App.Name == "":
@@ -159,6 +174,8 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("非 dev/local/test 环境的认证必须启用 Redis 共享 token store")
 	case requiresSecureInfrastructure(c.App.Env) && c.Auth.AllowMemoryTokenStore:
 		return fmt.Errorf("非 dev/local/test 环境禁止启用 auth.allow_memory_token_store")
+	case requiresSecureInfrastructure(c.App.Env) && !c.Auth.LoginProtection.Enabled:
+		return fmt.Errorf("非 dev/local/test 环境必须启用 auth.login_protection")
 	case !c.Redis.Enabled && !c.Auth.AllowMemoryTokenStore:
 		return fmt.Errorf("Redis 关闭时必须显式启用 auth.allow_memory_token_store")
 	case !c.Auth.Enabled:
@@ -195,41 +212,58 @@ func (c *Config) Validate() error {
 // configDefaults 统一声明示例项目配置默认值。
 func configDefaults() map[string]any {
 	return map[string]any{
-		"app.version":                                        "dev",
-		"app.slug":                                           "",
-		"app.instance_id":                                    "local-1",
-		"server.addr":                                        ":8080",
-		"server.read_timeout":                                "10s",
-		"server.write_timeout":                               "30s",
-		"server.idle_timeout":                                "60s",
-		"server.shutdown_timeout":                            "45s",
-		"database.host":                                      "",
-		"database.port":                                      5432,
-		"database.user":                                      "",
-		"database.password":                                  "",
-		"database.dbname":                                    "",
-		"database.application_name":                          "",
-		"database.ssl_mode":                                  "require",
-		"database.ssl_root_cert":                             "",
-		"database.connect_timeout":                           "5s",
-		"database.max_open_conns":                            20,
-		"database.max_idle_conns":                            10,
-		"database.conn_max_idle_time":                        "15m",
-		"database.conn_max_lifetime":                         "1h",
-		"database.ping_timeout":                              "5s",
-		"redis.enabled":                                      false,
-		"redis.addr":                                         "127.0.0.1:6379",
-		"redis.password":                                     "",
-		"redis.db":                                           0,
-		"redis.pool.size":                                    10,
-		"redis.observability.metrics_enabled":                true,
-		"redis.observability.tracing_enabled":                false,
-		"auth.enabled":                                       true,
-		"auth.allow_memory_token_store":                      false,
-		"auth.access_token_ttl":                              "15m",
-		"auth.refresh_token_ttl":                             "720h",
-		"auth.jwt.issuer":                                    "",
-		"auth.jwt.secret":                                    "",
+		"app.version":                         "dev",
+		"app.slug":                            "",
+		"app.instance_id":                     "local-1",
+		"server.addr":                         ":8080",
+		"server.read_timeout":                 "10s",
+		"server.write_timeout":                "30s",
+		"server.idle_timeout":                 "60s",
+		"server.shutdown_timeout":             "45s",
+		"server.trusted_proxies":              []string{},
+		"server.cors.enabled":                 true,
+		"server.cors.allowed_origins":         []string{"http://localhost:3000", "http://127.0.0.1:3000"},
+		"server.cors.allowed_methods":         []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		"server.cors.allowed_headers":         []string{"Authorization", "Content-Type", "X-Request-ID", "X-Trace-ID"},
+		"server.cors.exposed_headers":         []string{"X-Request-ID", "X-Trace-ID"},
+		"server.cors.allow_credentials":       false,
+		"server.cors.max_age":                 "10m",
+		"server.docs.enabled":                 true,
+		"database.host":                       "",
+		"database.port":                       5432,
+		"database.user":                       "",
+		"database.password":                   "",
+		"database.dbname":                     "",
+		"database.application_name":           "",
+		"database.ssl_mode":                   "require",
+		"database.ssl_root_cert":              "",
+		"database.connect_timeout":            "5s",
+		"database.max_open_conns":             20,
+		"database.max_idle_conns":             10,
+		"database.conn_max_idle_time":         "15m",
+		"database.conn_max_lifetime":          "1h",
+		"database.ping_timeout":               "5s",
+		"redis.enabled":                       false,
+		"redis.addr":                          "127.0.0.1:6379",
+		"redis.password":                      "",
+		"redis.db":                            0,
+		"redis.pool.size":                     10,
+		"redis.observability.metrics_enabled": true,
+		"redis.observability.tracing_enabled": false,
+		"auth.enabled":                        true,
+		"auth.allow_memory_token_store":       false,
+		"auth.access_token_ttl":               "15m",
+		"auth.refresh_token_ttl":              "720h",
+		"auth.jwt.issuer":                     "",
+		"auth.jwt.secret":                     "",
+		"auth.login_protection.enabled":       true,
+		"auth.login_protection.account_rate_limit.max_attempts": 10,
+		"auth.login_protection.account_rate_limit.window":       "1m",
+		"auth.login_protection.ip_rate_limit.max_attempts":      60,
+		"auth.login_protection.ip_rate_limit.window":            "1m",
+		"auth.login_protection.lockout.max_failures":            5,
+		"auth.login_protection.lockout.failure_window":          "15m",
+		"auth.login_protection.lockout.lock_duration":           "15m",
 		"log.level":                                          "info",
 		"log.console.enabled":                                true,
 		"log.console.level":                                  "debug",

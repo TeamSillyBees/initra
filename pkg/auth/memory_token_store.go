@@ -191,6 +191,8 @@ func (s *MemoryTokenStore) pruneLocked(now time.Time) {
 
 func sameRefreshTokenRecord(left RefreshTokenRecord, right RefreshTokenRecord) bool {
 	return left.UserID == right.UserID &&
+		left.SessionID == right.SessionID &&
+		left.SessionVersion == right.SessionVersion &&
 		left.AccessTokenID == right.AccessTokenID &&
 		left.AccessExpiresAt.Equal(right.AccessExpiresAt)
 }
