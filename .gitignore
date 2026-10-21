@@ -1,6 +1,7 @@
 tmp/
 var/
-examples/var/
+configs/config.local.yaml
+db/seeds/*.local.sql
 *.exe
 *.log
 .env

@@ -30,7 +30,6 @@ require (
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/samber/do v1.6.0
 	github.com/samber/oops v1.22.0
-	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.1.11
@@ -43,8 +42,10 @@ require (
 	golang.org/x/sync v0.19.0
 )
 
+require github.com/spf13/cobra v1.10.2 // indirect
+
 require (
-	github.com/DATA-DOG/go-sqlmock v1.5.2 // indirect
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.10 // indirect
@@ -95,6 +96,7 @@ require (
 	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/lib/pq v1.12.3
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.20 // indirect
@@ -146,7 +148,7 @@ require (
 	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 tool entgo.io/ent/cmd/ent

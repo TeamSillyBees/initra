@@ -4,6 +4,13 @@
 
 ## 未发布
 
+- 改为单一 Go module 的源码服务模板：根目录直接提供服务和测试，基础能力内置到 internal/platform。
+- 移除独立脚手架 CLI、模板镜像、同步工具及旧开发技能分发和使用说明。
+- 增加项目本地 setup，支持改名、随机本地 JWT 密钥与管理员 seed，重复执行保留已有凭据。
+- 以当前 Ent schema 建立全新的无物理外键迁移基线，不兼容旧项目和数据库迁移历史。
+- CI 直接验证模板、改名后的项目、Ent 再生成及真实 PostgreSQL 迁移和 seed。
+- 修复项目改名误改配置值、空 YAML 分组无法写入密钥，以及改名后旧外部依赖检查失效的问题；CI 同时检查未跟踪的生成文件。
+
 ## v0.1.20 - 2026-09-02
 
 ### 新增
@@ -11,7 +18,7 @@
 - 增加安全报告、贡献流程和变更记录基础文档。
 - 增加 golangci-lint v2 基础配置。
 - 补齐存量导出声明注释，并增加基于 Go AST 的架构测试，阻止新增不规范注释。
-- CLI 增加 `snippet add`、可加载的事务化 `config add`、`doctor --json`，以及可检查和安全升级的 Codex skill。
+- CLI 增加 `snippet add`、可加载的事务化 `config add` 和 `doctor --json`。
 - API 模板增加随机 JWT secret、一次性管理员密码、安全 `app.slug`、事务化逻辑外键检查和 nonroot 容器基线。
 - API 模板增加数据库 RBAC adapter、角色/权限/分配管理接口、Redis 身份缓存失效和 Casbin 多实例策略重载。
 - API 模板增加当前会话退出、全部会话退出、修改密码后的全会话失效，以及 Redis 账号/IP 登录限流、连续失败锁定和安全审计。

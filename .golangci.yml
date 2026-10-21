@@ -17,7 +17,7 @@ linters:
   exclusions:
     generated: strict
     paths:
-      - "(^|/)examples/internal/data/ent(/|$)"
+      - "(^|/)internal/data/ent(/|$)"
       - "(^|/)(tmp|var)(/|$)"
 
 issues:
